@@ -1,0 +1,18 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="PipeTheme.Default" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0" Dense="true">
+        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Class="mr-2" />
+        <MudText Typo="Typo.h6">gView.Pipe</MudText>
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="pt-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>

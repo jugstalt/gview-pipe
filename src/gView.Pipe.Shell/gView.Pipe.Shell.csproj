@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <Description>gView.Pipe application shell: layout, routing and service composition only.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\gView.Pipe.Core\gView.Pipe.Core.csproj" />
+    <ProjectReference Include="..\gView.Pipe.Razor\gView.Pipe.Razor.csproj" />
+    <!-- built-in nodes; referenced only so the dll lands in the output folder, discovered like any plugin -->
+    <ProjectReference Include="..\gView.Pipe.Plugins\gView.Pipe.Plugins.csproj" />
+    <ProjectReference Include="..\Aspire\gView.Pipe.ServiceDefaults\gView.Pipe.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MudBlazor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- seeded into an empty workflow store on first start -->
+    <None Include="..\..\samples\workflows\*.json" Link="samples\workflows\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

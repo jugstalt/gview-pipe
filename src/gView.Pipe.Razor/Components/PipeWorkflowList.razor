@@ -1,0 +1,120 @@
+@inject IPipeWorkflowStore WorkflowStore
+@inject IPipeExecutionStore ExecutionStore
+@inject IPipeWorkflowRunner Runner
+@inject ISnackbar Snackbar
+
+<MudPaper Class="gview-pipe-workflow-list pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h6">Workflows</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" aria-label="Reload" OnClick="LoadAsync" />
+    </MudStack>
+
+    @if (_workflows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_workflows.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">No workflows yet.</MudText>
+    }
+    else
+    {
+        <MudTable T="PipeWorkflow" Items="_workflows" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Nodes</MudTh>
+                <MudTh>Active</MudTh>
+                <MudTh>Last run</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">
+                    <MudText Typo="Typo.body2">@context.Name</MudText>
+                    @if (!string.IsNullOrEmpty(context.Description))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Description</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Nodes">@context.Nodes.Count</MudTd>
+                <MudTd DataLabel="Active">
+                    @if (context.Active)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Success" Size="Size.Small" />
+                    }
+                </MudTd>
+                <MudTd DataLabel="Last run">
+                    @if (_lastRuns.TryGetValue(context.Id, out var run))
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="StatusColor(run.Status)" Variant="Variant.Outlined">@run.Status</MudChip>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@run.StartedAt.LocalDateTime.ToString("g")</MudText>
+                    }
+                </MudTd>
+                <MudTd Style="text-align:right">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.PlayArrow"
+                               Disabled="_running.Contains(context.Id)"
+                               OnClick="() => RunAsync(context)">Run</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    private IReadOnlyList<PipeWorkflow>? _workflows;
+    private readonly Dictionary<string, PipeExecution> _lastRuns = new();
+    private readonly HashSet<string> _running = new();
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _workflows = await WorkflowStore.ListAsync();
+        _lastRuns.Clear();
+
+        foreach (var workflow in _workflows)
+        {
+            if ((await ExecutionStore.ListAsync(workflow.Id, 1)).FirstOrDefault() is { } last)
+            {
+                _lastRuns[workflow.Id] = last;
+            }
+        }
+    }
+
+    private async Task RunAsync(PipeWorkflow workflow)
+    {
+        _running.Add(workflow.Id);
+        try
+        {
+            var execution = await Runner.RunAsync(workflow);
+            if (execution is null)
+            {
+                Snackbar.Add($"{workflow.Name} is already running", Severity.Warning);
+                return;
+            }
+
+            _lastRuns[workflow.Id] = execution;
+            Snackbar.Add(execution.Status == PipeExecutionStatus.Success
+                    ? $"{workflow.Name} finished"
+                    : $"{workflow.Name}: {execution.Error}",
+                execution.Status == PipeExecutionStatus.Success ? Severity.Success : Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{workflow.Name}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _running.Remove(workflow.Id);
+        }
+    }
+
+    static private Color StatusColor(PipeExecutionStatus status) => status switch
+    {
+        PipeExecutionStatus.Success => Color.Success,
+        PipeExecutionStatus.Error => Color.Error,
+        PipeExecutionStatus.Running => Color.Info,
+        _ => Color.Default
+    };
+}

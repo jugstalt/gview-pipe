@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "hello-pipe",
+  "name": "Hello Pipe",
+  "description": "Sample: manual trigger, set fields, branch on a condition, log the result.",
+  "active": false,
+  "settings": {
+    "maxConcurrentRuns": 1,
+    "saveExecutionData": true
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "3f6c1a52-9d0e-4b7a-8c11-0a5e2f7d9b01",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "set",
+      "name": "Set Greeting",
+      "type": "5a9b3c7d-2e4f-4a6b-8c1d-9e0f1a2b3c04",
+      "typeVersion": 1,
+      "parameters": {
+        "fields": {
+          "name": "gView",
+          "score": 42,
+          "greeting": "Hello {{ $workflow.name }}!"
+        }
+      },
+      "position": { "x": 240, "y": 0 }
+    },
+    {
+      "id": "check",
+      "name": "Score > 10",
+      "type": "e1f2a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a05",
+      "typeVersion": 1,
+      "parameters": {
+        "value1": "{{ $json.score }}",
+        "operation": "greaterThan",
+        "value2": 10
+      },
+      "position": { "x": 480, "y": 0 }
+    },
+    {
+      "id": "log-high",
+      "name": "Log High",
+      "type": "6f7a8b9c-0d1e-4f2a-b3c4-d5e6f7a8b910",
+      "typeVersion": 1,
+      "parameters": {
+        "message": "{{ $json.greeting }} Score {{ $json.score }} is high"
+      },
+      "position": { "x": 720, "y": -80 }
+    },
+    {
+      "id": "log-low",
+      "name": "Log Low",
+      "type": "6f7a8b9c-0d1e-4f2a-b3c4-d5e6f7a8b910",
+      "typeVersion": 1,
+      "parameters": {
+        "message": "Score {{ $json.score }} is low"
+      },
+      "position": { "x": 720, "y": 80 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "start", "sourcePort": "main", "targetNodeId": "set", "targetPort": "main" },
+    { "sourceNodeId": "set", "sourcePort": "main", "targetNodeId": "check", "targetPort": "main" },
+    { "sourceNodeId": "check", "sourcePort": "true", "targetNodeId": "log-high", "targetPort": "main" },
+    { "sourceNodeId": "check", "sourcePort": "false", "targetNodeId": "log-low", "targetPort": "main" }
+  ]
+}

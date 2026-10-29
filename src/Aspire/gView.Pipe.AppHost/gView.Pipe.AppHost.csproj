@@ -1,0 +1,19 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>6d1f4c8e-2a7b-4e93-b5d0-9c3e1a8f7b42</UserSecretsId>
+    <!-- the AppHost is started with dotnet run / the IDE, not the Aspire CLI -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- lifts the transitive MessagePack of Aspire.Hosting above the versions with known advisories -->
+    <PackageReference Include="MessagePack" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\gView.Pipe.Shell\gView.Pipe.Shell.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,23 @@
+# gView.Pipe Glossary
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Workflow** | A stored graph of nodes and connections; one JSON document. Only DAGs (no cycles). | `PipeWorkflow` |
+| **Node** | An instance of a node type inside a workflow, with its own parameters and settings. Has a unique `id` (for connections) and a unique `name` (for expressions). | `PipeWorkflowNode` |
+| **Node type** | The logic behind nodes, provided by a plugin class with `[PipeNode("guid", …)]`. Workflows reference it by that GUID. | `IPipeNode`, `PipeNodeDescriptor` |
+| **Type version** | Parameter version of a node type. Older workflow nodes are migrated before execution. | `PipeNodeAttribute.Version`, `IPipeNodeMigration` |
+| **Port** | Named input or output of a node. The default port is `main`; `error` is added when a node routes failures to an output. | `PipePort`, `PipePorts` |
+| **Connection** | Links an output port of one node to an input port of another. | `PipeConnection` |
+| **Item** | The unit of data on a connection: a JSON object plus optional binary attachments. Nodes receive and emit lists of items. | `PipeItem` |
+| **Binary** | File content attached to an item. The item only holds a reference; the bytes live in the execution's binary store. | `PipeBinaryRef`, `IPipeBinaryStore` |
+| **Parameters** | Configuration of a node. Declared as a POCO class (`IPipeNode<TParameters>`), stored as JSON. String values may contain expressions. | `PipeParameterAttribute` |
+| **Expression** | `{{ … }}` inside a parameter value, evaluated per item: `$json`, `$node["Name"].json`, `$itemIndex`, `$now`, `$workflow`, `$execution`. | `IPipeExpressionEvaluator` |
+| **Trigger** | A node type that starts executions (manual, cron, later webhook). Has no inputs. | `IPipeTriggerNode` |
+| **Active workflow** | A workflow whose triggers are armed (e.g. its cron schedule runs). | `PipeWorkflow.Active`, `IPipeTriggerManager` |
+| **Execution** | One run of a workflow, with status and output items per node. | `PipeExecution`, `PipeNodeRun` |
+| **Start node** | Where an execution begins: the firing trigger, or for manual runs all nodes without incoming connections. Only nodes reachable from start nodes take part. | `PipeExecutionRequest.StartNodeId` |
+| **Engine** | Executes a workflow graph; stores nothing. | `IPipeEngine` |
+| **Runner** | Runs workflows like the app does: concurrency limit and execution history. | `IPipeWorkflowRunner` |
+| **Credential** | Stored, encrypted secret data (API key, password, …) referenced by nodes via its id. | `PipeCredential` |
+| **Credential type** | POCO class with `[PipeCredentialType("guid", …)]` describing the fields of a credential; `[Secret]` marks sensitive fields. | `PipeCredentialTypeDescriptor` |
+| **Plugin** | An assembly with node types, credential types and optionally an `IPipePluginStartup`. Built-in plugins are loaded from the app folder, external ones from `plugins/<Name>/<Name>.dll` in their own load context. | `PipePluginCatalog` |

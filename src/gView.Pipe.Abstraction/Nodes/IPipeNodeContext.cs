@@ -1,0 +1,44 @@
+using gView.Pipe.Abstraction.Credentials;
+using gView.Pipe.Abstraction.Data;
+using Microsoft.Extensions.Logging;
+using System.Text.Json.Nodes;
+
+namespace gView.Pipe.Abstraction.Nodes;
+
+public interface IPipeNodeContext
+{
+    string WorkflowId { get; }
+    string WorkflowName { get; }
+    string ExecutionId { get; }
+    string NodeId { get; }
+    string NodeName { get; }
+
+    /// <summary>Ports that received data (connected input ports).</summary>
+    IReadOnlyCollection<string> InputPorts { get; }
+
+    IReadOnlyList<PipeItem> GetInput(string port = PipePorts.Main);
+
+    /// <summary>The node's parameters as stored in the workflow, expressions not evaluated.</summary>
+    JsonObject RawParameters { get; }
+
+    /// <summary>
+    /// Returns the parameters with all <c>{{ }}</c> expressions evaluated against <paramref name="item"/>.
+    /// </summary>
+    TParameters GetParameters<TParameters>(PipeItem? item = null, int itemIndex = 0)
+        where TParameters : class, new();
+
+    /// <summary>Evaluates a template string such as <c>"Hello {{ $json.name }}"</c>.</summary>
+    JsonNode? Evaluate(string template, PipeItem? item = null, int itemIndex = 0);
+
+    Task<PipeCredential> GetCredentialAsync(string credentialId, CancellationToken cancellationToken = default);
+
+    Task<TData> GetCredentialAsync<TData>(string credentialId, CancellationToken cancellationToken = default)
+        where TData : class, new();
+
+    IPipeBinaryStore BinaryStore { get; }
+
+    ILogger Logger { get; }
+
+    /// <summary>Services of the current execution scope.</summary>
+    IServiceProvider Services { get; }
+}

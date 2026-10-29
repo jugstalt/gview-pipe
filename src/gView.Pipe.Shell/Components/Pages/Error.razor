@@ -1,0 +1,18 @@
+@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Error</PageTitle>
+
+<MudAlert Severity="Severity.Error">An error occurred while processing your request.</MudAlert>
+
+@if (!string.IsNullOrEmpty(RequestId))
+{
+    <MudText Typo="Typo.caption">Request ID: @RequestId</MudText>
+}
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId => Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

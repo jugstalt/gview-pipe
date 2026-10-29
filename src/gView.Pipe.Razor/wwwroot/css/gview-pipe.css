@@ -1,0 +1,5 @@
+/* gView.Pipe component styles. Include with: _content/gView.Pipe.Razor/css/gview-pipe.css */
+
+.gview-pipe-workflow-list .mud-table-cell {
+    vertical-align: middle;
+}

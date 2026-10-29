@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="CLAUDE.md" />
+    <File Path="GLOSSARY.md" />
+  </Folder>
+  <Folder Name="/samples/">
+    <File Path="samples/workflows/hello-pipe.json" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/gView.Pipe.Abstraction/gView.Pipe.Abstraction.csproj" />
+    <Project Path="src/gView.Pipe.Core/gView.Pipe.Core.csproj" />
+    <Project Path="src/gView.Pipe.Razor/gView.Pipe.Razor.csproj" />
+    <Project Path="src/gView.Pipe.Plugins/gView.Pipe.Plugins.csproj" />
+    <Project Path="src/gView.Pipe.Shell/gView.Pipe.Shell.csproj" />
+  </Folder>
+  <Folder Name="/Aspire/">
+    <Project Path="src/Aspire/gView.Pipe.AppHost/gView.Pipe.AppHost.csproj" />
+    <Project Path="src/Aspire/gView.Pipe.ServiceDefaults/gView.Pipe.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="src/tests/gView.Pipe.Core.Tests/gView.Pipe.Core.Tests.csproj" />
+    <Project Path="src/tests/gView.Pipe.Plugins.Tests/gView.Pipe.Plugins.Tests.csproj" />
+  </Folder>
+</Solution>
