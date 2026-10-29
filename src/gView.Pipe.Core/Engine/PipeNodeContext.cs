@@ -5,7 +5,7 @@ using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Expressions;
-using gView.Pipe.Core.Serialization;
+using gView.Pipe.Abstraction.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;

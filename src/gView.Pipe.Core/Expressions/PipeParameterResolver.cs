@@ -1,5 +1,5 @@
 using gView.Pipe.Abstraction.Expressions;
-using gView.Pipe.Core.Serialization;
+using gView.Pipe.Abstraction.Serialization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 

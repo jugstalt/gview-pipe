@@ -1,0 +1,12 @@
+@page "/workflows/{Id}"
+@inject NavigationManager Navigation
+
+<PageTitle>gView.Pipe · Editor</PageTitle>
+
+<div class="gview-pipe-shell-fill">
+    <PipeEditor WorkflowId="@Id" OnClose="@(() => Navigation.NavigateTo(""))" />
+</div>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+}

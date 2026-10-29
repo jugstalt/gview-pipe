@@ -1,5 +1,8 @@
 @page "/"
+@inject NavigationManager Navigation
 
 <PageTitle>gView.Pipe</PageTitle>
 
-<PipeWorkflowList />
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-6">
+    <PipeWorkflowList OnOpen="@(id => Navigation.NavigateTo($"workflows/{Uri.EscapeDataString(id)}"))" />
+</MudContainer>

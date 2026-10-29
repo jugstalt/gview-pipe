@@ -7,16 +7,24 @@
     <base href="/" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" rel="stylesheet" />
+    <link href="@Assets["_content/Z.Blazor.Diagrams/style.min.css"]" rel="stylesheet" />
     <link href="@Assets["_content/gView.Pipe.Razor/css/gview-pipe.css"]" rel="stylesheet" />
+    <link href="@Assets["app.css"]" rel="stylesheet" />
     <ImportMap />
     <title>gView.Pipe</title>
-    <HeadOutlet @rendermode="InteractiveServer" />
+    <HeadOutlet @rendermode="InteractiveServerNoPrerender" />
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveServer" />
+    <Routes @rendermode="InteractiveServerNoPrerender" />
     <script src="_framework/blazor.web.js"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+    <script src="@Assets["_content/Z.Blazor.Diagrams/script.min.js"]"></script>
 </body>
 
 </html>
+
+@code {
+    // no prerendering: the diagram canvas needs JS interop, and the app has nothing to gain from static HTML
+    static private readonly IComponentRenderMode InteractiveServerNoPrerender = new InteractiveServerRenderMode(prerender: false);
+}

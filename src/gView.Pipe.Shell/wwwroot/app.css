@@ -1,0 +1,34 @@
+/* Shell layout only; component styles come from gView.Pipe.Razor */
+
+html, body {
+    height: 100%;
+}
+
+.gview-pipe-shell-main {
+    /* MudMainContent pads for the app bar; keep that inside the viewport height */
+    box-sizing: border-box;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* full-height pages such as the editor */
+.gview-pipe-shell-fill {
+    flex: 1;
+    min-height: 0;
+}
+
+.gview-pipe-shell-nav {
+    width: auto;
+}
+
+    .gview-pipe-shell-nav .mud-nav-link {
+        color: inherit;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+
+    .gview-pipe-shell-nav .mud-nav-link.active {
+        background: var(--mud-palette-primary-hover);
+        color: var(--mud-palette-primary);
+    }

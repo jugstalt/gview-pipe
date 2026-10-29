@@ -1,0 +1,99 @@
+@inject IPipeExecutionStore ExecutionStore
+
+<div class="gview-pipe-panel-header">
+    <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
+    <div class="gview-pipe-panel-titles">
+        <MudText Typo="Typo.subtitle1">Workflow</MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">Select a node to edit it</MudText>
+    </div>
+</div>
+
+<MudStack Spacing="3" Class="pa-4">
+    <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Value="@Workflow.Name" ValueChanged="v => ChangeAsync(() => Workflow.Name = string.IsNullOrWhiteSpace(v) ? Workflow.Name : v.Trim())" />
+    <MudTextField T="string" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
+                  Value="@Workflow.Description" ValueChanged="v => ChangeAsync(() => Workflow.Description = v)" />
+    <MudNumericField T="int" Label="Max concurrent runs" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="100"
+                     HelperText="Further runs are skipped while this many are running"
+                     Value="Workflow.Settings.MaxConcurrentRuns" ValueChanged="v => ChangeAsync(() => Workflow.Settings.MaxConcurrentRuns = v)" />
+    <MudSwitch T="bool" Label="Save item data of executions" Color="Color.Primary"
+               Value="Workflow.Settings.SaveExecutionData" ValueChanged="v => ChangeAsync(() => Workflow.Settings.SaveExecutionData = v)" />
+</MudStack>
+
+<MudDivider />
+
+<div class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.subtitle2">Executions</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" aria-label="Reload executions" OnClick="LoadAsync" />
+    </MudStack>
+
+    @if (_executions.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">No executions yet.</MudText>
+    }
+
+    @foreach (var execution in _executions)
+    {
+        <div class="gview-pipe-history-item @(execution.Id == SelectedExecutionId ? "selected" : "")" @onclick="() => OnSelectExecution.InvokeAsync(execution)">
+            <MudIcon Icon="@StatusIcon(execution.Status)" Color="StatusColor(execution.Status)" Size="Size.Small" />
+            <div>
+                <div>@execution.StartedAt.LocalDateTime.ToString("g")</div>
+                <div class="mud-text-secondary gview-pipe-history-meta">
+                    @execution.Mode · @(execution.FinishedAt is { } finished ? $"{(finished - execution.StartedAt).TotalMilliseconds:0} ms" : "")
+                    @if (execution.Error is { } error)
+                    {
+                        <span title="@error"> · @error</span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PipeWorkflow Workflow { get; set; } = default!;
+    [Parameter] public string? SelectedExecutionId { get; set; }
+
+    /// <summary>Changed by the editor after a run, so the history reloads.</summary>
+    [Parameter] public int HistoryVersion { get; set; }
+
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback<PipeExecution> OnSelectExecution { get; set; }
+
+    private IReadOnlyList<PipeExecution> _executions = [];
+    private int? _loadedVersion;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedVersion != HistoryVersion)
+        {
+            _loadedVersion = HistoryVersion;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync() => _executions = await ExecutionStore.ListAsync(Workflow.Id, 20);
+
+    private async Task ChangeAsync(Action change)
+    {
+        change();
+        await OnChanged.InvokeAsync();
+    }
+
+    static private string StatusIcon(PipeExecutionStatus status) => status switch
+    {
+        PipeExecutionStatus.Success => Icons.Material.Filled.CheckCircle,
+        PipeExecutionStatus.Error => Icons.Material.Filled.Error,
+        PipeExecutionStatus.Canceled => Icons.Material.Filled.Cancel,
+        _ => Icons.Material.Filled.Pending
+    };
+
+    static private Color StatusColor(PipeExecutionStatus status) => status switch
+    {
+        PipeExecutionStatus.Success => Color.Success,
+        PipeExecutionStatus.Error => Color.Error,
+        _ => Color.Default
+    };
+}

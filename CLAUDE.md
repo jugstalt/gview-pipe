@@ -12,10 +12,15 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - They use only the Abstraction contracts, exactly like external plugins.
   - Ids are in `PipeBuiltIn.cs` and must never change.
 - `gView.Pipe.Razor`: MudBlazor UI components.
-  - Depends on Abstraction only and is render-mode agnostic.
+  - Depends on Abstraction only.
+  - `Components/`: `PipeWorkflowList`, `PipeCredentialList`.
+  - `Editor/`: `PipeEditor` on Z.Blazor.Diagrams.
+  - `Forms/`: forms generated from parameter classes.
+  - Embedding hosts need the diagram CSS/JS and must render without prerendering (see ADR 0004).
+  - Navigation is the host's job: components raise events like `OnOpen` and `OnClose`.
 - `gView.Pipe.Shell`: the app itself. It contains only layout, routing and service composition (`AddPipeCore().AddPipeFileStore().AddPipeRazor()`).
 - `Aspire/`: AppHost and ServiceDefaults.
-- `tests/`: xUnit v3 test projects, run through Microsoft.Testing.Platform (see `global.json`).
+- `tests/`: xUnit v3 test projects, run through Microsoft.Testing.Platform (see `global.json`). `gView.Pipe.Razor.Tests` uses bUnit with MudBlazor services.
 
 ## Conventions
 
@@ -25,7 +30,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
 - The code style is `static public` / `static private`, as in gview-gis.
 - Public types are prefixed with `Pipe`, e.g. `PipeEngine`, `IPipeNode`.
 - Package versions live only in `Directory.Packages.props` (central package management). Common properties are in `Directory.Build.props`.
-- JSON is camelCase with enums as camelCase strings. Always use `PipeJson.Options`.
+- JSON is camelCase with enums as camelCase strings. Always use `PipeJson.Options` (`gView.Pipe.Abstraction.Serialization`), so engine, UI and plugins bind parameters the same way.
 - Code, comments and UI text are in English.
 
 ## Writing a node

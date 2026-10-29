@@ -1,6 +1,10 @@
+@using gView.Pipe.Abstraction.Triggers
 @inject IPipeWorkflowStore WorkflowStore
 @inject IPipeExecutionStore ExecutionStore
 @inject IPipeWorkflowRunner Runner
+@inject IPipeTriggerManager TriggerManager
+@inject IPipeNodeRegistry Registry
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <MudPaper Class="gview-pipe-workflow-list pa-4" Elevation="0" Outlined="true">
@@ -8,6 +12,10 @@
         <MudText Typo="Typo.h6">Workflows</MudText>
         <MudSpacer />
         <MudIconButton Icon="@Icons.Material.Filled.Refresh" aria-label="Reload" OnClick="LoadAsync" />
+        @if (OnOpen.HasDelegate)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New workflow</MudButton>
+        }
     </MudStack>
 
     @if (_workflows is null)
@@ -20,7 +28,8 @@
     }
     else
     {
-        <MudTable T="PipeWorkflow" Items="_workflows" Dense="true" Hover="true" Elevation="0">
+        <MudTable T="PipeWorkflow" Items="_workflows" Dense="true" Hover="true" Elevation="0"
+                  OnRowClick="args => OpenAsync(args.Item!)" RowClass="@(OnOpen.HasDelegate ? "gview-pipe-clickable" : null)">
             <HeaderContent>
                 <MudTh>Name</MudTh>
                 <MudTh>Nodes</MudTh>
@@ -50,11 +59,12 @@
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">@run.StartedAt.LocalDateTime.ToString("g")</MudText>
                     }
                 </MudTd>
-                <MudTd Style="text-align:right">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.PlayArrow"
-                               Disabled="_running.Contains(context.Id)"
-                               OnClick="() => RunAsync(context)">Run</MudButton>
+                <MudTd Style="text-align:right; white-space:nowrap">
+                    <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Primary" Size="Size.Small" aria-label="Run"
+                                   Disabled="_running.Contains(context.Id)"
+                                   OnClick="() => RunAsync(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete"
+                                   OnClick="() => DeleteAsync(context)" />
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -62,6 +72,9 @@
 </MudPaper>
 
 @code {
+    /// <summary>Opens a workflow (e.g. navigates to the editor). Enables "New workflow" and row clicks.</summary>
+    [Parameter] public EventCallback<string> OnOpen { get; set; }
+
     private IReadOnlyList<PipeWorkflow>? _workflows;
     private readonly Dictionary<string, PipeExecution> _lastRuns = new();
     private readonly HashSet<string> _running = new();
@@ -80,6 +93,35 @@
                 _lastRuns[workflow.Id] = last;
             }
         }
+    }
+
+    private async Task OpenAsync(PipeWorkflow workflow)
+    {
+        if (OnOpen.HasDelegate)
+        {
+            await OnOpen.InvokeAsync(workflow.Id);
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var workflow = new PipeWorkflow { Name = "New workflow" };
+
+        // start with a manual trigger if one is installed, so the workflow can run right away
+        if (Registry.Nodes.FirstOrDefault(n => n.IsTrigger && n.ParametersType is null) is { } trigger)
+        {
+            workflow.Nodes.Add(new PipeWorkflowNode
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Name = trigger.Name,
+                Type = trigger.Id,
+                TypeVersion = trigger.Version,
+                Position = new PipePosition { X = 100, Y = 100 }
+            });
+        }
+
+        await WorkflowStore.SaveAsync(workflow);
+        await OnOpen.InvokeAsync(workflow.Id);
     }
 
     private async Task RunAsync(PipeWorkflow workflow)
@@ -108,6 +150,23 @@
         {
             _running.Remove(workflow.Id);
         }
+    }
+
+    private async Task DeleteAsync(PipeWorkflow workflow)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete workflow",
+            $"Delete '{workflow.Name}'? Its execution history is kept.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        await TriggerManager.DeactivateAsync(workflow.Id);
+        await WorkflowStore.DeleteAsync(workflow.Id);
+        await LoadAsync();
     }
 
     static private Color StatusColor(PipeExecutionStatus status) => status switch

@@ -1,0 +1,104 @@
+@using gView.Pipe.Abstraction.Nodes
+
+<div class="gview-pipe-panel-header" style="--gview-pipe-accent:@PipeNodeVisuals.Accent(Model.Descriptor)">
+    <MudIcon Icon="@PipeNodeVisuals.Icon(Model.Descriptor)" />
+    <div class="gview-pipe-panel-titles">
+        <MudText Typo="Typo.subtitle1">@Model.Node.Name</MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@(Model.Descriptor?.Name ?? $"Unknown node type {Model.Node.Type}")</MudText>
+    </div>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete node" OnClick="() => OnDelete.InvokeAsync()" />
+</div>
+
+@if (Model.Descriptor?.Description is { } description)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary px-4 pb-2">@description</MudText>
+}
+@if (Model.Descriptor is null)
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mx-4 mb-2">The plugin providing this node is not installed. The node is kept but can't run.</MudAlert>
+}
+
+<MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-panel-tabs">
+    <MudTabPanel Text="Parameters">
+        <PipeParameterForm ParametersType="Model.Descriptor?.ParametersType"
+                           Parameters="Model.Node.Parameters"
+                           ShowRawWithoutType="@(Model.Descriptor is null)"
+                           OnChanged="() => OnChanged.InvokeAsync(Model.Descriptor?.HasDynamicPorts == true)" />
+    </MudTabPanel>
+
+    <MudTabPanel Text="Settings">
+        <MudStack Spacing="3">
+            <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          HelperText="Unique in the workflow; used by $node[&quot;Name&quot;] expressions"
+                          Error="@(_nameError is not null)" ErrorText="@_nameError"
+                          Value="@Model.Node.Name" ValueChanged="RenameAsync" />
+            <MudTextField T="string" Label="Notes" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
+                          Value="@Model.Node.Notes" ValueChanged="v => ChangeAsync(() => Model.Node.Notes = v)" />
+            <MudSwitch T="bool" Label="Disabled (passes items through)" Color="Color.Primary"
+                       Value="Model.Node.Disabled" ValueChanged="v => ChangeAsync(() => Model.Node.Disabled = v)" />
+            <MudSwitch T="bool" Label="Always execute, even without input items" Color="Color.Primary"
+                       Value="Settings.AlwaysExecute" ValueChanged="v => ChangeAsync(() => Settings.AlwaysExecute = v)" />
+            <MudSelect T="PipeNodeErrorMode" Label="On error" Variant="Variant.Outlined" Dense="true"
+                       Value="Settings.OnError" ValueChanged="v => ChangeAsync(() => Settings.OnError = v, portsMayHaveChanged: true)">
+                <MudSelectItem Value="PipeNodeErrorMode.Stop">Stop the execution</MudSelectItem>
+                <MudSelectItem Value="PipeNodeErrorMode.Continue">Continue with the input items</MudSelectItem>
+                <MudSelectItem Value="PipeNodeErrorMode.ErrorOutput">Route items to an error output</MudSelectItem>
+            </MudSelect>
+            <MudStack Row="true" Spacing="2">
+                <MudNumericField T="int" Label="Retries" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="20"
+                                 Value="Settings.RetryCount" ValueChanged="v => ChangeAsync(() => Settings.RetryCount = v)" />
+                <MudNumericField T="int" Label="Retry delay (ms)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Step="500"
+                                 Value="Settings.RetryDelayMs" ValueChanged="v => ChangeAsync(() => Settings.RetryDelayMs = v)" />
+            </MudStack>
+            <MudNumericField T="int" Label="Timeout (seconds, 0 = none)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
+                             Value="Settings.TimeoutSeconds" ValueChanged="v => ChangeAsync(() => Settings.TimeoutSeconds = v)" />
+        </MudStack>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Output" BadgeData="@OutputBadge" BadgeColor="@(Model.Run?.Status == PipeNodeRunStatus.Error ? Color.Error : Color.Primary)">
+        <PipeNodeRunView Run="Model.Run" />
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    [Parameter, EditorRequired] public PipeNodeModel Model { get; set; } = default!;
+
+    /// <summary>Called after a change; the argument tells whether the ports may have changed.</summary>
+    [Parameter] public EventCallback<bool> OnChanged { get; set; }
+
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    [Parameter] public Func<PipeNodeModel, string, bool> IsNameTaken { get; set; } = (_, _) => false;
+
+    private int _tab;
+    private string? _nameError;
+
+    private PipeNodeSettings Settings => Model.Node.Settings;
+
+    private object? OutputBadge => Model.Run switch
+    {
+        null => null,
+        { Status: PipeNodeRunStatus.Error } => "!",
+        var run => run.OutputCounts.Values.Sum()
+    };
+
+    private async Task ChangeAsync(Action change, bool portsMayHaveChanged = false)
+    {
+        change();
+        await OnChanged.InvokeAsync(portsMayHaveChanged);
+    }
+
+    private async Task RenameAsync(string? name)
+    {
+        name = name?.Trim() ?? "";
+        _nameError = name.Length == 0 ? "A name is required"
+            : IsNameTaken(Model, name) ? "Another node already has this name"
+            : null;
+
+        if (_nameError is null)
+        {
+            await ChangeAsync(() => Model.Node.Name = name);
+        }
+    }
+}

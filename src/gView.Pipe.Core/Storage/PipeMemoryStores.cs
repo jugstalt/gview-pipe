@@ -2,7 +2,7 @@ using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Workflows;
-using gView.Pipe.Core.Serialization;
+using gView.Pipe.Abstraction.Serialization;
 using System.Collections.Concurrent;
 
 namespace gView.Pipe.Core.Storage;

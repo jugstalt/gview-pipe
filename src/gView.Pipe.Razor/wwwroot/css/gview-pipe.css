@@ -1,5 +1,340 @@
-/* gView.Pipe component styles. Include with: _content/gView.Pipe.Razor/css/gview-pipe.css */
+/*
+    gView.Pipe component styles.
+    Include _content/gView.Pipe.Razor/css/gview-pipe.css plus the Z.Blazor.Diagrams style.min.css and script.min.js.
+*/
+
+:root {
+    --gview-pipe-canvas-bg: #f3f4f7;
+    --gview-pipe-canvas-dot: #d5d9e0;
+    --gview-pipe-node-bg: #ffffff;
+    --gview-pipe-node-border: #d9dde4;
+    --gview-pipe-link: #9aa3b2;
+    --gview-pipe-code-bg: rgba(0, 0, 0, .04);
+}
+
+.mud-theme-dark, [data-mud-theme="dark"] {
+    --gview-pipe-canvas-bg: #17181c;
+    --gview-pipe-canvas-dot: #2b2e35;
+    --gview-pipe-node-bg: #22252b;
+    --gview-pipe-node-border: #363a43;
+    --gview-pipe-link: #5d6575;
+    --gview-pipe-code-bg: rgba(255, 255, 255, .05);
+}
+
+.gview-pipe-clickable {
+    cursor: pointer;
+}
 
 .gview-pipe-workflow-list .mud-table-cell {
     vertical-align: middle;
+}
+
+/* ---- editor layout ---- */
+
+.gview-pipe-editor {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.gview-pipe-editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+}
+
+.gview-pipe-editor-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gview-pipe-editor-body {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+.gview-pipe-palette {
+    width: 220px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding: 12px;
+    border-right: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+}
+
+.gview-pipe-palette-group {
+    margin: 12px 0 4px;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-secondary);
+}
+
+.gview-pipe-palette-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    margin-bottom: 2px;
+    border-radius: 6px;
+    border-left: 3px solid var(--gview-pipe-accent);
+    cursor: pointer;
+    font-size: .875rem;
+}
+
+    .gview-pipe-palette-item:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .gview-pipe-palette-item .mud-icon-root {
+        color: var(--gview-pipe-accent);
+    }
+
+.gview-pipe-editor-canvas {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+}
+
+.gview-pipe-canvas {
+    background-color: var(--gview-pipe-canvas-bg);
+    background-image: radial-gradient(var(--gview-pipe-canvas-dot) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.gview-pipe-canvas-status {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    z-index: 5;
+}
+
+.gview-pipe-editor-panel {
+    width: 380px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    border-left: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+}
+
+.gview-pipe-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px 8px;
+}
+
+    .gview-pipe-panel-header > .mud-icon-root {
+        color: var(--gview-pipe-accent, var(--mud-palette-primary));
+    }
+
+.gview-pipe-panel-titles {
+    min-width: 0;
+}
+
+.gview-pipe-panel-tabs .mud-tabs-panels {
+    padding: 16px;
+}
+
+.gview-pipe-output-tabs .mud-tabs-panels {
+    padding-top: 8px;
+}
+
+/* ---- nodes on the canvas ---- */
+
+.gview-pipe-node {
+    position: relative;
+    background: var(--gview-pipe-node-bg);
+    border: 1px solid var(--gview-pipe-node-border);
+    border-top: 3px solid var(--gview-pipe-accent);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    font-size: .8rem;
+    transition: box-shadow .15s, border-color .15s;
+}
+
+    .gview-pipe-node.trigger {
+        border-radius: 22px 8px 8px 22px;
+    }
+
+    .gview-pipe-node.selected {
+        border-color: var(--mud-palette-primary);
+        box-shadow: 0 0 0 2px var(--mud-palette-primary);
+    }
+
+    .gview-pipe-node.running {
+        box-shadow: 0 0 0 2px var(--mud-palette-info);
+    }
+
+    .gview-pipe-node.success {
+        border-color: var(--mud-palette-success);
+    }
+
+    .gview-pipe-node.error {
+        border-color: var(--mud-palette-error);
+        box-shadow: 0 0 0 2px var(--mud-palette-error);
+    }
+
+    .gview-pipe-node.skipped,
+    .gview-pipe-node.disabled {
+        opacity: .55;
+    }
+
+    .gview-pipe-node.unknown {
+        border-style: dashed;
+    }
+
+.gview-pipe-node-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0 10px;
+}
+
+.gview-pipe-node-icon {
+    color: var(--gview-pipe-accent);
+}
+
+.gview-pipe-node-titles {
+    flex: 1;
+    min-width: 0;
+}
+
+.gview-pipe-node-title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gview-pipe-node-type {
+    color: var(--mud-palette-text-secondary);
+    font-size: .7rem;
+}
+
+.gview-pipe-port {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: var(--gview-pipe-node-bg);
+    border: 2px solid var(--gview-pipe-link);
+    cursor: crosshair;
+    pointer-events: all;
+}
+
+    .gview-pipe-port.in {
+        left: -7px;
+    }
+
+    .gview-pipe-port.out {
+        right: -7px;
+    }
+
+    .gview-pipe-port.error {
+        border-color: var(--mud-palette-error);
+    }
+
+    .gview-pipe-port:hover,
+    .gview-pipe-port.has-links {
+        background: var(--gview-pipe-link);
+    }
+
+    .gview-pipe-port.error.has-links {
+        background: var(--mud-palette-error);
+    }
+
+.gview-pipe-port-label {
+    position: absolute;
+    transform: translateY(-50%);
+    font-size: .68rem;
+    color: var(--mud-palette-text-secondary);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+    .gview-pipe-port-label.in {
+        left: 10px;
+    }
+
+    .gview-pipe-port-label.out {
+        right: 10px;
+        text-align: right;
+    }
+
+.gview-pipe-port-count {
+    display: inline-block;
+    min-width: 18px;
+    margin-right: 4px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--mud-palette-success);
+    color: #fff;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* ---- forms and output ---- */
+
+.gview-pipe-expression-field input,
+.gview-pipe-expression-field textarea,
+.gview-pipe-code,
+.gview-pipe-code textarea {
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .8rem;
+}
+
+pre.gview-pipe-code {
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--gview-pipe-code-bg);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.gview-pipe-item {
+    margin-bottom: 8px;
+}
+
+.gview-pipe-item-index {
+    font-size: .7rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.gview-pipe-history-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: .8rem;
+}
+
+    .gview-pipe-history-item:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .gview-pipe-history-item.selected {
+        background: var(--mud-palette-primary-hover);
+    }
+
+.gview-pipe-history-meta {
+    font-size: .72rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 290px;
 }

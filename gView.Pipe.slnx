@@ -22,5 +22,6 @@
   <Folder Name="/tests/">
     <Project Path="src/tests/gView.Pipe.Core.Tests/gView.Pipe.Core.Tests.csproj" />
     <Project Path="src/tests/gView.Pipe.Plugins.Tests/gView.Pipe.Plugins.Tests.csproj" />
+    <Project Path="src/tests/gView.Pipe.Razor.Tests/gView.Pipe.Razor.Tests.csproj" />
   </Folder>
 </Solution>

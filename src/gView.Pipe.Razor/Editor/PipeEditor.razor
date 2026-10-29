@@ -1,0 +1,516 @@
+@using Blazor.Diagrams
+@using Blazor.Diagrams.Components
+@using Blazor.Diagrams.Core.Anchors
+@using Point = Blazor.Diagrams.Core.Geometry.Point
+@using Blazor.Diagrams.Core.Models
+@using Blazor.Diagrams.Core.Models.Base
+@using Blazor.Diagrams.Options
+@using gView.Pipe.Abstraction.Nodes
+@using gView.Pipe.Abstraction.Serialization
+@using gView.Pipe.Abstraction.Triggers
+@implements IAsyncDisposable
+@inject IPipeWorkflowStore WorkflowStore
+@inject IPipeWorkflowRunner Runner
+@inject IPipeTriggerManager TriggerManager
+@inject IPipeNodeRegistry Registry
+@inject ISnackbar Snackbar
+
+@*
+    Workflow editor: node palette, canvas and a side panel for the selected node (or the workflow).
+    The canvas owns topology and positions; node parameters and settings live on the PipeWorkflowNode objects.
+*@
+
+<div class="gview-pipe-editor">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_workflow is null)
+    {
+        <MudAlert Severity="Severity.Warning" Class="ma-4">Workflow '@WorkflowId' not found.</MudAlert>
+    }
+    else
+    {
+        <div class="gview-pipe-editor-toolbar">
+            @if (OnClose.HasDelegate)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" aria-label="Back" OnClick="() => OnClose.InvokeAsync()" />
+            }
+            <MudText Typo="Typo.h6" Class="gview-pipe-editor-title">@_workflow.Name</MudText>
+            @if (_dirty)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">unsaved</MudChip>
+            }
+            <MudSpacer />
+            <MudTooltip Text="Active workflows have their triggers (e.g. cron) armed after saving">
+                <MudSwitch T="bool" Value="_workflow.Active" ValueChanged="SetActive" Color="Color.Success" Label="Active" Class="mr-2" />
+            </MudTooltip>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Class="mr-2" Disabled="_running">Save</MudButton>
+            @if (_running)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Stop" OnClick="StopRun">Stop</MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="RunAsync">Run</MudButton>
+            }
+        </div>
+
+        <div class="gview-pipe-editor-body">
+            <PipeNodePalette OnAdd="AddNode" />
+
+            <div class="gview-pipe-editor-canvas">
+                <CascadingValue Value="_diagram" IsFixed="true">
+                    <DiagramCanvas Class="gview-pipe-canvas" />
+                </CascadingValue>
+                @if (_execution is not null)
+                {
+                    <div class="gview-pipe-canvas-status">
+                        <MudChip T="string" Size="Size.Small" Color="StatusColor(_execution.Status)" Variant="Variant.Filled">
+                            @_execution.Status · @_execution.StartedAt.LocalDateTime.ToString("T")
+                        </MudChip>
+                        @if (!_running)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" aria-label="Clear run" OnClick="ClearExecution" />
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="gview-pipe-editor-panel">
+                @if (_selected is not null)
+                {
+                    <PipeNodePanel @key="_selected" Model="_selected"
+                                   IsNameTaken="IsNameTaken"
+                                   OnChanged="NodeChanged"
+                                   OnDelete="DeleteSelected" />
+                }
+                else
+                {
+                    <PipeWorkflowPanel Workflow="_workflow" HistoryVersion="_historyVersion"
+                                       SelectedExecutionId="@_execution?.Id"
+                                       OnChanged="MarkDirty"
+                                       OnSelectExecution="ShowExecution" />
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string WorkflowId { get; set; } = "";
+
+    /// <summary>Shows a back button; the host decides where to navigate.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private BlazorDiagram _diagram = default!;
+    private PipeWorkflow? _workflow;
+    private string? _loadedId;
+    private bool _loading = true;
+    private bool _dirty;
+    private PipeNodeModel? _selected;
+    private PipeExecution? _execution;
+    private bool _running;
+    private CancellationTokenSource? _runCts;
+    private int _historyVersion;
+    private bool _fitPending;
+
+    protected override void OnInitialized()
+    {
+        var options = new BlazorDiagramOptions
+        {
+            AllowMultiSelection = true,
+            GridSize = 20,
+            Zoom = { Minimum = 0.3, Maximum = 2 },
+            Links =
+            {
+                // SVG stroke attributes; CSS variables are not reliable there
+                DefaultColor = "#9aa3b2",
+                DefaultSelectedColor = "#3d6fd6",
+                RequireTarget = true,
+                EnableSnapping = true,
+                SnappingRadius = 30,
+                Factory = (_, source, target) => new LinkModel(new SinglePortAnchor((PortModel)source), target)
+            }
+        };
+
+        _diagram = new BlazorDiagram(options);
+        _diagram.RegisterComponent<PipeNodeModel, PipeNodeWidget>();
+        _diagram.SelectionChanged += _ => InvokeAsync(SelectionChanged);
+        _diagram.Nodes.Removed += node => InvokeAsync(() => NodeRemoved(node));
+        _diagram.Links.Added += _ => InvokeAsync(MarkDirty);
+        _diagram.Links.Removed += _ => InvokeAsync(MarkDirty);
+        _diagram.ContainerChanged += () => InvokeAsync(ContainerChanged);
+    }
+
+    /// <summary>
+    /// Ports measure their position on first render, which can happen before the canvas knows its container.
+    /// Re-render the nodes once it does, so ports get positions and links can be drawn.
+    /// </summary>
+    private void ContainerChanged()
+    {
+        foreach (var model in _diagram.Nodes.OfType<PipeNodeModel>())
+        {
+            model.RefreshAll();
+        }
+
+        if (_fitPending)
+        {
+            FitToNodes();
+        }
+    }
+
+    /// <summary>Pans (without zooming) so the top left node sits near the top left corner.</summary>
+    private void FitToNodes()
+    {
+        var models = _diagram.Nodes.OfType<PipeNodeModel>().ToList();
+        if (models.Count == 0 || _diagram.Container is null)
+        {
+            return;
+        }
+
+        _fitPending = false;
+        _diagram.SetZoom(1);
+        _diagram.SetPan(60 - models.Min(m => m.Position.X), 60 - models.Min(m => m.Position.Y));
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId != WorkflowId)
+        {
+            _loadedId = WorkflowId;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _workflow = await WorkflowStore.GetAsync(WorkflowId);
+        _selected = null;
+        _execution = null;
+
+        _diagram.Links.Clear();
+        _diagram.Nodes.Clear();
+
+        if (_workflow is not null)
+        {
+            var models = _workflow.Nodes.Select(node => AddNodeModel(node, keepConnectedPorts: true)).ToDictionary(m => m.Node.Id);
+
+            foreach (var connection in _workflow.Connections)
+            {
+                var source = models.GetValueOrDefault(connection.SourceNodeId)?.FindPort(connection.SourcePort, isInput: false);
+                var target = models.GetValueOrDefault(connection.TargetNodeId)?.FindPort(connection.TargetPort, isInput: true);
+                if (source is not null && target is not null)
+                {
+                    _diagram.Links.Add(new LinkModel(source, target));
+                }
+            }
+        }
+
+        _dirty = false;
+        _loading = false;
+
+        // the canvas may already exist (switching workflows); otherwise ContainerChanged does it
+        _fitPending = true;
+        FitToNodes();
+    }
+
+    private PipeNodeModel AddNodeModel(PipeWorkflowNode node, bool keepConnectedPorts)
+    {
+        var model = new PipeNodeModel(node, Registry.Find(node.Type));
+        SyncPorts(model, keepConnectedPorts);
+        model.Moved += _ => InvokeAsync(MarkDirty);
+        _diagram.Nodes.Add(model);
+        return model;
+    }
+
+    /// <summary>
+    /// Declared ports of the node type. While loading, ports referenced by stored connections are kept too,
+    /// so connections of unknown node types (or removed ports) are not lost silently.
+    /// </summary>
+    private void SyncPorts(PipeNodeModel model, bool keepConnectedPorts)
+    {
+        var node = model.Node;
+        var inputs = model.Descriptor is null ? [] : Registry.GetInputs(model.Descriptor, node.Parameters);
+        var outputs = model.Descriptor is null ? [] : Registry.GetOutputs(model.Descriptor, node.Parameters, node.Settings);
+
+        var keep = keepConnectedPorts && _workflow is not null
+            ? _workflow.Connections.Where(c => c.SourceNodeId == node.Id).Select(c => (c.SourcePort, false))
+                .Concat(_workflow.Connections.Where(c => c.TargetNodeId == node.Id).Select(c => (c.TargetPort, true)))
+            : null;
+
+        model.SyncPorts(_diagram, inputs, outputs, keep);
+    }
+
+    /// <summary>Writes positions and links back into the workflow.</summary>
+    private PipeWorkflow BuildWorkflow()
+    {
+        var workflow = _workflow!;
+        var models = _diagram.Nodes.OfType<PipeNodeModel>().ToList();
+
+        foreach (var model in models)
+        {
+            model.Node.Position = new PipePosition { X = Math.Round(model.Position.X), Y = Math.Round(model.Position.Y) };
+        }
+
+        workflow.Nodes = models.Select(m => m.Node).ToList();
+        workflow.Connections = _diagram.Links
+            .Select(ToConnection)
+            .OfType<PipeConnection>()
+            .DistinctBy(c => (c.SourceNodeId, c.SourcePort, c.TargetNodeId, c.TargetPort))
+            .ToList();
+
+        return workflow;
+    }
+
+    static private PipeConnection? ToConnection(BaseLinkModel link)
+    {
+        if (link.Source.Model is not PipePortModel a || link.Target.Model is not PipePortModel b || a.IsInput == b.IsInput)
+        {
+            return null;
+        }
+
+        // links may have been drawn from the input side
+        var (output, input) = a.IsInput ? (b, a) : (a, b);
+        return new PipeConnection
+        {
+            SourceNodeId = ((PipeNodeModel)output.Parent).Node.Id,
+            SourcePort = output.PortName,
+            TargetNodeId = ((PipeNodeModel)input.Parent).Node.Id,
+            TargetPort = input.PortName
+        };
+    }
+
+    private void AddNode(PipeNodeDescriptor descriptor)
+    {
+        if (_workflow is null)
+        {
+            return;
+        }
+
+        var position = NextPosition();
+        var node = new PipeWorkflowNode
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = UniqueName(descriptor.Name),
+            Type = descriptor.Id,
+            TypeVersion = descriptor.Version,
+            Parameters = descriptor.ParametersType is null
+                ? new()
+                : PipeJson.ToJsonObject(Activator.CreateInstance(descriptor.ParametersType)),
+            Position = new PipePosition { X = position.X, Y = position.Y }
+        };
+
+        var model = AddNodeModel(node, keepConnectedPorts: false);
+        _diagram.SelectModel(model, unselectOthers: true);
+        MarkDirty();
+    }
+
+    /// <summary>Middle of the visible canvas, shifted a bit per node so new nodes don't stack exactly.</summary>
+    private Point NextPosition()
+    {
+        var offset = _diagram.Nodes.Count % 5 * 30;
+        if (_diagram.Container is { } container)
+        {
+            var center = _diagram.GetRelativePoint(container.Left + container.Width / 2, container.Top + container.Height / 2);
+            return new Point(center.X - PipeNodeModel.Width / 2 + offset, center.Y - 40 + offset);
+        }
+        return new Point(100 + offset, 100 + offset);
+    }
+
+    private string UniqueName(string name)
+    {
+        var names = _diagram.Nodes.OfType<PipeNodeModel>().Select(m => m.Node.Name).ToHashSet();
+        if (!names.Contains(name))
+        {
+            return name;
+        }
+
+        var i = 2;
+        while (names.Contains($"{name} {i}"))
+        {
+            i++;
+        }
+        return $"{name} {i}";
+    }
+
+    private bool IsNameTaken(PipeNodeModel model, string name)
+        => _diagram.Nodes.OfType<PipeNodeModel>().Any(m => m != model && m.Node.Name == name);
+
+    private void SelectionChanged()
+    {
+        var selected = _diagram.GetSelectedModels().OfType<PipeNodeModel>().ToList();
+        _selected = selected.Count == 1 ? selected[0] : null;
+        StateHasChanged();
+    }
+
+    private void NodeRemoved(NodeModel node)
+    {
+        if (node == _selected)
+        {
+            _selected = null;
+        }
+        MarkDirty();
+    }
+
+    private void NodeChanged(bool portsMayHaveChanged)
+    {
+        if (_selected is not null)
+        {
+            if (portsMayHaveChanged)
+            {
+                SyncPorts(_selected, keepConnectedPorts: false);
+            }
+            _selected.Title = _selected.Node.Name;
+            _selected.Refresh();
+        }
+        MarkDirty();
+    }
+
+    private void DeleteSelected()
+    {
+        if (_selected is not null)
+        {
+            _diagram.Nodes.Remove(_selected);
+        }
+    }
+
+    private void MarkDirty()
+    {
+        if (!_loading)
+        {
+            _dirty = true;
+            StateHasChanged();
+        }
+    }
+
+    private void SetActive(bool active)
+    {
+        _workflow!.Active = active;
+        MarkDirty();
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            var workflow = BuildWorkflow();
+            await WorkflowStore.SaveAsync(workflow);
+            await TriggerManager.ActivateAsync(workflow);
+            _dirty = false;
+            Snackbar.Add(workflow.Active ? "Saved, triggers armed" : "Saved", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task RunAsync()
+    {
+        // the engine gets a snapshot, so editing during the run can't interfere
+        var workflow = PipeJson.Clone(BuildWorkflow());
+        ClearExecution();
+
+        _running = true;
+        _runCts = new CancellationTokenSource();
+
+        try
+        {
+            var execution = await Runner.RunAsync(workflow, new PipeExecutionRequest { Observer = new EditorObserver(this) }, _runCts.Token);
+            if (execution is null)
+            {
+                Snackbar.Add("The workflow is already running (max concurrent runs reached)", Severity.Warning);
+                return;
+            }
+
+            ShowExecution(execution);
+            Snackbar.Add(execution.Status == PipeExecutionStatus.Success ? "Run finished" : $"Run {execution.Status}: {execution.Error}",
+                execution.Status == PipeExecutionStatus.Success ? Severity.Success : Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Run failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _running = false;
+            _runCts.Dispose();
+            _runCts = null;
+            _historyVersion++;
+        }
+    }
+
+    private void StopRun() => _runCts?.Cancel();
+
+    private void ShowExecution(PipeExecution execution)
+    {
+        _execution = execution;
+        foreach (var model in _diagram.Nodes.OfType<PipeNodeModel>())
+        {
+            model.Run = execution.NodeRuns.GetValueOrDefault(model.Node.Id);
+            model.Refresh();
+        }
+        StateHasChanged();
+    }
+
+    private void ClearExecution()
+    {
+        _execution = null;
+        foreach (var model in _diagram.Nodes.OfType<PipeNodeModel>())
+        {
+            model.Run = null;
+            model.Refresh();
+        }
+    }
+
+    private Task NodeRunChangedAsync(PipeNodeRun run) => InvokeAsync(() =>
+    {
+        if (_diagram.Nodes.OfType<PipeNodeModel>().FirstOrDefault(m => m.Node.Id == run.NodeId) is { } model)
+        {
+            model.Run = run;
+            model.Refresh();
+        }
+        if (_selected?.Node.Id == run.NodeId)
+        {
+            StateHasChanged();
+        }
+    });
+
+    static private Color StatusColor(PipeExecutionStatus status) => status switch
+    {
+        PipeExecutionStatus.Success => Color.Success,
+        PipeExecutionStatus.Error => Color.Error,
+        PipeExecutionStatus.Running => Color.Info,
+        _ => Color.Default
+    };
+
+    public ValueTask DisposeAsync()
+    {
+        _runCts?.Cancel();
+        return ValueTask.CompletedTask;
+    }
+
+    /// <summary>Pushes live node states of the editor's own run onto the canvas.</summary>
+    private sealed class EditorObserver : IPipeExecutionObserver
+    {
+        private readonly PipeEditor _editor;
+
+        public EditorObserver(PipeEditor editor)
+        {
+            _editor = editor;
+        }
+
+        public Task OnExecutionStartedAsync(PipeExecution execution)
+            => _editor.InvokeAsync(() =>
+            {
+                _editor._execution = execution;
+                _editor.StateHasChanged();
+            });
+
+        public Task OnNodeStartedAsync(PipeExecution execution, PipeNodeRun run) => _editor.NodeRunChangedAsync(run);
+
+        public Task OnNodeFinishedAsync(PipeExecution execution, PipeNodeRun run) => _editor.NodeRunChangedAsync(run);
+    }
+}

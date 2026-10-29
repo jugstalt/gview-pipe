@@ -1,0 +1,67 @@
+@using System.Text.Json.Nodes
+
+<div class="gview-pipe-collection-field">
+    <MudText Typo="Typo.subtitle2">@Field.Label</MudText>
+    @if (!string.IsNullOrEmpty(Field.Description))
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Field.Description</MudText>
+    }
+
+    @for (var i = 0; i < _rows.Count; i++)
+    {
+        var index = i;
+        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
+            <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Class="@(Field.Expressions ? "gview-pipe-expression-field" : null)"
+                          Value="@_rows[index]" ValueChanged="v => UpdateAsync(index, v)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" aria-label="Remove" OnClick="() => RemoveAsync(index)" />
+        </MudStack>
+    }
+
+    <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">Add</MudButton>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PipeParameterField Field { get; set; } = default!;
+    [Parameter] public JsonArray? Value { get; set; }
+    [Parameter] public EventCallback<JsonNode?> ValueChanged { get; set; }
+
+    private List<string> _rows = new();
+    private JsonArray? _lastValue;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(Value, _lastValue))
+        {
+            _rows = Value?.Select(PipeJsonText.ToText).ToList() ?? new();
+            _lastValue = Value;
+        }
+    }
+
+    private Task AddAsync()
+    {
+        _rows.Add("");
+        return PublishAsync();
+    }
+
+    private Task UpdateAsync(int index, string? value)
+    {
+        _rows[index] = value ?? "";
+        return PublishAsync();
+    }
+
+    private Task RemoveAsync(int index)
+    {
+        _rows.RemoveAt(index);
+        return PublishAsync();
+    }
+
+    private async Task PublishAsync()
+    {
+        var result = new JsonArray(_rows
+            .Select(r => Field.ItemKind == PipeFieldKind.Json ? PipeJsonText.FromLooseText(r) : JsonValue.Create(r))
+            .ToArray());
+        _lastValue = result;
+        await ValueChanged.InvokeAsync(result);
+    }
+}

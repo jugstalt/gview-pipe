@@ -2,9 +2,12 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace gView.Pipe.Core.Serialization;
+namespace gView.Pipe.Abstraction.Serialization;
 
-/// <summary>The serializer settings used for workflows, executions, parameters and credentials.</summary>
+/// <summary>
+/// The serializer settings used for workflows, executions, parameters and credentials.
+/// Shared by engine, UI and plugins so parameters bind the same way everywhere.
+/// </summary>
 static public class PipeJson
 {
     static public JsonSerializerOptions Options { get; } = CreateOptions();

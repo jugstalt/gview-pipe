@@ -1,6 +1,6 @@
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Workflows;
-using gView.Pipe.Core.Serialization;
+using gView.Pipe.Abstraction.Serialization;
 
 namespace gView.Pipe.Core.Workflows;
 

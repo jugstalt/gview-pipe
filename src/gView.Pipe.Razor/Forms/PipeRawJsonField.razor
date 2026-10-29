@@ -1,0 +1,44 @@
+@using System.Text.Json
+@using System.Text.Json.Nodes
+
+<MudTextField T="string" Label="@Label" Variant="Variant.Outlined" Margin="Margin.Dense"
+              Lines="6" Class="gview-pipe-code"
+              HelperText="@HelperText" Error="@(_error is not null)" ErrorText="@_error"
+              Value="@_text" ValueChanged="ChangedAsync" />
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public JsonNode? Value { get; set; }
+    [Parameter] public EventCallback<JsonNode?> ValueChanged { get; set; }
+
+    private string _text = "";
+    private string? _error;
+    private JsonNode? _lastValue;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(Value, _lastValue))
+        {
+            _text = PipeJsonText.ToIndentedJson(Value);
+            _lastValue = Value;
+            _error = null;
+        }
+    }
+
+    private async Task ChangedAsync(string? text)
+    {
+        _text = text ?? "";
+        try
+        {
+            var value = string.IsNullOrWhiteSpace(_text) ? null : JsonNode.Parse(_text);
+            _error = null;
+            _lastValue = value;
+            await ValueChanged.InvokeAsync(value);
+        }
+        catch (JsonException ex)
+        {
+            _error = $"Invalid JSON: {ex.Message}";
+        }
+    }
+}

@@ -1,0 +1,66 @@
+@using Blazor.Diagrams.Components.Renderers
+
+<div class="gview-pipe-node @CssClass" style="width:@(PipeNodeModel.Width)px;height:@(Node.Height)px;--gview-pipe-accent:@PipeNodeVisuals.Accent(Node.Descriptor)">
+    <div class="gview-pipe-node-header">
+        <MudIcon Icon="@PipeNodeVisuals.Icon(Node.Descriptor)" Size="Size.Small" Class="gview-pipe-node-icon" />
+        <div class="gview-pipe-node-titles">
+            <div class="gview-pipe-node-title" title="@Node.Node.Name">@Node.Node.Name</div>
+            <div class="gview-pipe-node-type">@(Node.Descriptor?.Name ?? "Unknown node type")</div>
+        </div>
+        @switch (Node.Run?.Status)
+        {
+            case PipeNodeRunStatus.Running:
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Info" Class="gview-pipe-node-status" />
+                break;
+            case PipeNodeRunStatus.Success:
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="gview-pipe-node-status" />
+                break;
+            case PipeNodeRunStatus.Error:
+                <MudTooltip Text="@Node.Run.Error">
+                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" Class="gview-pipe-node-status" />
+                </MudTooltip>
+                break;
+            case PipeNodeRunStatus.Skipped:
+                <MudIcon Icon="@Icons.Material.Filled.RemoveCircleOutline" Size="Size.Small" Class="gview-pipe-node-status mud-text-secondary" />
+                break;
+        }
+    </div>
+
+    @foreach (var port in Node.InputPorts)
+    {
+        <div class="gview-pipe-port-label in" style="top:@(port.OffsetY)px">@(Node.InputPorts.Count() > 1 ? port.Label : "")</div>
+        <PortRenderer @key="port" Port="port" Class="gview-pipe-port in" Style="@($"top:{port.OffsetY}px")" />
+    }
+
+    @foreach (var port in Node.OutputPorts)
+    {
+        <div class="gview-pipe-port-label out" style="top:@(port.OffsetY)px">
+            @if (Node.Run?.OutputCounts.TryGetValue(port.PortName, out var count) == true)
+            {
+                <span class="gview-pipe-port-count">@count</span>
+            }
+            @(Node.OutputPorts.Count() > 1 || port.PortName != PipePorts.Main ? port.Label : "")
+        </div>
+        <PortRenderer @key="port" Port="port" Class="@($"gview-pipe-port out {(port.PortName == PipePorts.Error ? "error" : "")}")" Style="@($"top:{port.OffsetY}px")" />
+    }
+</div>
+
+@code {
+    [Parameter] public PipeNodeModel Node { get; set; } = default!;
+
+    private string CssClass => string.Join(' ', new[]
+    {
+        Node.Selected ? "selected" : null,
+        Node.Node.Disabled ? "disabled" : null,
+        Node.Descriptor is null ? "unknown" : null,
+        Node.Descriptor?.IsTrigger == true ? "trigger" : null,
+        Node.Run?.Status switch
+        {
+            PipeNodeRunStatus.Running => "running",
+            PipeNodeRunStatus.Success => "success",
+            PipeNodeRunStatus.Error => "error",
+            PipeNodeRunStatus.Skipped => "skipped",
+            _ => null
+        }
+    }.Where(c => c is not null));
+}

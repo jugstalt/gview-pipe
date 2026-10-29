@@ -1,0 +1,141 @@
+@using System.Text.Json.Nodes
+@using gView.Pipe.Abstraction.Credentials
+@inject IPipeCredentialStore CredentialStore
+
+@*
+    Edits a parameter (or credential) JSON object in place, driven by the metadata of its class.
+    Without a type the whole object is edited as raw JSON.
+*@
+
+@if (ParametersType is null)
+{
+    @if (Parameters.Count > 0 || ShowRawWithoutType)
+    {
+        <PipeRawJsonField Label="Parameters (JSON)" Value="Parameters" ValueChanged="ReplaceAllAsync" />
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">This node has no parameters.</MudText>
+    }
+}
+else
+{
+    <MudStack Spacing="3">
+        @foreach (var field in PipeParameterFields.For(ParametersType))
+        {
+            var value = Parameters[field.Key];
+            switch (field.Kind)
+            {
+                case PipeFieldKind.Boolean:
+                    <MudSwitch T="bool" Label="@field.Label" Color="Color.Primary"
+                               Value="@(value is JsonValue b && b.TryGetValue<bool>(out var flag) && flag)"
+                               ValueChanged="v => SetAsync(field, JsonValue.Create(v))" />
+                    break;
+
+                case PipeFieldKind.Enum:
+                    <MudSelect T="string" Label="@field.Label" Dense="true" Variant="Variant.Outlined" HelperText="@field.Description"
+                               Value="@PipeJsonText.ToText(value)" ValueChanged="v => SetAsync(field, JsonValue.Create(v))">
+                        @foreach (var option in field.EnumValues)
+                        {
+                            <MudSelectItem Value="@option">@PipeParameterFields.Humanize(char.ToUpperInvariant(option[0]) + option[1..])</MudSelectItem>
+                        }
+                    </MudSelect>
+                    break;
+
+                case PipeFieldKind.Credential:
+                    <MudSelect T="string" Label="@field.Label" Dense="true" Variant="Variant.Outlined" Clearable="true"
+                               HelperText="@(field.Description ?? "Credentials are managed on the credentials page")"
+                               Value="@PipeJsonText.ToText(value)" ValueChanged="v => SetAsync(field, string.IsNullOrEmpty(v) ? null : JsonValue.Create(v))">
+                        @foreach (var credential in Credentials(field))
+                        {
+                            <MudSelectItem Value="@credential.Id">@credential.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    break;
+
+                case PipeFieldKind.Dictionary:
+                    <PipeKeyValueField Field="field" Value="@(value as JsonObject)" ValueChanged="v => SetAsync(field, v)" />
+                    break;
+
+                case PipeFieldKind.List:
+                    <PipeListField Field="field" Value="@(value as JsonArray)" ValueChanged="v => SetAsync(field, v)" />
+                    break;
+
+                case PipeFieldKind.RawJson:
+                    <PipeRawJsonField Label="@field.Label" HelperText="@field.Description" Value="value" ValueChanged="v => SetAsync(field, v)" />
+                    break;
+
+                default:
+                    <MudTextField T="string" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Lines="@(field.Multiline ? 4 : 1)"
+                                  InputType="@(field.Secret ? InputType.Password : InputType.Text)"
+                                  Placeholder="@(field.Secret && SecretsArePlaceholders ? "(unchanged)" : field.Placeholder)"
+                                  HelperText="@HelperText(field)"
+                                  Class="@(field.Expressions ? "gview-pipe-expression-field" : null)"
+                                  Value="@PipeJsonText.ToText(value)"
+                                  ValueChanged="v => SetAsync(field, Convert(field, v))" />
+                    break;
+            }
+        }
+    </MudStack>
+}
+
+@code {
+    /// <summary>Parameter or credential class; null for unknown node types.</summary>
+    [Parameter] public Type? ParametersType { get; set; }
+
+    [Parameter, EditorRequired] public JsonObject Parameters { get; set; } = new();
+
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    /// <summary>Secret fields are empty and mean "keep the stored value" (editing an existing credential).</summary>
+    [Parameter] public bool SecretsArePlaceholders { get; set; }
+
+    [Parameter] public bool ShowRawWithoutType { get; set; }
+
+    private IReadOnlyList<PipeCredentialInfo> _credentials = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ParametersType is not null && PipeParameterFields.For(ParametersType).Any(f => f.Kind == PipeFieldKind.Credential))
+        {
+            _credentials = await CredentialStore.ListAsync();
+        }
+    }
+
+    private IEnumerable<PipeCredentialInfo> Credentials(PipeParameterField field)
+        => _credentials.Where(c => field.CredentialTypeIds.Count == 0 || field.CredentialTypeIds.Contains(c.TypeId));
+
+    static private string? HelperText(PipeParameterField field)
+        => field.Expressions
+            ? string.IsNullOrEmpty(field.Description) ? "Supports {{ }} expressions" : $"{field.Description} · supports {{{{ }}}} expressions"
+            : field.Description;
+
+    static private JsonNode? Convert(PipeParameterField field, string? text)
+        => field.Kind switch
+        {
+            PipeFieldKind.Number => PipeJsonText.FromNumberText(text),
+            PipeFieldKind.Json => PipeJsonText.FromLooseText(text),
+            _ => text is null ? null : JsonValue.Create(text)
+        };
+
+    private async Task SetAsync(PipeParameterField field, JsonNode? value)
+    {
+        Parameters[field.Key] = value;
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task ReplaceAllAsync(JsonNode? value)
+    {
+        Parameters.Clear();
+        if (value is JsonObject obj)
+        {
+            foreach (var (key, child) in obj.ToList())
+            {
+                obj.Remove(key);
+                Parameters[key] = child;
+            }
+        }
+        await OnChanged.InvokeAsync();
+    }
+}

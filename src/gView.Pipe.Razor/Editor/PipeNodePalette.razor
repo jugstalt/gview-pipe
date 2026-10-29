@@ -1,0 +1,38 @@
+@using gView.Pipe.Abstraction.Nodes
+@inject IPipeNodeRegistry Registry
+
+<div class="gview-pipe-palette">
+    <MudTextField T="string" @bind-Value="_search" Immediate="true" Placeholder="Search nodes"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Class="mb-2" />
+
+    @foreach (var group in Groups())
+    {
+        <div class="gview-pipe-palette-group">@group.Key</div>
+        @foreach (var descriptor in group)
+        {
+            <div class="gview-pipe-palette-item" title="@descriptor.Description" @onclick="() => OnAdd.InvokeAsync(descriptor)"
+                 style="--gview-pipe-accent:@PipeNodeVisuals.Accent(descriptor)">
+                <MudIcon Icon="@PipeNodeVisuals.Icon(descriptor)" Size="Size.Small" />
+                <span>@descriptor.Name</span>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback<PipeNodeDescriptor> OnAdd { get; set; }
+
+    private string? _search;
+
+    private IEnumerable<IGrouping<string, PipeNodeDescriptor>> Groups()
+        => Registry.Nodes
+            .Where(n => !n.Obsolete)
+            .Where(n => string.IsNullOrWhiteSpace(_search)
+                        || n.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                        || n.Category.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(n => n.IsTrigger ? 0 : 1)
+            .ThenBy(n => n.Category)
+            .ThenBy(n => n.Name)
+            .GroupBy(n => n.IsTrigger ? "Triggers" : n.Category);
+}

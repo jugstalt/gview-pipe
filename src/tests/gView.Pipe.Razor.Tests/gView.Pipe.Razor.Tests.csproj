@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- tests are short; passing TestContext.Current.CancellationToken everywhere adds noise -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\gView.Pipe.Razor\gView.Pipe.Razor.csproj" />
+    <ProjectReference Include="..\..\gView.Pipe.Core\gView.Pipe.Core.csproj" />
+    <ProjectReference Include="..\..\gView.Pipe.Plugins\gView.Pipe.Plugins.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="bunit" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Bunit" />
+  </ItemGroup>
+
+</Project>

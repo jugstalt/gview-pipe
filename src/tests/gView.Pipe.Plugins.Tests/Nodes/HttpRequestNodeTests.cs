@@ -3,7 +3,7 @@ using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Core.Workflows;
 using gView.Pipe.Plugins.Credentials;
-using gView.Pipe.Core.Serialization;
+using gView.Pipe.Abstraction.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Text;

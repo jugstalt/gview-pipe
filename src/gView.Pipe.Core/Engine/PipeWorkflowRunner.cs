@@ -3,7 +3,7 @@ using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Options;
-using gView.Pipe.Core.Serialization;
+using gView.Pipe.Abstraction.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
