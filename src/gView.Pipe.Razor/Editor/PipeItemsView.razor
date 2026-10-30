@@ -16,7 +16,7 @@ else if (Items.Count == 0 || Items.All(p => p.Value.Count == 0) && Items.Count =
 }
 else
 {
-    <MudTabs Elevation="0" Rounded="false" Class="gview-pipe-output-tabs">
+    <MudTabs Elevation="0" Rounded="false" Class="gview-pipe-output-tabs" MinimumTabWidth="60px">
         @foreach (var (port, items) in Items)
         {
             <MudTabPanel Text="@($"{port} ({items.Count})")">

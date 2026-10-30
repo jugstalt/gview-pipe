@@ -287,12 +287,21 @@
 
 /* ---- forms and output ---- */
 
-.gview-pipe-expression-field input,
-.gview-pipe-expression-field textarea,
-.gview-pipe-code,
-.gview-pipe-code textarea {
+/* the input elements themselves; element + class to outrank MudBlazor's ".mud-input > textarea.mud-input-root" */
+.gview-pipe-expression-field input.mud-input-slot,
+.gview-pipe-expression-field textarea.mud-input-slot,
+.gview-pipe-code input.mud-input-slot,
+.gview-pipe-code textarea.mud-input-slot,
+pre.gview-pipe-code {
     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
     font-size: .8rem;
+}
+
+/* source code keeps its lines; scroll instead of wrapping */
+.gview-pipe-code textarea.mud-input-slot {
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.5;
 }
 
 pre.gview-pipe-code {

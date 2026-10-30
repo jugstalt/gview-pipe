@@ -24,7 +24,7 @@ else
             <MudAlert Severity="Severity.Error" Dense="true">@error</MudAlert>
         }
 
-        <MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-run-tabs">
+        <MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-run-tabs" MinimumTabWidth="70px">
             <MudTabPanel Text="@($"Input ({Run.InputCounts.Values.Sum()})")">
                 <PipeItemsView Items="Run.Inputs" Counts="Run.InputCounts" EmptyText="The node received no items." />
             </MudTabPanel>

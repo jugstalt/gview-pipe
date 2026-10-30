@@ -6,14 +6,6 @@
       "runtimeExecutable": "dotnet",
       "runtimeArgs": ["run", "--project", "src/gView.Pipe.Shell", "--launch-profile", "http", "--no-build"],
       "port": 5240
-    },
-    {
-      "name": "gview-pipe-docs",
-      "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "src/gView.Pipe.Shell", "--launch-profile", "http", "--no-build", "--",
-        "--urls", "http://localhost:5241",
-        "--Pipe:DataPath", "C:/Users/gstal/AppData/Local/Temp/claude/G--github-jugstalt-gview-pipe/adf5b717-23a1-4a6f-8366-93b03abf4a24/scratchpad/docs-data"],
-      "port": 5241
     }
   ]
 }

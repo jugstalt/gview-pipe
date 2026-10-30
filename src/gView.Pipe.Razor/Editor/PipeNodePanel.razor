@@ -24,7 +24,7 @@
     <MudAlert Severity="@(hint.Level == PipeNodeHintLevel.Warning ? Severity.Warning : Severity.Info)" Dense="true" Class="mx-4 mb-2">@hint.Message</MudAlert>
 }
 
-<MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-panel-tabs">
+<MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-panel-tabs" MinimumTabWidth="80px">
     <MudTabPanel Text="Parameters">
         <PipeParameterForm ParametersType="Model.Descriptor?.ParametersType"
                            Parameters="Model.Node.Parameters"

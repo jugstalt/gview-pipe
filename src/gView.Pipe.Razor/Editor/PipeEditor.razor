@@ -160,18 +160,25 @@
         }
     }
 
-    /// <summary>Pans (without zooming) so the top left node sits near the top left corner.</summary>
+    /// <summary>Shows the whole workflow: zooms out (never in beyond 100 %) and pans it to the top left corner.</summary>
     private void FitToNodes()
     {
         var models = _diagram.Nodes.OfType<PipeNodeModel>().ToList();
-        if (models.Count == 0 || _diagram.Container is null)
+        if (models.Count == 0 || _diagram.Container is not { } container)
         {
             return;
         }
 
+        const double margin = 60;
+        var minX = models.Min(m => m.Position.X);
+        var minY = models.Min(m => m.Position.Y);
+        var width = models.Max(m => m.Position.X + PipeNodeModel.Width) - minX;
+        var height = models.Max(m => m.Position.Y + m.Height) - minY;
+        var zoom = Math.Clamp(Math.Min((container.Width - 2 * margin) / width, (container.Height - 2 * margin) / height), 0.4, 1);
+
         _fitPending = false;
-        _diagram.SetZoom(1);
-        _diagram.SetPan(60 - models.Min(m => m.Position.X), 60 - models.Min(m => m.Position.Y));
+        _diagram.SetZoom(zoom);
+        _diagram.SetPan(margin - minX * zoom, margin - minY * zoom);
     }
 
     protected override async Task OnParametersSetAsync()
