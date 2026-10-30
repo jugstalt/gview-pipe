@@ -3,6 +3,7 @@
   "id": "webhook-demo",
   "name": "Webhook Demo",
   "description": "POST JSON to /webhook/demo and get a greeting back. Activate the workflow to arm the webhook.",
+  "groupId": "samples",
   "active": false,
   "nodes": [
     {

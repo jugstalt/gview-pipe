@@ -3,6 +3,7 @@
 | Term | Meaning | Code |
 |---|---|---|
 | **Workflow** | A stored graph of nodes and connections; one JSON document. Only DAGs (no cycles). | `PipeWorkflow` |
+| **Workflow group** | A folder for workflows, shown as a tile on the start page. A workflow is in at most one group; groups don't nest. Deleting a group keeps its workflows (without group). References between workflows use ids, so moving a workflow between groups breaks nothing. | `PipeWorkflowGroup`, `PipeWorkflow.GroupId`, `IPipeWorkflowGroupStore` |
 | **Node** | An instance of a node type inside a workflow, with its own parameters and settings. Has a unique `id` (for connections) and a unique `name` (for expressions). | `PipeWorkflowNode` |
 | **Node type** | The logic behind nodes, provided by a plugin class with `[PipeNode("guid", …)]`. Workflows reference it by that GUID. | `IPipeNode`, `PipeNodeDescriptor` |
 | **Type version** | Parameter version of a node type. Older workflow nodes are migrated before execution. | `PipeNodeAttribute.Version`, `IPipeNodeMigration` |

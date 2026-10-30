@@ -12,6 +12,7 @@
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
 @inject IPipeWorkflowStore WorkflowStore
+@inject IPipeWorkflowGroupStore GroupStore
 @inject IPipeWorkflowRunner Runner
 @inject IPipeTriggerManager TriggerManager
 @inject IPipeNodeRegistry Registry
@@ -38,9 +39,15 @@
         <div class="gview-pipe-editor-toolbar">
             @if (OnClose.HasDelegate)
             {
-                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" aria-label="Back" OnClick="() => OnClose.InvokeAsync()" />
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" aria-label="Back" OnClick="() => OnClose.InvokeAsync(KnownGroup?.Id)" />
             }
-            <MudText Typo="Typo.h6" Class="gview-pipe-editor-title">@_workflow.Name</MudText>
+            <MudText Typo="Typo.h6" Class="gview-pipe-editor-title">
+                @if (KnownGroup is { } group)
+                {
+                    <span style="color:@PipeGroupVisuals.Accent(group.Color); margin-right:.35em">@group.Name ›</span>
+                }
+                @_workflow.Name
+            </MudText>
             @if (_dirty)
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">unsaved</MudChip>
@@ -228,8 +235,15 @@
         catch (JSException) { }
     }
 
-    /// <summary>Shows a back button; the host decides where to navigate.</summary>
-    [Parameter] public EventCallback OnClose { get; set; }
+    /// <summary>
+    /// Shows a back button; the host decides where to navigate. The argument is the id of the workflow's group
+    /// (null without a known group), e.g. to return to the group's page.
+    /// </summary>
+    [Parameter] public EventCallback<string?> OnClose { get; set; }
+
+    private IReadOnlyList<PipeWorkflowGroup> _groups = [];
+
+    private PipeWorkflowGroup? KnownGroup => _workflow?.GroupId is { } id ? _groups.FirstOrDefault(g => g.Id == id) : null;
 
     private BlazorDiagram _diagram = default!;
     private PipeWorkflow? _workflow;
@@ -359,6 +373,7 @@
     {
         _loading = true;
         _workflow = await WorkflowStore.GetAsync(WorkflowId);
+        _groups = await GroupStore.ListAsync();
         _selected = null;
         _execution = null;
 

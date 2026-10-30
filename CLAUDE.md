@@ -17,7 +17,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - Values reach SQL only as parameters; the SQL text is read from `RawParameters` and never evaluated.
 - `gView.Pipe.Razor`: MudBlazor UI components.
   - Depends on Abstraction only.
-  - `Components/`: `PipeWorkflowList`, `PipeCredentialList`.
+  - `Components/`: `PipeWorkflowList` (start page with group tiles and search via `ShowGroups`, a group page via `GroupId`), `PipeCredentialList`.
   - `Editor/`: `PipeEditor` on Z.Blazor.Diagrams.
   - `Forms/`: forms generated from parameter classes.
   - Embedding hosts need the diagram CSS/JS and must render without prerendering (see ADR 0004).

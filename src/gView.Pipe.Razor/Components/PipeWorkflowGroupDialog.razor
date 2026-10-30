@@ -1,0 +1,60 @@
+@inject IPipeWorkflowGroupStore GroupStore
+
+@* Creates or edits a workflow group. Closes with the saved group. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField T="string" @bind-Value="_group.Name" Label="Name *" Variant="Variant.Outlined" Margin="Margin.Dense" AutoFocus="true" />
+            <MudTextField T="string" @bind-Value="_group.Description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+            <div>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Color</MudText>
+                <div class="gview-pipe-color-choices">
+                    @foreach (var color in PipeWorkflowGroupColors.All)
+                    {
+                        <button type="button" class="gview-pipe-color-choice @(color == _group.Color ? "selected" : null)"
+                                style="background:@PipeGroupVisuals.Accent(color)" title="@color" aria-label="@color"
+                                @onclick="() => _group.Color = color"></button>
+                    }
+                </div>
+            </div>
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
+    /// <summary>Group to edit; null creates a new one.</summary>
+    [Parameter] public PipeWorkflowGroup? Group { get; set; }
+
+    private PipeWorkflowGroup _group = new();
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        // edit a copy, so Cancel leaves the caller's object untouched
+        _group = Group is null ? new PipeWorkflowGroup() : PipeJson.Clone(Group);
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            await GroupStore.SaveAsync(_group);
+            Dialog.Close(DialogResult.Ok(_group));
+        }
+        catch (PipeException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

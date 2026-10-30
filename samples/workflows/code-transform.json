@@ -3,6 +3,7 @@
   "id": "code-transform",
   "name": "Code Transform",
   "description": "Sample: generate items with JavaScript, route them with Switch and merge them back.",
+  "groupId": "samples",
   "active": false,
   "nodes": [
     {

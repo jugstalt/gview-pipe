@@ -15,6 +15,12 @@ public class PipeFileStoreOptions
     public string? SeedWorkflowsPath { get; set; }
 
     /// <summary>
+    /// <c>groups.json</c> with the groups the seeded workflows are in; copied together with them
+    /// when the store has no groups yet.
+    /// </summary>
+    public string? SeedGroupsPath { get; set; }
+
+    /// <summary>
     /// Persist the ASP.NET Data Protection keys (used to encrypt credentials) to <c>keys/</c>.
     /// Turn off if the host configures Data Protection itself.
     /// </summary>

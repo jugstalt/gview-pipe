@@ -1,5 +1,6 @@
 @using gView.Pipe.Abstraction.Triggers
 @inject IPipeWorkflowStore WorkflowStore
+@inject IPipeWorkflowGroupStore GroupStore
 @inject IPipeExecutionStore ExecutionStore
 @inject IPipeWorkflowRunner Runner
 @inject IPipeTriggerManager TriggerManager
@@ -7,10 +8,41 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudPaper Class="gview-pipe-workflow-list pa-4" Elevation="0" Outlined="true">
+@*
+    Workflows, three ways:
+    - ShowGroups: group tiles, a search over all workflows and the workflows without group (start page)
+    - GroupId: the workflows of one group (group page)
+    - neither: all workflows
+    Rows can be dragged onto a group tile, or onto "All workflows" on a group page to take them out of the group.
+*@
+
+<MudPaper Class="@($"gview-pipe-workflow-list pa-4 {(_dragged is not null ? "dragging" : null)}")" Elevation="0" Outlined="true">
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-        <MudText Typo="Typo.h6">Workflows</MudText>
+        @if (GroupId is not null)
+        {
+            <div class="gview-pipe-breadcrumb">
+                <span class="gview-pipe-breadcrumb-link @(_dropOnAll ? "drop-target" : null)" title="Drop a workflow here to take it out of the group"
+                      @onclick="() => OnOpenAll.InvokeAsync()"
+                      @ondragenter="() => _dropOnAll = true" @ondragenter:preventDefault
+                      @ondragover:preventDefault
+                      @ondragleave="() => _dropOnAll = false"
+                      @ondrop="() => DropOnAllAsync()" @ondrop:preventDefault>All workflows</span>
+                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+                <MudText Typo="Typo.h6" Style="@($"color:{PipeGroupVisuals.Accent(_group?.Color)}")">@(_group?.Name ?? "Unknown group")</MudText>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.h6">Workflows</MudText>
+        }
         <MudSpacer />
+        @if (ShowGroups)
+        {
+            <MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="200" Placeholder="Search all workflows"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="gview-pipe-workflow-search" />
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CreateNewFolder" OnClick="() => EditGroupAsync(null)">New group</MudButton>
+        }
         <MudIconButton Icon="@Icons.Material.Filled.Refresh" aria-label="Reload" OnClick="LoadAsync" />
         @if (OnOpen.HasDelegate)
         {
@@ -18,56 +50,112 @@
         }
     </MudStack>
 
+    @if (GroupId is not null && _group?.Description is { Length: > 0 } description)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@description</MudText>
+    }
+
     @if (_workflows is null)
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
-    else if (_workflows.Count == 0)
-    {
-        <MudText Typo="Typo.body2" Class="mud-text-secondary">No workflows yet.</MudText>
-    }
     else
     {
-        <MudTable T="PipeWorkflow" Items="_workflows" Dense="true" Hover="true" Elevation="0"
-                  OnRowClick="args => OpenAsync(args.Item!)" RowClass="@(OnOpen.HasDelegate ? "gview-pipe-clickable" : null)">
-            <HeaderContent>
-                <MudTh>Name</MudTh>
-                <MudTh>Nodes</MudTh>
-                <MudTh>Active</MudTh>
-                <MudTh>Last run</MudTh>
-                <MudTh></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Name">
-                    <MudText Typo="Typo.body2">@context.Name</MudText>
-                    @if (!string.IsNullOrEmpty(context.Description))
+        @if (ShowGroups && !Searching && _groups.Count > 0)
+        {
+            <PipeWorkflowGroupTiles Groups="_groups" Stats="GroupStats()"
+                                    OnOpen="g => OnOpenGroup.InvokeAsync(g.Id)"
+                                    OnEdit="g => EditGroupAsync(g)"
+                                    OnDelete="DeleteGroupAsync"
+                                    OnDrop="g => MoveDraggedAsync(g.Id)" />
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1 mud-text-secondary">Workflows without group</MudText>
+        }
+
+        @if (Shown.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                @(Searching ? "No workflow matches the search."
+                    : GroupId is not null ? "This group has no workflows yet. Drag workflows onto its tile on the start page, or create one here."
+                    : ShowGroups && _groups.Count > 0 ? "All workflows are in groups."
+                    : "No workflows yet.")
+            </MudText>
+        }
+        else
+        {
+            <MudTable T="PipeWorkflow" Items="Shown" Dense="true" Hover="true" Elevation="0"
+                      OnRowClick="args => OpenAsync(args.Item!)" RowClass="@(OnOpen.HasDelegate ? "gview-pipe-clickable" : null)">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    @if (Searching)
                     {
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Description</MudText>
+                        <MudTh>Group</MudTh>
                     }
-                </MudTd>
-                <MudTd DataLabel="Nodes">@context.Nodes.Count</MudTd>
-                <MudTd DataLabel="Active">
-                    @if (context.Active)
+                    <MudTh>Nodes</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh>Last run</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">
+                        @* the outer element sets dataTransfer data in the browser (some browsers only start a drag with it);
+                           the drag event bubbles up to it from the draggable element *@
+                        <div ondragstart="event.dataTransfer.setData('text/plain', ''); event.dataTransfer.effectAllowed = 'move';">
+                        <div class="gview-pipe-workflow-drag" draggable="true" title="Drag onto a group"
+                             @ondragstart="() => _dragged = context" @ondragend="() => _dragged = null">
+                            <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Class="gview-pipe-drag-handle" />
+                            <div>
+                                <MudText Typo="Typo.body2">@context.Name</MudText>
+                                @if (!string.IsNullOrEmpty(context.Description))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Description</MudText>
+                                }
+                            </div>
+                        </div>
+                        </div>
+                    </MudTd>
+                    @if (Searching)
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Success" Size="Size.Small" />
+                        <MudTd DataLabel="Group">
+                            @if (GroupOf(context) is { } group)
+                            {
+                                <span class="gview-pipe-group-label" style="--gview-pipe-accent:@PipeGroupVisuals.Accent(group.Color)">@group.Name</span>
+                            }
+                        </MudTd>
                     }
-                </MudTd>
-                <MudTd DataLabel="Last run">
-                    @if (_lastRuns.TryGetValue(context.Id, out var run))
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="StatusColor(run.Status)" Variant="Variant.Outlined">@run.Status</MudChip>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@run.StartedAt.LocalDateTime.ToString("g")</MudText>
-                    }
-                </MudTd>
-                <MudTd Style="text-align:right; white-space:nowrap">
-                    <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Primary" Size="Size.Small" aria-label="Run"
-                                   Disabled="_running.Contains(context.Id)"
-                                   OnClick="() => RunAsync(context)" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete"
-                                   OnClick="() => DeleteAsync(context)" />
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+                    <MudTd DataLabel="Nodes">@context.Nodes.Count</MudTd>
+                    <MudTd DataLabel="Active">
+                        @if (context.Active)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Success" Size="Size.Small" />
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Last run">
+                        @if (_lastRuns.TryGetValue(context.Id, out var run))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="StatusColor(run.Status)" Variant="Variant.Outlined">@run.Status</MudChip>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@run.StartedAt.LocalDateTime.ToString("g")</MudText>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right; white-space:nowrap">
+                        <div class="gview-pipe-row-actions" @onclick:stopPropagation>
+                        <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Primary" Size="Size.Small" aria-label="Run"
+                                       Disabled="_running.Contains(context.Id)"
+                                       OnClick="() => RunAsync(context)" />
+                        <MudMenu Icon="@Icons.Material.Filled.DriveFileMove" Size="Size.Small" Dense="true" AriaLabel="Move to group">
+                            <MudMenuItem Disabled="true">Move to group…</MudMenuItem>
+                            @foreach (var group in _groups)
+                            {
+                                <MudMenuItem Disabled="@(group.Id == context.GroupId)" OnClick="() => MoveAsync(context, group.Id)">@group.Name</MudMenuItem>
+                            }
+                            <MudMenuItem Disabled="@(GroupOf(context) is null)" OnClick="() => MoveAsync(context, null)">No group</MudMenuItem>
+                        </MudMenu>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete"
+                                       OnClick="() => DeleteAsync(context)" />
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
     }
 </MudPaper>
 
@@ -75,25 +163,88 @@
     /// <summary>Opens a workflow (e.g. navigates to the editor). Enables "New workflow" and row clicks.</summary>
     [Parameter] public EventCallback<string> OnOpen { get; set; }
 
+    /// <summary>Start page: group tiles, search over all workflows, and the workflows without (known) group.</summary>
+    [Parameter] public bool ShowGroups { get; set; }
+
+    /// <summary>Group page: only the workflows of this group; new workflows are created in it.</summary>
+    [Parameter] public string? GroupId { get; set; }
+
+    /// <summary>A group tile was clicked (argument: group id).</summary>
+    [Parameter] public EventCallback<string> OnOpenGroup { get; set; }
+
+    /// <summary>"All workflows" on a group page was clicked.</summary>
+    [Parameter] public EventCallback OnOpenAll { get; set; }
+
     private IReadOnlyList<PipeWorkflow>? _workflows;
+    private IReadOnlyList<PipeWorkflowGroup> _groups = [];
+    private PipeWorkflowGroup? _group;
     private readonly Dictionary<string, PipeExecution> _lastRuns = new();
     private readonly HashSet<string> _running = new();
+    private string? _search;
+    private string? _loadedGroupId;
+    private PipeWorkflow? _dragged;
+    private bool _dropOnAll;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    private bool Searching => ShowGroups && !string.IsNullOrWhiteSpace(_search);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_workflows is null || _loadedGroupId != GroupId)
+        {
+            _loadedGroupId = GroupId;
+            await LoadAsync();
+        }
+    }
 
     private async Task LoadAsync()
     {
-        _workflows = await WorkflowStore.ListAsync();
+        var workflows = await WorkflowStore.ListAsync();
+        _groups = await GroupStore.ListAsync();
+        _group = GroupId is null ? null : _groups.FirstOrDefault(g => g.Id == GroupId);
         _lastRuns.Clear();
 
-        foreach (var workflow in _workflows)
+        foreach (var workflow in workflows)
         {
             if ((await ExecutionStore.ListAsync(workflow.Id, 1)).FirstOrDefault() is { } last)
             {
                 _lastRuns[workflow.Id] = last;
             }
         }
+        _workflows = workflows;
     }
+
+    /// <summary>The known group of a workflow; null for none or an id of a missing group.</summary>
+    private PipeWorkflowGroup? GroupOf(PipeWorkflow workflow)
+        => workflow.GroupId is { } id ? _groups.FirstOrDefault(g => g.Id == id) : null;
+
+    private IReadOnlyList<PipeWorkflow> Shown
+    {
+        get
+        {
+            var workflows = _workflows ?? [];
+            if (Searching)
+            {
+                var search = _search!.Trim();
+                return workflows.Where(w => w.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
+                                            || (w.Description?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+            }
+            if (GroupId is not null)
+            {
+                return workflows.Where(w => w.GroupId == GroupId).ToList();
+            }
+            return ShowGroups ? workflows.Where(w => GroupOf(w) is null).ToList() : workflows;
+        }
+    }
+
+    private Dictionary<string, PipeWorkflowGroupTiles.GroupStats> GroupStats()
+        => _groups.ToDictionary(g => g.Id, g =>
+        {
+            var members = (_workflows ?? []).Where(w => w.GroupId == g.Id).ToList();
+            return new PipeWorkflowGroupTiles.GroupStats(
+                members.Count,
+                members.Count(w => w.Active),
+                members.Count(w => _lastRuns.TryGetValue(w.Id, out var run) && run.Status == PipeExecutionStatus.Error));
+        });
 
     private async Task OpenAsync(PipeWorkflow workflow)
     {
@@ -105,7 +256,7 @@
 
     private async Task CreateAsync()
     {
-        var workflow = new PipeWorkflow { Name = "New workflow" };
+        var workflow = new PipeWorkflow { Name = "New workflow", GroupId = GroupId };
 
         // start with a manual trigger if one is installed, so the workflow can run right away
         if (Registry.Nodes.FirstOrDefault(n => n.IsTrigger && n.ParametersType is null) is { } trigger)
@@ -123,6 +274,82 @@
         await WorkflowStore.SaveAsync(workflow);
         await OnOpen.InvokeAsync(workflow.Id);
     }
+
+    // ---- groups ----
+
+    private async Task EditGroupAsync(PipeWorkflowGroup? group)
+    {
+        var parameters = new DialogParameters<PipeWorkflowGroupDialog> { { d => d.Group, group } };
+        var dialog = await DialogService.ShowAsync<PipeWorkflowGroupDialog>(group is null ? "New group" : "Edit group", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    /// <summary>Deleting a group never deletes workflows: they stay, without group.</summary>
+    private async Task DeleteGroupAsync(PipeWorkflowGroup group)
+    {
+        var members = (_workflows ?? []).Where(w => w.GroupId == group.Id).ToList();
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete group",
+            members.Count == 0
+                ? $"Delete the group '{group.Name}'?"
+                : $"Delete the group '{group.Name}'? Its {members.Count} workflow(s) are kept, without group.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        foreach (var workflow in members)
+        {
+            await SetGroupAsync(workflow, null);
+        }
+        await GroupStore.DeleteAsync(group.Id);
+        await LoadAsync();
+    }
+
+    private async Task MoveDraggedAsync(string? groupId)
+    {
+        if (_dragged is { } workflow)
+        {
+            _dragged = null;
+            await MoveAsync(workflow, groupId);
+        }
+    }
+
+    private async Task DropOnAllAsync()
+    {
+        _dropOnAll = false;
+        await MoveDraggedAsync(null);
+    }
+
+    private async Task MoveAsync(PipeWorkflow workflow, string? groupId)
+    {
+        if (workflow.GroupId == groupId)
+        {
+            return;
+        }
+
+        await SetGroupAsync(workflow, groupId);
+        var target = groupId is null ? "no group" : $"'{_groups.FirstOrDefault(g => g.Id == groupId)?.Name}'";
+        Snackbar.Add($"Moved '{workflow.Name}' to {target}", Severity.Success);
+        await LoadAsync();
+    }
+
+    /// <summary>Changes only the group of the stored workflow (the listed copy may be older than the stored one).</summary>
+    private async Task SetGroupAsync(PipeWorkflow workflow, string? groupId)
+    {
+        var stored = await WorkflowStore.GetAsync(workflow.Id) ?? workflow;
+        stored.GroupId = groupId;
+        await WorkflowStore.SaveAsync(stored);
+    }
+
+    // ---- rows ----
 
     private async Task RunAsync(PipeWorkflow workflow)
     {

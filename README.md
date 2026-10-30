@@ -14,7 +14,8 @@ A workflow automation app in the style of n8n, built on Blazor and .NET 10. Work
 - **Triggers.** Manual, Cron and Webhook.
 - **Credentials.** Stored encrypted with ASP.NET Data Protection. Nodes reference them by id and never see them in the workflow JSON.
 - **Plugins.** A node is a class implementing `IPipeNode<TParameters>`. External plugins are loaded from a folder, each into its own `AssemblyLoadContext`.
-- **Storage.** Workflows, executions and credentials are plain JSON files.
+- **Groups.** Workflows can be put into groups, shown as tiles on the start page; drag a workflow onto a tile to move it. A search finds workflows in all groups.
+- **Storage.** Workflows, groups, executions and credentials are plain JSON files.
 
 | Code node | Node logs | Webhook request as input |
 |---|---|---|
@@ -30,7 +31,7 @@ You need the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 dotnet run --project src/gView.Pipe.Shell
 ```
 
-Open the URL printed in the console (http://localhost:5240 with the `http` profile). On first start, the sample workflows from [`samples/workflows`](samples/workflows) are copied into the empty store:
+Open the URL printed in the console (http://localhost:5240 with the `http` profile). On first start, the sample workflows from [`samples/workflows`](samples/workflows) are copied into the empty store, in the group "Samples":
 
 - **Hello Pipe**: a manual trigger, Set and Log.
 - **Code Transform**: generates orders with JavaScript, routes them by country with Switch, adds VAT and merges them again.
@@ -52,7 +53,7 @@ dotnet run --project src/Aspire/gView.Pipe.AppHost
 
 | Key | Default | Meaning |
 |---|---|---|
-| `Pipe:DataPath` | `data` | Folder for `workflows/`, `executions/`, `credentials/` and the Data Protection `keys/`. |
+| `Pipe:DataPath` | `data` | Folder for `workflows/`, `groups.json`, `executions/`, `credentials/` and the Data Protection `keys/`. |
 | `Pipe:PluginPath` | `plugins` | Folder with external plugins, one sub folder per plugin: `plugins/<Name>/<Name>.dll`. |
 | `Pipe:FileRoots` | `files` ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ `files` | Folders Read File and Write File may use, by name. Nothing outside them is reachable. |
 
@@ -67,7 +68,7 @@ The Wait node waits at most one hour; change it with `services.Configure<PipeWai
 | `gView.Pipe.AspNetCore` | ASP.NET Core integration: `app.MapPipeWebhooks()`. |
 | `gView.Pipe.Plugins` | Built-in nodes and credential types. They use only the Abstraction, exactly like external plugins. |
 | `gView.Pipe.Plugins.Database` | SQL node for SQL Server, PostgreSQL and SQLite. An external plugin: building it installs it into `src/gView.Pipe.Shell/plugins/`. |
-| `gView.Pipe.Razor` | MudBlazor components: workflow list, credential list and the editor. |
+| `gView.Pipe.Razor` | MudBlazor components: workflow list with groups, credential list and the editor. |
 | `gView.Pipe.Shell` | The app: layout, routing and service composition. |
 | `Aspire/` | AppHost and ServiceDefaults. |
 | `tests/` | xUnit v3 tests for Core, Plugins, the database plugin and the Razor components (bUnit). |

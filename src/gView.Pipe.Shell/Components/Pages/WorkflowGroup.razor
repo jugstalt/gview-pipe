@@ -1,0 +1,14 @@
+@page "/groups/{Id}"
+@inject NavigationManager Navigation
+
+<PageTitle>gView.Pipe · Group</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-6">
+    <PipeWorkflowList GroupId="@Id"
+                      OnOpen="@(id => Navigation.NavigateTo($"workflows/{Uri.EscapeDataString(id)}"))"
+                      OnOpenAll="@(() => Navigation.NavigateTo(""))" />
+</MudContainer>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+}

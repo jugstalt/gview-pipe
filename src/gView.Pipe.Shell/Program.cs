@@ -27,6 +27,7 @@ builder.Services
     {
         options.RootPath = builder.Configuration["Pipe:DataPath"] ?? "data";
         options.SeedWorkflowsPath = Path.Combine(AppContext.BaseDirectory, "samples", "workflows");
+        options.SeedGroupsPath = Path.Combine(AppContext.BaseDirectory, "samples", "groups.json");
     })
     .AddPipeRazor();
 

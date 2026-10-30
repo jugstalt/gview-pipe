@@ -3,6 +3,7 @@
   "id": "api-demo",
   "name": "API Demo",
   "description": "Sample: POST { \"name\": \"Ada\" } to /webhook/api/greet; answers 200 with a greeting or 400 without a name. Activate it first.",
+  "groupId": "samples",
   "active": false,
   "nodes": [
     {

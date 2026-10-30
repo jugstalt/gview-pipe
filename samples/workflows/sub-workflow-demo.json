@@ -3,6 +3,7 @@
   "id": "sub-workflow-demo",
   "name": "Sub-workflow Demo",
   "description": "Sample: calls 'Price Calculator' per batch of 2 items, like the body of a loop. Errors go to 'Error Alerts'.",
+  "groupId": "samples",
   "active": false,
   "settings": { "maxConcurrentRuns": 1, "saveExecutionData": true, "errorWorkflowId": "error-alerts" },
   "nodes": [

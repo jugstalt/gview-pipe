@@ -1,0 +1,76 @@
+@* Workflow groups as tiles. Workflow rows can be dropped onto a tile to move them into the group. *@
+
+<div class="gview-pipe-group-tiles">
+    @foreach (var group in Groups)
+    {
+        var stats = Stats.GetValueOrDefault(group.Id);
+        <div class="gview-pipe-group-tile @(group.Id == _dropTarget ? "drop-target" : null)"
+             style="--gview-pipe-accent:@PipeGroupVisuals.Accent(group.Color)"
+             @onclick="() => OnOpen.InvokeAsync(group)"
+             @ondragenter="() => _dropTarget = group.Id" @ondragenter:preventDefault
+             @ondragover:preventDefault
+             @ondragleave="() => DragLeave(group.Id)"
+             @ondrop="() => DropAsync(group)" @ondrop:preventDefault>
+            <div class="gview-pipe-group-tile-header">
+                <MudIcon Icon="@Icons.Material.Filled.Folder" Class="gview-pipe-group-tile-icon" />
+                <MudText Typo="Typo.subtitle1" Class="gview-pipe-group-tile-name">@group.Name</MudText>
+                <MudSpacer />
+                <div @onclick:stopPropagation>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AriaLabel="Group actions">
+                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => OnEdit.InvokeAsync(group)">Edit</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="() => OnDelete.InvokeAsync(group)">Delete</MudMenuItem>
+                    </MudMenu>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(group.Description))
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary gview-pipe-group-tile-description" title="@group.Description">@group.Description</MudText>
+            }
+            <div class="gview-pipe-group-tile-stats">
+                <span>@stats.Workflows workflow@(stats.Workflows == 1 ? "" : "s")</span>
+                @if (stats.Active > 0)
+                {
+                    <span><MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Success" Size="Size.Small" /> @stats.Active active</span>
+                }
+                @if (stats.Failing > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.ErrorOutline">@stats.Failing failing</MudChip>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    public readonly record struct GroupStats(int Workflows, int Active, int Failing);
+
+    [Parameter, EditorRequired] public IReadOnlyList<PipeWorkflowGroup> Groups { get; set; } = [];
+
+    /// <summary>Counts per group id.</summary>
+    [Parameter] public IReadOnlyDictionary<string, GroupStats> Stats { get; set; } = new Dictionary<string, GroupStats>();
+
+    [Parameter] public EventCallback<PipeWorkflowGroup> OnOpen { get; set; }
+
+    [Parameter] public EventCallback<PipeWorkflowGroup> OnEdit { get; set; }
+
+    [Parameter] public EventCallback<PipeWorkflowGroup> OnDelete { get; set; }
+
+    /// <summary>A dragged workflow row was dropped onto the group.</summary>
+    [Parameter] public EventCallback<PipeWorkflowGroup> OnDrop { get; set; }
+
+    private string? _dropTarget;
+
+    private void DragLeave(string groupId)
+    {
+        if (_dropTarget == groupId)
+        {
+            _dropTarget = null;
+        }
+    }
+
+    private async Task DropAsync(PipeWorkflowGroup group)
+    {
+        _dropTarget = null;
+        await OnDrop.InvokeAsync(group);
+    }
+}

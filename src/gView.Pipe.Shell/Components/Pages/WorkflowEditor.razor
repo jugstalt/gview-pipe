@@ -4,7 +4,9 @@
 <PageTitle>gView.Pipe · Editor</PageTitle>
 
 <div class="gview-pipe-shell-fill">
-    <PipeEditor WorkflowId="@Id" OnClose="@(() => Navigation.NavigateTo(""))" />
+    @* back to the group page of the workflow, or to the start page *@
+    <PipeEditor WorkflowId="@Id"
+                OnClose="@(groupId => Navigation.NavigateTo(groupId is null ? "" : $"groups/{Uri.EscapeDataString(groupId)}"))" />
 </div>
 
 @code {

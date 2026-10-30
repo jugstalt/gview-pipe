@@ -27,6 +27,26 @@ static internal class PipeStoreIds
         workflow.UpdatedAt = now;
     }
 
+    static public void Prepare(PipeWorkflowGroup group, IEnumerable<PipeWorkflowGroup> existing)
+    {
+        if (string.IsNullOrEmpty(group.Id))
+        {
+            group.Id = NewId();
+        }
+        Validate(group.Id);
+
+        group.Name = group.Name.Trim();
+        if (group.Name.Length == 0)
+        {
+            throw new PipeException("A group needs a name");
+        }
+        if (existing.Any(g => g.Id != group.Id && g.Name.Equals(group.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new PipeException($"A group named '{group.Name}' already exists");
+        }
+        group.CreatedAt ??= DateTimeOffset.UtcNow;
+    }
+
     static public void Prepare(PipeCredential credential)
     {
         if (string.IsNullOrEmpty(credential.Id))

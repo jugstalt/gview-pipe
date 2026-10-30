@@ -34,6 +34,34 @@ internal sealed class PipeMemoryWorkflowStore : IPipeWorkflowStore
     }
 }
 
+internal sealed class PipeMemoryWorkflowGroupStore : IPipeWorkflowGroupStore
+{
+    private readonly ConcurrentDictionary<string, PipeWorkflowGroup> _groups = new();
+    private readonly Lock _saveLock = new();
+
+    public Task<IReadOnlyList<PipeWorkflowGroup>> ListAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<PipeWorkflowGroup>>(_groups.Values.Select(PipeJson.Clone).OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToList());
+
+    public Task<PipeWorkflowGroup?> GetAsync(string id, CancellationToken cancellationToken = default)
+        => Task.FromResult(_groups.TryGetValue(id, out var group) ? PipeJson.Clone(group) : null);
+
+    public Task SaveAsync(PipeWorkflowGroup group, CancellationToken cancellationToken = default)
+    {
+        lock (_saveLock)
+        {
+            PipeStoreIds.Prepare(group, _groups.Values);
+            _groups[group.Id] = PipeJson.Clone(group);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    {
+        _groups.TryRemove(id, out _);
+        return Task.CompletedTask;
+    }
+}
+
 internal sealed class PipeMemoryExecutionStore : IPipeExecutionStore
 {
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, PipeExecution>> _executions = new();

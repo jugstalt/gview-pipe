@@ -3,6 +3,7 @@
   "id": "error-alerts",
   "name": "Error Alerts",
   "description": "Sample error workflow: logs failed triggered runs of workflows that name it as their error workflow.",
+  "groupId": "samples",
   "active": false,
   "nodes": [
     {

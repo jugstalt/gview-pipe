@@ -3,6 +3,7 @@
   "id": "price-calculator",
   "name": "Price Calculator",
   "description": "Sample sub-workflow: adds 20 % VAT. Called by 'Sub-workflow Demo'; run it alone to test it with an empty item.",
+  "groupId": "samples",
   "active": false,
   "settings": { "maxConcurrentRuns": 5, "saveExecutionData": true },
   "nodes": [

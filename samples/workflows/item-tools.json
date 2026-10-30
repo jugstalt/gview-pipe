@@ -3,6 +3,7 @@
   "id": "item-tools",
   "name": "Item Tools",
   "description": "Sample: split order lines into items, remove duplicates, sort, limit and aggregate them.",
+  "groupId": "samples",
   "active": false,
   "nodes": [
     {

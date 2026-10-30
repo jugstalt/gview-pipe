@@ -6,6 +6,7 @@
     <File Path="GLOSSARY.md" />
   </Folder>
   <Folder Name="/samples/">
+    <File Path="samples/groups.json" />
     <File Path="samples/workflows/hello-pipe.json" />
     <File Path="samples/workflows/code-transform.json" />
     <File Path="samples/workflows/webhook-demo.json" />

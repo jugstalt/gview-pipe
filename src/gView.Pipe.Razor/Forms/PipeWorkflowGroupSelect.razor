@@ -1,0 +1,31 @@
+@inject IPipeWorkflowGroupStore GroupStore
+
+@* Picks the group of a workflow; empty means no group. An id of a missing group stays visible. *@
+
+<MudSelect T="string" Label="@Label" Dense="true" Variant="Variant.Outlined" Clearable="true" HelperText="@HelperText"
+           Value="@Value" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
+    @foreach (var group in _groups)
+    {
+        <MudSelectItem Value="@group.Id">@group.Name</MudSelectItem>
+    }
+    @if (!string.IsNullOrEmpty(Value) && _loaded && _groups.All(g => g.Id != Value))
+    {
+        <MudSelectItem Value="@Value">Missing group '@Value'</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public string? Label { get; set; } = "Group";
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    private IReadOnlyList<PipeWorkflowGroup> _groups = [];
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groups = await GroupStore.ListAsync();
+        _loaded = true;
+    }
+}

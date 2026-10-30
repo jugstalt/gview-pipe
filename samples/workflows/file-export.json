@@ -3,6 +3,7 @@
   "id": "file-export",
   "name": "File Export",
   "description": "Sample: writes orders as CSV into the released folder 'files' and reads them back.",
+  "groupId": "samples",
   "active": false,
   "nodes": [
     {

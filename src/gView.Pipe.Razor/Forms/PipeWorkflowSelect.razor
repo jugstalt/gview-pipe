@@ -1,4 +1,5 @@
 @inject IPipeWorkflowStore WorkflowStore
+@inject IPipeWorkflowGroupStore GroupStore
 
 @* Picks a stored workflow by id. An id that no longer exists stays visible, so it isn't lost silently. *@
 
@@ -6,7 +7,7 @@
            Value="@Value" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
     @foreach (var workflow in _workflows)
     {
-        <MudSelectItem Value="@workflow.Id">@workflow.Name</MudSelectItem>
+        <MudSelectItem Value="@workflow.Id">@Display(workflow)</MudSelectItem>
     }
     @if (!string.IsNullOrEmpty(Value) && _loaded && _workflows.All(w => w.Id != Value))
     {
@@ -25,12 +26,22 @@
 
     private IReadOnlyList<PipeWorkflow> _workflows = [];
     private bool _loaded;
+    private Dictionary<string, string> _groups = new();
+
+    private string? GroupName(PipeWorkflow workflow)
+        => workflow.GroupId is { } id ? _groups.GetValueOrDefault(id) : null;
+
+    private string Display(PipeWorkflow workflow)
+        => GroupName(workflow) is { } group ? $"{group} › {workflow.Name}" : workflow.Name;
 
     protected override async Task OnInitializedAsync()
     {
+        _groups = (await GroupStore.ListAsync()).ToDictionary(g => g.Id, g => g.Name);
+        // grouped by group (workflows without group first), so equal names in different groups can be told apart
         _workflows = (await WorkflowStore.ListAsync())
             .Where(w => w.Id != ExcludeId)
-            .OrderBy(w => w.Name, StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(w => GroupName(w) ?? "", StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(w => w.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
         _loaded = true;
     }

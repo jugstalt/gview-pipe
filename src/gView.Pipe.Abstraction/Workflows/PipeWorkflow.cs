@@ -17,6 +17,12 @@ public sealed class PipeWorkflow
 
     public string? Description { get; set; }
 
+    /// <summary>
+    /// Group the workflow is in (<see cref="PipeWorkflowGroup.Id"/>), or null. An id of a group that doesn't exist
+    /// (e.g. a file copied from another installation) is kept, and the workflow is shown without group.
+    /// </summary>
+    public string? GroupId { get; set; }
+
     /// <summary>Active workflows have their triggers (cron, webhook, …) armed.</summary>
     public bool Active { get; set; }
 

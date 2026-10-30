@@ -4,5 +4,7 @@
 <PageTitle>gView.Pipe</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="pt-6">
-    <PipeWorkflowList OnOpen="@(id => Navigation.NavigateTo($"workflows/{Uri.EscapeDataString(id)}"))" />
+    <PipeWorkflowList ShowGroups="true"
+                      OnOpen="@(id => Navigation.NavigateTo($"workflows/{Uri.EscapeDataString(id)}"))"
+                      OnOpenGroup="@(id => Navigation.NavigateTo($"groups/{Uri.EscapeDataString(id)}"))" />
 </MudContainer>

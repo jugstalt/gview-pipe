@@ -3,6 +3,7 @@
   "id": "hello-pipe",
   "name": "Hello Pipe",
   "description": "Sample: manual trigger, set fields, branch on a condition, log the result.",
+  "groupId": "samples",
   "active": false,
   "settings": {
     "maxConcurrentRuns": 1,

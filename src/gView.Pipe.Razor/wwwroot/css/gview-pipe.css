@@ -29,6 +29,148 @@
     vertical-align: middle;
 }
 
+/* ---- workflow groups ---- */
+
+.gview-pipe-workflow-search {
+    max-width: 280px;
+}
+
+.gview-pipe-group-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 8px 0;
+}
+
+.gview-pipe-group-tile {
+    padding: 10px 12px 12px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-top: 3px solid var(--gview-pipe-accent);
+    border-radius: 8px;
+    background: var(--mud-palette-surface);
+    cursor: pointer;
+    transition: box-shadow .15s, border-color .15s;
+}
+
+    .gview-pipe-group-tile:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+    }
+
+    .gview-pipe-group-tile.drop-target {
+        border-color: var(--gview-pipe-accent);
+        box-shadow: 0 0 0 2px var(--gview-pipe-accent);
+    }
+
+/* while a row is dragged, the tile's children must not swallow the drag events of the tile */
+.gview-pipe-workflow-list.dragging .gview-pipe-group-tile *,
+.gview-pipe-workflow-list.dragging .gview-pipe-breadcrumb-link * {
+    pointer-events: none;
+}
+
+.gview-pipe-group-tile-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gview-pipe-group-tile-icon {
+    color: var(--gview-pipe-accent);
+}
+
+.gview-pipe-group-tile-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gview-pipe-group-tile-description {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gview-pipe-group-tile-stats {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-top: 6px;
+    font-size: .8rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+    .gview-pipe-group-tile-stats span {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+.gview-pipe-group-label {
+    padding: 1px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--gview-pipe-accent);
+    color: var(--gview-pipe-accent);
+    font-size: .75rem;
+    white-space: nowrap;
+}
+
+.gview-pipe-workflow-drag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: grab;
+}
+
+.gview-pipe-drag-handle {
+    color: var(--mud-palette-text-disabled);
+}
+
+.gview-pipe-row-actions {
+    display: inline-flex;
+    align-items: center;
+}
+
+.gview-pipe-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gview-pipe-breadcrumb-link {
+    padding: 2px 6px;
+    border-radius: 6px;
+    color: var(--mud-palette-primary);
+    cursor: pointer;
+}
+
+    .gview-pipe-breadcrumb-link:hover {
+        text-decoration: underline;
+    }
+
+    .gview-pipe-breadcrumb-link.drop-target {
+        outline: 2px dashed var(--mud-palette-primary);
+    }
+
+.gview-pipe-color-choices {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.gview-pipe-color-choice {
+    width: 26px;
+    height: 26px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+    .gview-pipe-color-choice.selected {
+        outline: 2px solid var(--mud-palette-text-primary);
+        outline-offset: 2px;
+    }
+
 /* ---- editor layout ---- */
 
 .gview-pipe-editor {

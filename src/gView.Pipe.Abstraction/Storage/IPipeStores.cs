@@ -16,6 +16,21 @@ public interface IPipeWorkflowStore
     Task DeleteAsync(string id, CancellationToken cancellationToken = default);
 }
 
+public interface IPipeWorkflowGroupStore
+{
+    /// <summary>Ordered by name.</summary>
+    Task<IReadOnlyList<PipeWorkflowGroup>> ListAsync(CancellationToken cancellationToken = default);
+
+    Task<PipeWorkflowGroup?> GetAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Saves the group. Assigns an id if it has none.</summary>
+    /// <exception cref="PipeException">Another group has the same name.</exception>
+    Task SaveAsync(PipeWorkflowGroup group, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes the group only; the workflows that were in it are not touched.</summary>
+    Task DeleteAsync(string id, CancellationToken cancellationToken = default);
+}
+
 public interface IPipeExecutionStore
 {
     Task SaveAsync(PipeExecution execution, CancellationToken cancellationToken = default);

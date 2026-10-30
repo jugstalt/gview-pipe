@@ -16,6 +16,8 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
 {
     private readonly string _folder;
     private readonly string? _seedFolder;
+    private readonly string? _seedGroups;
+    private readonly string _groupsFile;
     private readonly ILogger<PipeFileWorkflowStore> _logger;
     private readonly Lock _seedLock = new();
     private bool _seeded;
@@ -24,6 +26,8 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
     {
         _folder = Path.Combine(Path.GetFullPath(options.Value.RootPath), "workflows");
         _seedFolder = options.Value.SeedWorkflowsPath is { } seed ? Path.GetFullPath(seed) : null;
+        _seedGroups = options.Value.SeedGroupsPath is { } groups ? Path.GetFullPath(groups) : null;
+        _groupsFile = PipeFileWorkflowGroupStore.FileOf(options.Value);
         _logger = logger;
     }
 
@@ -102,8 +106,74 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
                 File.Copy(file, Path.Combine(_folder, Path.GetFileName(file)));
                 _logger.LogInformation("Seeded workflow {File}", Path.GetFileName(file));
             }
+
+            // the groups the samples are in, unless the store already has groups
+            if (_seedGroups is not null && File.Exists(_seedGroups) && !File.Exists(_groupsFile))
+            {
+                File.Copy(_seedGroups, _groupsFile);
+                _logger.LogInformation("Seeded workflow groups");
+            }
         }
     }
+}
+
+/// <summary>All groups in one JSON file, <c>{root}/groups.json</c>; there are few, and they change rarely.</summary>
+internal sealed class PipeFileWorkflowGroupStore : IPipeWorkflowGroupStore
+{
+    private readonly string _file;
+    private readonly SemaphoreSlim _lock = new(1, 1);
+
+    public PipeFileWorkflowGroupStore(IOptions<PipeFileStoreOptions> options)
+    {
+        _file = FileOf(options.Value);
+    }
+
+    static public string FileOf(PipeFileStoreOptions options) => Path.Combine(Path.GetFullPath(options.RootPath), "groups.json");
+
+    public async Task<IReadOnlyList<PipeWorkflowGroup>> ListAsync(CancellationToken cancellationToken = default)
+        => (await ReadAsync(cancellationToken)).OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+    public async Task<PipeWorkflowGroup?> GetAsync(string id, CancellationToken cancellationToken = default)
+        => (await ReadAsync(cancellationToken)).FirstOrDefault(g => g.Id == id);
+
+    public async Task SaveAsync(PipeWorkflowGroup group, CancellationToken cancellationToken = default)
+    {
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            var groups = await ReadAsync(cancellationToken);
+            PipeStoreIds.Prepare(group, groups);
+            groups.RemoveAll(g => g.Id == group.Id);
+            groups.Add(group);
+            await PipeFiles.WriteAtomicAsync(_file, PipeJson.Serialize(groups), cancellationToken);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    {
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            var groups = await ReadAsync(cancellationToken);
+            if (groups.RemoveAll(g => g.Id == id) > 0)
+            {
+                await PipeFiles.WriteAtomicAsync(_file, PipeJson.Serialize(groups), cancellationToken);
+            }
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private async Task<List<PipeWorkflowGroup>> ReadAsync(CancellationToken cancellationToken)
+        => File.Exists(_file)
+            ? PipeJson.Deserialize<List<PipeWorkflowGroup>>(await File.ReadAllTextAsync(_file, cancellationToken)) ?? []
+            : [];
 }
 
 /// <summary>
