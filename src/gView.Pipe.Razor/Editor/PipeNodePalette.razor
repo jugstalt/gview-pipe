@@ -9,6 +9,7 @@
     @foreach (var group in Groups())
     {
         <div class="gview-pipe-palette-group">@group.Key</div>
+        <div class="gview-pipe-palette-items">
         @foreach (var descriptor in group)
         {
             <div class="gview-pipe-palette-item" title="@descriptor.Description" @onclick="() => OnAdd.InvokeAsync(descriptor)"
@@ -17,6 +18,7 @@
                 <span>@descriptor.Name</span>
             </div>
         }
+        </div>
     }
 </div>
 
