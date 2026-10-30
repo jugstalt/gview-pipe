@@ -6,5 +6,6 @@
 <MudContainer MaxWidth="MaxWidth.Large" Class="pt-6">
     <PipeWorkflowList ShowGroups="true"
                       OnOpen="@(id => Navigation.NavigateTo($"workflows/{Uri.EscapeDataString(id)}"))"
-                      OnOpenGroup="@(id => Navigation.NavigateTo($"groups/{Uri.EscapeDataString(id)}"))" />
+                      OnOpenGroup="@(id => Navigation.NavigateTo($"groups/{Uri.EscapeDataString(id)}"))"
+                      OnOpenExecution="@(run => Navigation.NavigateTo($"workflows/{Uri.EscapeDataString(run.WorkflowId)}?execution={Uri.EscapeDataString(run.ExecutionId)}"))" />
 </MudContainer>

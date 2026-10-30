@@ -2,7 +2,7 @@ using gView.Pipe.Abstraction.Data;
 
 namespace gView.Pipe.Abstraction.Execution;
 
-public sealed class PipeExecutionRequest
+public sealed record PipeExecutionRequest
 {
     public PipeExecutionMode Mode { get; init; } = PipeExecutionMode.Manual;
 

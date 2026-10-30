@@ -27,6 +27,7 @@
 | **File root** | A folder of the host released for Read File and Write File, by name. Nodes give a root and a relative path; nothing outside the roots is reachable. | `PipeCoreOptions.FileRoots`, `IPipeFileRoots` |
 | **Script root** | A folder of the host released for Run Scripts, by name; separate from the file roots. | `PipeScriptsOptions.ScriptRoots` |
 | **Parameter options** | Values a node offers for a parameter, depending on its other parameters (e.g. the scripts in a folder); a string picks one, a `List<PipeSelection>` is an ordered on/off list. | `IPipeParameterOptions`, `PipeOptionsAttribute` |
+| **Running executions** | The executions running in this process (and those finished in the last minute), with node states and live output; can be watched in the editor and stopped. | `IPipeRunningExecutions`, `PipeExecutionMonitor` |
 | **Engine** | Executes a workflow graph; stores nothing. | `IPipeEngine` |
 | **Runner** | Runs workflows like the app does: concurrency limit and execution history. | `IPipeWorkflowRunner` |
 | **Credential** | Stored, encrypted secret data (API key, password, …) referenced by nodes via its id. | `PipeCredential` |

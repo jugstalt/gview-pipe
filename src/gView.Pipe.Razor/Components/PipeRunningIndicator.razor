@@ -1,0 +1,43 @@
+@implements IDisposable
+@inject IPipeRunningExecutions Running
+
+@* "n running" for an app bar; hidden when nothing runs. *@
+
+@if (_count > 0)
+{
+    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Autorenew"
+             OnClick="() => OnClick.InvokeAsync()" Class="gview-pipe-running-indicator">@_count running</MudChip>
+}
+
+@code {
+    /// <summary>E.g. navigate to the page with the running executions.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private int _count;
+    private PipeThrottle? _throttle;
+
+    protected override void OnInitialized()
+    {
+        _throttle = new PipeThrottle(TimeSpan.FromMilliseconds(500), () => InvokeAsync(Refresh));
+        Running.Changed += OnChanged;
+        Refresh();
+    }
+
+    private void OnChanged(string _) => _throttle?.Trigger();
+
+    private void Refresh()
+    {
+        var count = Running.List().Count(i => i.IsRunning);
+        if (count != _count)
+        {
+            _count = count;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        Running.Changed -= OnChanged;
+        _throttle?.Dispose();
+    }
+}

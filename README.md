@@ -14,6 +14,7 @@ A workflow automation app in the style of n8n, built on Blazor and .NET 10. Work
 - **Triggers.** Manual, Cron and Webhook.
 - **Credentials.** Stored encrypted with ASP.NET Data Protection. Nodes reference them by id and never see them in the workflow JSON.
 - **Plugins.** A node is a class implementing `IPipeNode<TParameters>`. External plugins are loaded from a folder, each into its own `AssemblyLoadContext`.
+- **Running now.** The start page lists every run in progress, whatever started it (editor, cron, webhook, sub-workflow), with its current node and latest output line; the app bar shows "n running". Click a run to watch it in the editor, live, or stop it.
 - **Groups.** Workflows can be put into groups, shown as tiles on the start page; drag a workflow onto a tile to move it. A search finds workflows in all groups.
 - **Storage.** Workflows, groups, executions and credentials are plain JSON files.
 

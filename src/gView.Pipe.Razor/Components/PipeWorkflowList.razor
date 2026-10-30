@@ -61,6 +61,11 @@
     }
     else
     {
+        @if (ShowGroups && !Searching)
+        {
+            <PipeRunningExecutionsPanel OnOpen="info => OnOpenExecution.InvokeAsync(info)" GroupOf="GroupOfWorkflow"
+                                        OnRunningChanged="RunningChangedAsync" />
+        }
         @if (ShowGroups && !Searching && _groups.Count > 0)
         {
             <PipeWorkflowGroupTiles Groups="_groups" Stats="GroupStats()"
@@ -130,7 +135,11 @@
                         }
                     </MudTd>
                     <MudTd DataLabel="Last run">
-                        @if (_lastRuns.TryGetValue(context.Id, out var run))
+                        @if (_runningWorkflows.Contains(context.Id))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Autorenew">Running</MudChip>
+                        }
+                        else if (_lastRuns.TryGetValue(context.Id, out var run))
                         {
                             <MudChip T="string" Size="Size.Small" Color="StatusColor(run.Status)" Variant="Variant.Outlined">@run.Status</MudChip>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@run.StartedAt.LocalDateTime.ToString("g")</MudText>
@@ -175,6 +184,9 @@
     /// <summary>"All workflows" on a group page was clicked.</summary>
     [Parameter] public EventCallback OnOpenAll { get; set; }
 
+    /// <summary>A run in "Running now" was clicked (start page): e.g. open its workflow and watch it.</summary>
+    [Parameter] public EventCallback<PipeRunningExecutionInfo> OnOpenExecution { get; set; }
+
     private IReadOnlyList<PipeWorkflow>? _workflows;
     private IReadOnlyList<PipeWorkflowGroup> _groups = [];
     private PipeWorkflowGroup? _group;
@@ -184,6 +196,7 @@
     private string? _loadedGroupId;
     private PipeWorkflow? _dragged;
     private bool _dropOnAll;
+    private IReadOnlySet<string> _runningWorkflows = new HashSet<string>();
 
     private bool Searching => ShowGroups && !string.IsNullOrWhiteSpace(_search);
 
@@ -243,8 +256,27 @@
             return new PipeWorkflowGroupTiles.GroupStats(
                 members.Count,
                 members.Count(w => w.Active),
-                members.Count(w => _lastRuns.TryGetValue(w.Id, out var run) && run.Status == PipeExecutionStatus.Error));
+                members.Count(w => _lastRuns.TryGetValue(w.Id, out var run) && run.Status == PipeExecutionStatus.Error),
+                members.Count(w => _runningWorkflows.Contains(w.Id)));
         });
+
+    private PipeWorkflowGroup? GroupOfWorkflow(string workflowId)
+        => _workflows?.FirstOrDefault(w => w.Id == workflowId) is { } workflow ? GroupOf(workflow) : null;
+
+    /// <summary>Workflows started or finished running: update the markers, and the last runs of those that finished.</summary>
+    private async Task RunningChangedAsync(IReadOnlySet<string> running)
+    {
+        var finished = _runningWorkflows.Except(running).ToList();
+        _runningWorkflows = running;
+        foreach (var workflowId in finished)
+        {
+            if ((await ExecutionStore.ListAsync(workflowId, 1)).FirstOrDefault() is { } last)
+            {
+                _lastRuns[workflowId] = last;
+            }
+        }
+        StateHasChanged();
+    }
 
     private async Task OpenAsync(PipeWorkflow workflow)
     {

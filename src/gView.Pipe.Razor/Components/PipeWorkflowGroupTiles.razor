@@ -32,6 +32,10 @@
                 {
                     <span><MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Success" Size="Size.Small" /> @stats.Active active</span>
                 }
+                @if (stats.Running > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Autorenew">@stats.Running running</MudChip>
+                }
                 @if (stats.Failing > 0)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.ErrorOutline">@stats.Failing failing</MudChip>
@@ -42,7 +46,7 @@
 </div>
 
 @code {
-    public readonly record struct GroupStats(int Workflows, int Active, int Failing);
+    public readonly record struct GroupStats(int Workflows, int Active, int Failing, int Running = 0);
 
     [Parameter, EditorRequired] public IReadOnlyList<PipeWorkflowGroup> Groups { get; set; } = [];
 

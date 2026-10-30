@@ -21,6 +21,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
     private readonly IPipeWorkflowStore _workflowStore;
     private readonly IPipeExecutionStore _executionStore;
     private readonly IPipeNodeRegistry _registry;
+    private readonly PipeExecutionMonitor _monitor;
     private readonly PipeCoreOptions _options;
     private readonly ILogger<PipeWorkflowRunner> _logger;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _slots = new();
@@ -30,6 +31,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         IPipeWorkflowStore workflowStore,
         IPipeExecutionStore executionStore,
         IPipeNodeRegistry registry,
+        PipeExecutionMonitor monitor,
         IOptions<PipeCoreOptions> options,
         ILogger<PipeWorkflowRunner> logger)
     {
@@ -37,6 +39,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         _workflowStore = workflowStore;
         _executionStore = executionStore;
         _registry = registry;
+        _monitor = monitor;
         _options = options.Value;
         _logger = logger;
     }
@@ -61,9 +64,18 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
             return null;
         }
 
+        // the id is known before the run starts, so the run can be stopped from the UI (IPipeRunningExecutions.Cancel)
+        request ??= new PipeExecutionRequest();
+        if (request.ExecutionId is null)
+        {
+            request = request with { ExecutionId = Guid.NewGuid().ToString("N") };
+        }
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _monitor.RegisterCancellation(request.ExecutionId!, cancellation);
+
         try
         {
-            var execution = await _engine.ExecuteAsync(workflow, request, cancellationToken);
+            var execution = await _engine.ExecuteAsync(workflow, request, cancellation.Token);
 
             var toStore = execution;
             if (!workflow.Settings.SaveExecutionData)
@@ -82,7 +94,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
             await _executionStore.SaveAsync(toStore, CancellationToken.None);
             await _executionStore.PruneAsync(workflow.Id, _options.ExecutionRetention, CancellationToken.None);
 
-            if (execution.Status == PipeExecutionStatus.Error && request?.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.SubWorkflow)
+            if (execution.Status == PipeExecutionStatus.Error && request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.SubWorkflow)
             {
                 await RunErrorWorkflowAsync(workflow, execution);
             }
@@ -91,6 +103,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         }
         finally
         {
+            _monitor.UnregisterCancellation(request.ExecutionId!);
             slot.Release();
         }
     }

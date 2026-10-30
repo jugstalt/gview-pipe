@@ -56,6 +56,67 @@
     font-size: .8rem;
 }
 
+/* ---- running executions ---- */
+
+.gview-pipe-editor-banner {
+    border-radius: 0;
+}
+
+.gview-pipe-running {
+    margin: 4px 0 12px;
+    padding: 8px;
+    border: 1px solid var(--mud-palette-info);
+    border-radius: 8px;
+}
+
+.gview-pipe-running-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+    .gview-pipe-running-row:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .gview-pipe-running-row.finished {
+        opacity: .55;
+    }
+
+.gview-pipe-running-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.gview-pipe-running-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: .875rem;
+}
+
+.gview-pipe-running-name {
+    font-weight: 600;
+}
+
+.gview-pipe-running-nodes {
+    color: var(--mud-palette-info);
+    font-size: .8rem;
+}
+
+.gview-pipe-running-line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .75rem;
+    color: var(--mud-palette-text-secondary);
+}
+
 /* ---- workflow groups ---- */
 
 .gview-pipe-workflow-search {

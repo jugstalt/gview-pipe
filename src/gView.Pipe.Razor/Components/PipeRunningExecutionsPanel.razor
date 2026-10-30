@@ -1,0 +1,152 @@
+@implements IDisposable
+@inject IPipeRunningExecutions Running
+@inject IDialogService DialogService
+
+@*
+    "Running now": every execution running in this process (editor, list, cron, webhook, sub-workflow, error workflow),
+    sub-workflows under their caller, plus the runs finished in the last minute (faded). Hidden when there is none.
+*@
+
+@if (_rows.Count > 0)
+{
+    <div class="gview-pipe-running">
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Running now</MudText>
+        @foreach (var (info, depth) in _rows)
+        {
+            <div class="gview-pipe-running-row @(info.IsRunning ? null : "finished")" style="padding-left:@(8 + depth * 22)px"
+                 title="Open the workflow and watch this run" @onclick="() => OnOpen.InvokeAsync(info)">
+                @switch (info.Status)
+                {
+                    case PipeExecutionStatus.Running:
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Info" />
+                        break;
+                    case PipeExecutionStatus.Success:
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        break;
+                    case PipeExecutionStatus.Canceled:
+                        <MudIcon Icon="@Icons.Material.Filled.StopCircle" Size="Size.Small" />
+                        break;
+                    default:
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" />
+                        break;
+                }
+                <div class="gview-pipe-running-main">
+                    <div class="gview-pipe-running-title">
+                        @if (depth > 0)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight" Size="Size.Small" Class="mud-text-secondary" />
+                        }
+                        <span class="gview-pipe-running-name">@info.WorkflowName</span>
+                        @if (GroupOf?.Invoke(info.WorkflowId) is { } group)
+                        {
+                            <span class="gview-pipe-group-label" style="--gview-pipe-accent:@PipeGroupVisuals.Accent(group.Color)">@group.Name</span>
+                        }
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@info.Mode</MudChip>
+                        <span class="mud-text-secondary">@Duration(info)</span>
+                        @if (info.RunningNodes.Count > 0)
+                        {
+                            <span class="gview-pipe-running-nodes">▶ @string.Join(", ", info.RunningNodes)</span>
+                        }
+                    </div>
+                    @if (info.LastLine is { } line)
+                    {
+                        <div class="gview-pipe-running-line" title="@line.Entry.Message">@line.NodeName: @line.Entry.Message</div>
+                    }
+                </div>
+                @if (info.IsRunning)
+                {
+                    <div @onclick:stopPropagation>
+                        <MudTooltip Text="Stop this run">
+                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Color="Color.Error" Size="Size.Small" aria-label="Stop" OnClick="() => StopAsync(info)" />
+                        </MudTooltip>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>A run was clicked: open its workflow and watch it.</summary>
+    [Parameter] public EventCallback<PipeRunningExecutionInfo> OnOpen { get; set; }
+
+    /// <summary>Group of a workflow (by workflow id), shown next to the name.</summary>
+    [Parameter] public Func<string, PipeWorkflowGroup?>? GroupOf { get; set; }
+
+    /// <summary>Raised (throttled) when the set of running workflows changes, e.g. to refresh a list.</summary>
+    [Parameter] public EventCallback<IReadOnlySet<string>> OnRunningChanged { get; set; }
+
+    private List<(PipeRunningExecutionInfo Info, int Depth)> _rows = [];
+    private PipeThrottle? _throttle;
+    private Timer? _clock;
+    private IReadOnlySet<string> _runningWorkflows = new HashSet<string>();
+
+    protected override void OnInitialized()
+    {
+        _throttle = new PipeThrottle(TimeSpan.FromMilliseconds(200), () => InvokeAsync(RefreshAsync));
+        Running.Changed += OnChanged;
+        // the durations count up; finished runs fade out after a minute
+        _clock = new Timer(_ => _throttle.Trigger(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        Arrange();
+    }
+
+    private void OnChanged(string _) => _throttle?.Trigger();
+
+    private async Task RefreshAsync()
+    {
+        Arrange();
+        StateHasChanged();
+
+        var running = _rows.Where(r => r.Info.IsRunning).Select(r => r.Info.WorkflowId).ToHashSet();
+        if (!running.SetEquals(_runningWorkflows))
+        {
+            _runningWorkflows = running;
+            await OnRunningChanged.InvokeAsync(running);
+        }
+    }
+
+    /// <summary>Newest first; sub-workflows right under their caller.</summary>
+    private void Arrange()
+    {
+        var all = Running.List();
+        var ids = all.Select(i => i.ExecutionId).ToHashSet();
+        var rows = new List<(PipeRunningExecutionInfo, int)>();
+
+        void Add(PipeRunningExecutionInfo info, int depth)
+        {
+            rows.Add((info, depth));
+            foreach (var child in all.Where(c => c.ParentExecutionId == info.ExecutionId && c.Mode == PipeExecutionMode.SubWorkflow).OrderBy(c => c.StartedAt))
+            {
+                Add(child, depth + 1);
+            }
+        }
+
+        foreach (var root in all.Where(i => i.Mode != PipeExecutionMode.SubWorkflow || i.ParentExecutionId is null || !ids.Contains(i.ParentExecutionId)))
+        {
+            Add(root, 0);
+        }
+        _rows = rows;
+    }
+
+    static private string Duration(PipeRunningExecutionInfo info)
+    {
+        var duration = (info.FinishedAt ?? DateTimeOffset.UtcNow) - info.StartedAt;
+        return duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss") : duration.ToString(@"m\:ss");
+    }
+
+    private async Task StopAsync(PipeRunningExecutionInfo info)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync("Stop run", $"Stop the running '{info.WorkflowName}'?", yesText: "Stop", cancelText: "Cancel");
+        if (confirmed == true)
+        {
+            Running.Cancel(info.ExecutionId);
+        }
+    }
+
+    public void Dispose()
+    {
+        Running.Changed -= OnChanged;
+        _clock?.Dispose();
+        _throttle?.Dispose();
+    }
+}

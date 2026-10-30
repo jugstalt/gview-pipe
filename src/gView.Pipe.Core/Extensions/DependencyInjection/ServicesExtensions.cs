@@ -51,6 +51,10 @@ static public class ServicesExtensions
         services.TryAddSingleton<IPipeScriptRunner>(sp => sp.GetRequiredService<PipeJavaScriptEngine>());
         services.TryAddSingleton<IPipeEngine, PipeEngine>();
         services.TryAddSingleton<IPipeWorkflowRunner, PipeWorkflowRunner>();
+        // observes every execution, so live views see runs of all triggers
+        services.TryAddSingleton<PipeExecutionMonitor>();
+        services.TryAddSingleton<IPipeRunningExecutions>(sp => sp.GetRequiredService<PipeExecutionMonitor>());
+        services.AddSingleton<IPipeExecutionObserver>(sp => sp.GetRequiredService<PipeExecutionMonitor>());
         services.TryAddSingleton<PipeScheduler>();
         services.TryAddSingleton<PipeWebhookRegistry>();
         services.TryAddSingleton<IPipeWebhookRouter>(sp => sp.GetRequiredService<PipeWebhookRegistry>());

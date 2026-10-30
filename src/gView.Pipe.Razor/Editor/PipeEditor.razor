@@ -17,8 +17,11 @@
 @inject IPipeTriggerManager TriggerManager
 @inject IPipeNodeRegistry Registry
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject PipeEditorClipboard Clipboard
 @inject IJSRuntime JS
+@inject IPipeRunningExecutions RunningExecutions
+@inject IPipeExecutionStore ExecutionStore
 
 @*
     Workflow editor: node palette, canvas and a side panel for the selected node (or the workflow).
@@ -70,11 +73,31 @@
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Stop" OnClick="StopRun">Stop</MudButton>
             }
+            else if (_watched is { IsRunning: true })
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Stop" OnClick="StopWatchedAsync">Stop run</MudButton>
+            }
             else
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="() => RunAsync()">Run</MudButton>
             }
         </div>
+
+        @if (_watched is null && !_running && _othersRunning.Count > 0)
+        {
+            var newest = _othersRunning[0];
+            <MudAlert Severity="Severity.Info" Dense="true" Class="gview-pipe-editor-banner"
+                      ContentAlignment="HorizontalAlignment.Left">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <span>
+                        @(_othersRunning.Count == 1 ? "Running now" : $"{_othersRunning.Count} runs right now")
+                        (@newest.Mode, since @RunningFor(newest))
+                    </span>
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.Visibility"
+                               OnClick="() => WatchAsync(newest.ExecutionId)">Watch</MudButton>
+                </MudStack>
+            </MudAlert>
+        }
 
         <div class="gview-pipe-editor-body" style="--gview-pipe-palette-width:@(_paletteWidth)px;--gview-pipe-panel-width:@(_panelWidth)px">
             <PipeNodePalette OnAdd="AddNode" />
@@ -89,7 +112,21 @@
                 {
                     <div class="gview-pipe-canvas-hint">Hold <kbd>Shift</kbd> to drop the node into a connection</div>
                 }
-                @if (_execution is not null)
+                @if (_watched is { IsRunning: true } watched)
+                {
+                    <div class="gview-pipe-canvas-status">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Visibility">
+                            Watching · @watched.Mode · @RunningFor(watched)
+                        </MudChip>
+                        @if (_watchedOutdated)
+                        {
+                            <MudTooltip Text="The workflow was changed since this run started; nodes it ran may be missing here">
+                                <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Color="Color.Warning" Size="Size.Small" />
+                            </MudTooltip>
+                        }
+                    </div>
+                }
+                else if (_execution is not null)
                 {
                     <div class="gview-pipe-canvas-status">
                         <MudChip T="string" Size="Size.Small" Color="StatusColor(_execution.Status)" Variant="Variant.Filled">
@@ -118,11 +155,11 @@
                                    OnDuplicate="DuplicateSelectionAsync"
                                    OnCopy="CopySelectionAsync"
                                    OnDelete="DeleteSelected"
-                                   LiveLines="@(_running ? LiveLinesOf(_selected.Node.Id) : null)" />
+                                   LiveLines="@(LiveActive ? LiveLinesOf(_selected.Node.Id) : null)" />
                 }
                 else
                 {
-                    @if (_running)
+                    @if (LiveActive)
                     {
                         <div class="pa-4 pb-0">
                             <PipeLiveOutput Lines="_liveLines.ToList()" ShowNodeName="true" Running="true" Title="Live output of the run" />
@@ -299,6 +336,109 @@
         _diagram.PointerDown += (model, _) => InvokeAsync(() => DragStart(model));
         _diagram.PointerMove += (_, e) => InvokeAsync(() => DragMove(e));
         _diagram.PointerUp += (_, e) => InvokeAsync(() => DragEnd(e));
+
+        _runningThrottle = new PipeThrottle(TimeSpan.FromMilliseconds(200), () => InvokeAsync(RefreshRunningAsync));
+        RunningExecutions.Changed += RunningChanged;
+        // "since 0:42" counts up
+        _runningClock = new Timer(_ => { if (_watched is not null || _othersRunning.Count > 0) _runningThrottle.Trigger(); }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    // ---- watching runs started elsewhere (cron, webhook, list, another editor) ----
+
+    /// <summary>A run to watch, e.g. opened from "Running now" on the start page.</summary>
+    [Parameter] public string? WatchExecutionId { get; set; }
+
+    private PipeThrottle? _runningThrottle;
+    private Timer? _runningClock;
+    private string? _watchedId;
+    private string? _watchParameterHandled;
+    private PipeRunningExecutionInfo? _watched;
+    private bool _watchedOutdated;
+    private List<PipeRunningExecutionInfo> _othersRunning = [];
+
+    /// <summary>Live output is shown for the editor's own run and for a watched run.</summary>
+    private bool LiveActive => _running || _watched is { IsRunning: true };
+
+    private void RunningChanged(string executionId) => _runningThrottle?.Trigger();
+
+    private async Task WatchAsync(string executionId)
+    {
+        ClearExecution();
+        _liveLines.Clear();
+        // an own run ends watching another one
+        _watchedId = null;
+        _watched = null;
+        _watchedId = executionId;
+        await RefreshRunningAsync();
+    }
+
+    /// <summary>Banner of other runs of this workflow, and the state of the watched run.</summary>
+    private async Task RefreshRunningAsync()
+    {
+        if (_workflow is null)
+        {
+            return;
+        }
+
+        _othersRunning = RunningExecutions.List()
+            .Where(i => i.WorkflowId == _workflow.Id && i.IsRunning && i.ExecutionId != _watchedId && i.ExecutionId != _execution?.Id)
+            .ToList();
+
+        if (_watchedId is { } id)
+        {
+            var info = RunningExecutions.Find(id);
+            if (info is { IsRunning: true })
+            {
+                _watched = info;
+                var runs = RunningExecutions.GetNodeRuns(id);
+                var models = _diagram.Nodes.OfType<PipeNodeModel>().ToList();
+                foreach (var model in models)
+                {
+                    var run = runs.GetValueOrDefault(model.Node.Id);
+                    if (!ReferenceEquals(run, model.Run) || run?.Status == PipeNodeRunStatus.Running)
+                    {
+                        model.Run = run;
+                        model.Refresh();
+                    }
+                }
+                _watchedOutdated = runs.Keys.Any(nodeId => models.All(m => m.Node.Id != nodeId));
+                _liveLines.Clear();
+                _liveLines.AddRange(RunningExecutions.GetLines(id));
+            }
+            else
+            {
+                // finished (or long gone): show its result like a run from the history
+                _watchedId = null;
+                _watched = null;
+                var execution = RunningExecutions.GetFinished(id) ?? await ExecutionStore.GetAsync(_workflow.Id, id);
+                if (execution is not null)
+                {
+                    ShowExecution(execution);
+                }
+                _historyVersion++;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task StopWatchedAsync()
+    {
+        if (_watched is not { } watched)
+        {
+            return;
+        }
+        var confirmed = await DialogService.ShowMessageBoxAsync("Stop run", $"Stop this {watched.Mode.ToString().ToLowerInvariant()} run of '{watched.WorkflowName}'?", yesText: "Stop", cancelText: "Cancel");
+        if (confirmed == true)
+        {
+            RunningExecutions.Cancel(watched.ExecutionId);
+        }
+    }
+
+    static private string RunningFor(PipeRunningExecutionInfo info)
+    {
+        var duration = DateTimeOffset.UtcNow - info.StartedAt;
+        return duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss") : duration.ToString(@"m\:ss");
     }
 
     static private Task Run(Action action)
@@ -372,7 +512,16 @@
         if (_loadedId != WorkflowId)
         {
             _loadedId = WorkflowId;
+            _watchedId = null;
+            _watched = null;
             await LoadAsync();
+            await RefreshRunningAsync();
+        }
+
+        if (WatchExecutionId is { } watch && watch != _watchParameterHandled)
+        {
+            _watchParameterHandled = watch;
+            await WatchAsync(watch);
         }
     }
 
@@ -1137,6 +1286,9 @@
 
     public ValueTask DisposeAsync()
     {
+        RunningExecutions.Changed -= RunningChanged;
+        _runningClock?.Dispose();
+        _runningThrottle?.Dispose();
         _runCts?.Cancel();
         return ValueTask.CompletedTask;
     }

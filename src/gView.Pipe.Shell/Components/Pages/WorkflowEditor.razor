@@ -5,10 +5,13 @@
 
 <div class="gview-pipe-shell-fill">
     @* back to the group page of the workflow, or to the start page *@
-    <PipeEditor WorkflowId="@Id"
+    <PipeEditor WorkflowId="@Id" WatchExecutionId="@Execution"
                 OnClose="@(groupId => Navigation.NavigateTo(groupId is null ? "" : $"groups/{Uri.EscapeDataString(groupId)}"))" />
 </div>
 
 @code {
     [Parameter] public string Id { get; set; } = "";
+
+    /// <summary>A run to watch, e.g. opened from "Running now".</summary>
+    [SupplyParameterFromQuery] public string? Execution { get; set; }
 }
