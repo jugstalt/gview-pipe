@@ -54,11 +54,11 @@ else
                     break;
 
                 case PipeFieldKind.Dictionary:
-                    <PipeKeyValueField Field="field" Value="@(value as JsonObject)" ValueChanged="v => SetAsync(field, v)" />
+                    <PipeKeyValueField Field="field" Value="@(value as JsonObject)" ValueChanged="v => SetAsync(field, v)" OnExpressionFieldFocused="OnExpressionFieldFocused" />
                     break;
 
                 case PipeFieldKind.List:
-                    <PipeListField Field="field" Value="@(value as JsonArray)" ValueChanged="v => SetAsync(field, v)" />
+                    <PipeListField Field="field" Value="@(value as JsonArray)" ValueChanged="v => SetAsync(field, v)" OnExpressionFieldFocused="OnExpressionFieldFocused" />
                     break;
 
                 case PipeFieldKind.RawJson:
@@ -66,6 +66,7 @@ else
                     break;
 
                 default:
+                    <div @onfocusin="() => FieldFocusedAsync(field)">
                     <MudTextField T="string" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
                                   Lines="@(field.Code ? 14 : field.Multiline ? 4 : 1)"
                                   InputType="@(field.Secret ? InputType.Password : InputType.Text)"
@@ -74,6 +75,7 @@ else
                                   Class="@(field.Code ? "gview-pipe-code" : field.Expressions ? "gview-pipe-expression-field" : null)"
                                   Value="@PipeJsonText.ToText(value)"
                                   ValueChanged="v => SetAsync(field, Convert(field, v))" />
+                    </div>
                     break;
             }
         }
@@ -92,6 +94,9 @@ else
     [Parameter] public bool SecretsArePlaceholders { get; set; }
 
     [Parameter] public bool ShowRawWithoutType { get; set; }
+
+    /// <summary>A text field that supports expressions got the focus (e.g. to insert expressions into it later).</summary>
+    [Parameter] public EventCallback<PipeExpressionTarget> OnExpressionFieldFocused { get; set; }
 
     private IReadOnlyList<PipeCredentialInfo> _credentials = [];
 
@@ -118,6 +123,9 @@ else
             PipeFieldKind.Json => PipeJsonText.FromLooseText(text),
             _ => text is null ? null : JsonValue.Create(text)
         };
+
+    private Task FieldFocusedAsync(PipeParameterField field)
+        => field.Expressions ? OnExpressionFieldFocused.InvokeAsync(new PipeExpressionTarget(field)) : Task.CompletedTask;
 
     private async Task SetAsync(PipeParameterField field, JsonNode? value)
     {

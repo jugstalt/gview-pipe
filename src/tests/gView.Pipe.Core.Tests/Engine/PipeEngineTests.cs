@@ -413,6 +413,60 @@ public class PipeEngineTests
         Assert.Equal(["execution-started", "node-started:emit", "node-finished:emit", "node-started:echo", "node-finished:echo", "execution-finished"], observer.Events);
     }
 
+    static private PipeWorkflow PinnedWorkflow()
+    {
+        var workflow = new PipeWorkflowBuilder()
+            .Node("emit", TestNodeIds.Emit, TwoItems)
+            .Node("tag", TestNodeIds.Tag, new { field = "seen", value = "{{ $json.n }}" })
+            .Connect("emit", "tag")
+            .Build();
+        workflow.PinData = new()
+        {
+            ["emit"] = new() { [PipePorts.Main] = [new PipeItem(new JsonObject { ["n"] = 42 })] }
+        };
+        return workflow;
+    }
+
+    [Fact]
+    public async Task Manual_run_uses_pin_data_instead_of_executing_the_node()
+    {
+        var execution = await RunAsync(PinnedWorkflow());
+
+        Assert.Equal(PipeExecutionStatus.Success, execution.Status);
+        Assert.True(execution.NodeRuns["emit"].Pinned);
+        Assert.Equal([42], Output(execution, "tag").Select(j => j["seen"]!.GetValue<int>()));
+    }
+
+    [Fact]
+    public async Task Trigger_run_ignores_pin_data()
+    {
+        var execution = await RunAsync(PinnedWorkflow(), new PipeExecutionRequest { Mode = PipeExecutionMode.Trigger });
+
+        Assert.False(execution.NodeRuns["emit"].Pinned);
+        Assert.Equal([1, 2], Output(execution, "tag").Select(j => j["seen"]!.GetValue<int>()));
+    }
+
+    [Fact]
+    public async Task Run_to_here_executes_only_the_target_and_its_predecessors()
+    {
+        var workflow = new PipeWorkflowBuilder()
+            .Node("emit", TestNodeIds.Emit, TwoItems)
+            .Node("a", TestNodeIds.Echo)
+            .Node("b", TestNodeIds.Echo)
+            .Node("after-a", TestNodeIds.Echo)
+            .Node("other-root", TestNodeIds.Emit, TwoItems)
+            .Connect("emit", "a")
+            .Connect("emit", "b")
+            .Connect("a", "after-a")
+            .Build();
+
+        var execution = await RunAsync(workflow, new PipeExecutionRequest { TargetNodeId = "a" });
+
+        Assert.Equal(PipeExecutionStatus.Success, execution.Status);
+        Assert.Equal(["a", "emit"], execution.NodeRuns.Keys.Order());
+        Assert.Equal(2, Output(execution, "a").Count);
+    }
+
     private sealed class RecordingObserver : IPipeExecutionObserver
     {
         public List<string> Events { get; } = new();

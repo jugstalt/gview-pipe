@@ -11,9 +11,11 @@
     {
         var index = i;
         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
+            <div class="flex-grow-1" @onfocusin="() => FocusedAsync(index)">
             <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense"
                           Class="@(Field.Expressions ? "gview-pipe-expression-field" : null)"
                           Value="@_rows[index]" ValueChanged="v => UpdateAsync(index, v)" />
+            </div>
             <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" aria-label="Remove" OnClick="() => RemoveAsync(index)" />
         </MudStack>
     }
@@ -26,6 +28,9 @@
     [Parameter] public JsonArray? Value { get; set; }
     [Parameter] public EventCallback<JsonNode?> ValueChanged { get; set; }
 
+    /// <summary>An entry got the focus (expression fields only).</summary>
+    [Parameter] public EventCallback<PipeExpressionTarget> OnExpressionFieldFocused { get; set; }
+
     private List<string> _rows = new();
     private JsonArray? _lastValue;
 
@@ -37,6 +42,9 @@
             _lastValue = Value;
         }
     }
+
+    private Task FocusedAsync(int index)
+        => Field.Expressions ? OnExpressionFieldFocused.InvokeAsync(new PipeExpressionTarget(Field, Index: index)) : Task.CompletedTask;
 
     private Task AddAsync()
     {

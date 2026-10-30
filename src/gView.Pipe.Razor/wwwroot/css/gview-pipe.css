@@ -313,6 +313,27 @@ pre.gview-pipe-code {
     word-break: break-word;
 }
 
+div.gview-pipe-json-tree {
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--gview-pipe-code-bg);
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .8rem;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.gview-pipe-json-key {
+    color: var(--mud-palette-primary);
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+    .gview-pipe-json-key:hover {
+        background: var(--mud-palette-primary-hover);
+        text-decoration: underline;
+    }
+
 .gview-pipe-item {
     margin-bottom: 8px;
 }

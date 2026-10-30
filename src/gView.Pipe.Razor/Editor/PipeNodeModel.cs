@@ -31,6 +31,9 @@ public sealed class PipeNodeModel : NodeModel
     /// <summary>Run of the current or the inspected execution.</summary>
     public PipeNodeRun? Run { get; set; }
 
+    /// <summary>The workflow has pin data for this node.</summary>
+    public bool Pinned { get; set; }
+
     public IEnumerable<PipePortModel> InputPorts => Ports.OfType<PipePortModel>().Where(p => p.IsInput).OrderBy(p => p.Index);
 
     public IEnumerable<PipePortModel> OutputPorts => Ports.OfType<PipePortModel>().Where(p => !p.IsInput).OrderBy(p => p.Index);

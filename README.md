@@ -8,7 +8,8 @@ A workflow automation app in the style of n8n, built on Blazor and .NET 10. Work
 
 - **Visual editor.** Build workflows on a canvas (Z.Blazor.Diagrams) with a node palette and parameter forms generated from the node's parameter class (MudBlazor).
 - **Execution engine.** Runs the graph as a DAG. Parallel branches, Switch/If/Merge, retry, timeout and error handling per node (stop, continue or route to an error output).
-- **Inspect every node.** Each node shows the input it received, the output it produced and the log entries it wrote, for the latest run and for any execution in the history.
+- **Inspect every node.** Each node shows the input it received, the output it produced and the log entries it wrote, for the latest run and for any execution in the history. Click a property of the input to insert it as an expression into the parameter you edited last.
+- **Fast iteration.** Pin a node's output so manual runs reuse it instead of calling the API again, run only up to a node ("run to here"), duplicate nodes and copy/paste them (Ctrl+C / Ctrl+V on the canvas) within or between workflows.
 - **JavaScript expressions.** `{{ $json.total * 1.2 }}` in any parameter, plus a Code node for larger transformations. Both run in a sandboxed Jint engine.
 - **Triggers.** Manual, Cron and Webhook.
 - **Credentials.** Stored encrypted with ASP.NET Data Protection. Nodes reference them by id and never see them in the workflow JSON.

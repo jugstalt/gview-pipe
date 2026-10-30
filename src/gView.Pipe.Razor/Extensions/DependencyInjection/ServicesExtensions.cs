@@ -1,3 +1,4 @@
+using gView.Pipe.Razor.Editor;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace gView.Pipe.Razor.Extensions.DependencyInjection;
@@ -10,7 +11,8 @@ static public class ServicesExtensions
     /// </summary>
     static public IServiceCollection AddPipeRazor(this IServiceCollection services)
     {
-        // UI services (editor state, live execution hub, …) are added with the editor
+        // per circuit: the in-memory fallback of the clipboard belongs to one user session
+        services.AddScoped<PipeEditorClipboard>();
         return services;
     }
 }

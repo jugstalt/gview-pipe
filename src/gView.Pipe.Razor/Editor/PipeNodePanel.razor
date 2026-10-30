@@ -1,5 +1,9 @@
+@using System.Text.Json.Nodes
+@using gView.Pipe.Abstraction.Data
 @using gView.Pipe.Abstraction.Nodes
 @inject IPipeNodeRegistry Registry
+@inject PipeEditorClipboard Clipboard
+@inject ISnackbar Snackbar
 
 <div class="gview-pipe-panel-header" style="--gview-pipe-accent:@PipeNodeVisuals.Accent(Model.Descriptor)">
     <MudIcon Icon="@PipeNodeVisuals.Icon(Model.Descriptor)" />
@@ -8,7 +12,18 @@
         <MudText Typo="Typo.caption" Class="mud-text-secondary">@(Model.Descriptor?.Name ?? $"Unknown node type {Model.Node.Type}")</MudText>
     </div>
     <MudSpacer />
-    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete node" OnClick="() => OnDelete.InvokeAsync()" />
+    <MudTooltip Text="Run to here: execute this node and the nodes it depends on">
+        <MudIconButton Icon="@Icons.Material.Filled.PlayCircleOutline" Size="Size.Small" aria-label="Run to here" Disabled="Running" OnClick="() => OnRunToHere.InvokeAsync()" />
+    </MudTooltip>
+    <MudTooltip Text="Duplicate">
+        <MudIconButton Icon="@Icons.Material.Filled.ControlPointDuplicate" Size="Size.Small" aria-label="Duplicate node" OnClick="() => OnDuplicate.InvokeAsync()" />
+    </MudTooltip>
+    <MudTooltip Text="Copy (Ctrl+C)">
+        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" aria-label="Copy node" OnClick="() => OnCopy.InvokeAsync()" />
+    </MudTooltip>
+    <MudTooltip Text="Delete (Del)">
+        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete node" OnClick="() => OnDelete.InvokeAsync()" />
+    </MudTooltip>
 </div>
 
 @if (Model.Descriptor?.Description is { } description)
@@ -29,6 +44,7 @@
         <PipeParameterForm ParametersType="Model.Descriptor?.ParametersType"
                            Parameters="Model.Node.Parameters"
                            ShowRawWithoutType="@(Model.Descriptor is null)"
+                           OnExpressionFieldFocused="f => _activeField = f"
                            OnChanged="ParametersChangedAsync" />
     </MudTabPanel>
 
@@ -62,7 +78,26 @@
     </MudTabPanel>
 
     <MudTabPanel Text="Run" BadgeData="@OutputBadge" BadgeColor="@(Model.Run?.Status == PipeNodeRunStatus.Error ? Color.Error : Color.Primary)">
-        <PipeNodeRunView Run="Model.Run" />
+        @if (PinnedOutputs is not null)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Filled.PushPin" Class="mb-3">
+                Output is pinned: manual runs use the data below instead of executing the node. Triggered runs ignore it.
+            </MudAlert>
+            <PipeRawJsonField Label="Pinned output (items per port)" Value="_pinJson" ValueChanged="PinEditedAsync"
+                              HelperText="@(_pinError ?? "{ \"port\": [ { …item… } ] }")" />
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-3">
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Clear" OnClick="() => OnPinChanged.InvokeAsync(null)">Unpin</MudButton>
+            </MudStack>
+        }
+        else if (CanPin)
+        {
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-1">
+                <MudTooltip Text="Keep this output: manual runs use it instead of executing the node">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PushPin" OnClick="PinRunOutputAsync">Pin output</MudButton>
+                </MudTooltip>
+            </MudStack>
+        }
+        <PipeNodeRunView Run="Model.Run" OnSelectInputPath="InsertExpressionAsync" />
     </MudTabPanel>
 </MudTabs>
 
@@ -76,11 +111,113 @@
 
     [Parameter] public Func<PipeNodeModel, string, bool> IsNameTaken { get; set; } = (_, _) => false;
 
+    [Parameter] public EventCallback OnRunToHere { get; set; }
+
+    [Parameter] public EventCallback OnDuplicate { get; set; }
+
+    [Parameter] public EventCallback OnCopy { get; set; }
+
+    /// <summary>A run of the workflow is in progress.</summary>
+    [Parameter] public bool Running { get; set; }
+
+    /// <summary>Pin data of the node (items per output port), null when not pinned.</summary>
+    [Parameter] public Dictionary<string, List<PipeItem>>? PinnedOutputs { get; set; }
+
+    /// <summary>New pin data of the node; null unpins it.</summary>
+    [Parameter] public EventCallback<Dictionary<string, List<PipeItem>>?> OnPinChanged { get; set; }
+
     private int _tab;
     private string? _nameError;
     private IReadOnlyList<PipeNodeHint> _hints = [];
+    private PipeExpressionTarget? _activeField;
+    private Dictionary<string, List<PipeItem>>? _pinSource;
+    private JsonObject? _pinJson;
+    private string? _pinError;
 
-    protected override void OnParametersSet() => UpdateHints();
+    protected override void OnParametersSet()
+    {
+        UpdateHints();
+
+        if (!ReferenceEquals(PinnedOutputs, _pinSource))
+        {
+            _pinSource = PinnedOutputs;
+            _pinJson = PinnedOutputs is null ? null : PinToJson(PinnedOutputs);
+            _pinError = null;
+        }
+    }
+
+    /// <summary>Only data of a successful run can be pinned; binary content belongs to its execution and is dropped.</summary>
+    private bool CanPin => Model.Run is { Status: PipeNodeRunStatus.Success, Pinned: false, Outputs: not null };
+
+    private async Task PinRunOutputAsync()
+    {
+        var outputs = Model.Run!.Outputs!.ToDictionary(
+            p => p.Key,
+            p => p.Value.Select(i => new PipeItem((JsonObject)i.Json.DeepClone())).ToList());
+        await OnPinChanged.InvokeAsync(outputs);
+    }
+
+    static private JsonObject PinToJson(Dictionary<string, List<PipeItem>> pinned)
+    {
+        var json = new JsonObject();
+        foreach (var (port, items) in pinned)
+        {
+            json[port] = new JsonArray(items.Select(i => (JsonNode)i.Json.DeepClone()).ToArray());
+        }
+        return json;
+    }
+
+    private async Task PinEditedAsync(JsonNode? value)
+    {
+        if (value is not JsonObject ports
+            || ports.Any(p => p.Value is not JsonArray items || items.Any(i => i is not JsonObject)))
+        {
+            _pinError = "Expected an object with an array of item objects per port, e.g. { \"main\": [ { \"a\": 1 } ] }";
+            return;
+        }
+
+        _pinError = null;
+        var pinned = ports.ToDictionary(
+            p => p.Key,
+            p => p.Value!.AsArray().Select(i => new PipeItem((JsonObject)i!.DeepClone())).ToList());
+        // keep both references, so the JSON field doesn't reformat what the user is typing
+        _pinSource = pinned;
+        _pinJson = ports;
+        await OnPinChanged.InvokeAsync(pinned);
+    }
+
+    /// <summary>Appends <c>{{ path }}</c> to the parameter edited last, or copies it when there is none.</summary>
+    private async Task InsertExpressionAsync(string path)
+    {
+        var expression = $"{{{{ {path} }}}}";
+
+        if (_activeField is null)
+        {
+            var copied = await Clipboard.TryWriteTextAsync(expression);
+            Snackbar.Add(copied ? $"Copied {expression}; click into a parameter first to insert it directly" : expression, Severity.Info);
+            return;
+        }
+
+        var parameters = Model.Node.Parameters;
+        var key = _activeField.Field.Key;
+        switch (_activeField)
+        {
+            case { Key: { } entry } when parameters[key] is JsonObject entries:
+                entries[entry] = JsonValue.Create(PipeJsonText.ToText(entries[entry]) + expression);
+                break;
+            case { Index: { } index } when parameters[key] is JsonArray list && index < list.Count:
+                list[index] = JsonValue.Create(PipeJsonText.ToText(list[index]) + expression);
+                break;
+            default:
+                parameters[key] = JsonValue.Create(PipeJsonText.ToText(parameters[key]) + expression);
+                break;
+        }
+
+        _tab = 0;
+        var label = _activeField.Key is { } name ? $"{_activeField.Field.Label} › {name}" : _activeField.Field.Label;
+        Snackbar.Add($"Inserted {expression} into '{label}'", Severity.Success);
+        await ParametersChangedAsync();
+    }
 
     private void UpdateHints()
         => _hints = Model.Descriptor is { } descriptor ? Registry.GetHints(descriptor, Model.Node.Parameters) : [];

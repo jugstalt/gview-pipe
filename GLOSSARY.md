@@ -19,6 +19,8 @@
 | **Active workflow** | A workflow whose triggers are armed (e.g. its cron schedule runs). | `PipeWorkflow.Active`, `IPipeTriggerManager` |
 | **Execution** | One run of a workflow, with status and output items per node. | `PipeExecution`, `PipeNodeRun` |
 | **Start node** | Where an execution begins: the firing trigger, or for manual runs all nodes without incoming connections. Only nodes reachable from start nodes take part. | `PipeExecutionRequest.StartNodeId` |
+| **Pin data** | Fixed output items of a node, per output port, stored in the workflow. In manual runs a pinned node is not executed and returns them; triggered runs ignore pin data. | `PipeWorkflow.PinData`, `PipeNodeRun.Pinned` |
+| **Run to here** | A manual run limited to one node and the nodes it depends on. | `PipeExecutionRequest.TargetNodeId` |
 | **Engine** | Executes a workflow graph; stores nothing. | `IPipeEngine` |
 | **Runner** | Runs workflows like the app does: concurrency limit and execution history. | `IPipeWorkflowRunner` |
 | **Credential** | Stored, encrypted secret data (API key, password, …) referenced by nodes via its id. | `PipeCredential` |

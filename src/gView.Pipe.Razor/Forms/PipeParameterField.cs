@@ -167,3 +167,9 @@ static public class PipeParameterFields
         return builder.ToString();
     }
 }
+
+/// <summary>
+/// An input that takes expressions: a parameter field, or one value inside a dictionary (<see cref="Key"/>)
+/// or list (<see cref="Index"/>) field.
+/// </summary>
+public sealed record PipeExpressionTarget(PipeParameterField Field, string? Key = null, int? Index = null);

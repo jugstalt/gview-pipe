@@ -80,6 +80,27 @@ internal sealed class PipeWorkflowGraph
         return reachable;
     }
 
+    /// <summary>The node itself and every node it can be reached from.</summary>
+    public HashSet<string> AncestorsOf(string nodeId)
+    {
+        var ancestors = new HashSet<string>();
+        var stack = new Stack<string>([nodeId]);
+
+        while (stack.Count > 0)
+        {
+            var id = stack.Pop();
+            if (ancestors.Add(id))
+            {
+                foreach (var connection in Incoming[id])
+                {
+                    stack.Push(connection.SourceNodeId);
+                }
+            }
+        }
+
+        return ancestors;
+    }
+
     private void EnsureAcyclic()
     {
         // Kahn: if a topological order can't consume all nodes, there is a cycle

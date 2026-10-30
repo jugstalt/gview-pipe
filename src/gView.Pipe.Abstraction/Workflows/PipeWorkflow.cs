@@ -26,8 +26,11 @@ public sealed class PipeWorkflow
 
     public List<PipeConnection> Connections { get; set; } = new();
 
-    /// <summary>Reserved for "pin data": fixed output items per node id used instead of executing the node.</summary>
-    public Dictionary<string, List<PipeItem>>? PinData { get; set; }
+    /// <summary>
+    /// Pin data: fixed output items per node id and output port. In manual runs a pinned node is not executed;
+    /// it returns these items instead. Trigger runs ignore pin data.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, List<PipeItem>>>? PinData { get; set; }
 
     public DateTimeOffset? CreatedAt { get; set; }
 

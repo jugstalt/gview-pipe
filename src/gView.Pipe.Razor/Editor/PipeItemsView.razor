@@ -28,7 +28,14 @@ else
                 {
                     <div class="gview-pipe-item">
                         <div class="gview-pipe-item-index">#@index</div>
-                        <pre class="gview-pipe-code">@PipeJsonText.ToIndentedJson(item.Json)</pre>
+                        @if (OnSelectPath.HasDelegate)
+                        {
+                            <PipeJsonTree Value="item.Json" OnSelectPath="OnSelectPath" />
+                        }
+                        else
+                        {
+                            <pre class="gview-pipe-code">@PipeJsonText.ToIndentedJson(item.Json)</pre>
+                        }
                         @foreach (var (name, binary) in item.Binary)
                         {
                             <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.AttachFile">@name: @binary.FileName (@binary.Length bytes)</MudChip>
@@ -53,4 +60,7 @@ else
     [Parameter] public Dictionary<string, int> Counts { get; set; } = new();
 
     [Parameter] public string EmptyText { get; set; } = "No items.";
+
+    /// <summary>When set, properties are clickable and report their path (e.g. <c>$json.a.b</c>).</summary>
+    [Parameter] public EventCallback<string> OnSelectPath { get; set; }
 }

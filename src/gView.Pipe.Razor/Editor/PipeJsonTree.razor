@@ -1,0 +1,78 @@
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using System.Text.RegularExpressions
+
+@*
+    JSON shown like indented text, with clickable properties: a click reports the JavaScript path of the
+    value (e.g. $json.customer.name), so the editor can turn it into an expression.
+*@
+
+<div class="gview-pipe-code gview-pipe-json-tree">
+    @foreach (var line in _lines)
+    {
+        <div style="padding-left:@(line.Depth * 14)px">
+            @if (line.Key is not null)
+            {
+                <span class="gview-pipe-json-key" title="@($"Insert {{{{ {line.Path} }}}}")" @onclick="() => OnSelectPath.InvokeAsync(line.Path)">@line.Key</span><span>: </span>
+            }
+            <span class="@(line.IsBracket ? null : "gview-pipe-json-value")">@line.Text</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public JsonNode? Value { get; set; }
+
+    /// <summary>Path of the root value, e.g. <c>$json</c>.</summary>
+    [Parameter] public string RootPath { get; set; } = "$json";
+
+    [Parameter] public EventCallback<string> OnSelectPath { get; set; }
+
+    private List<Line> _lines = [];
+
+    protected override void OnParametersSet()
+    {
+        _lines = [];
+        Add(Value, null, RootPath, 0, last: true);
+    }
+
+    private void Add(JsonNode? node, string? key, string path, int depth, bool last)
+    {
+        var comma = last ? "" : ",";
+        var label = key is null ? null : JsonSerializer.Serialize(key);
+
+        switch (node)
+        {
+            case JsonObject obj when obj.Count > 0:
+                _lines.Add(new Line(depth, label, path, "{", true));
+                var properties = obj.ToList();
+                for (var i = 0; i < properties.Count; i++)
+                {
+                    Add(properties[i].Value, properties[i].Key, Member(path, properties[i].Key), depth + 1, i == properties.Count - 1);
+                }
+                _lines.Add(new Line(depth, null, path, "}" + comma, true));
+                break;
+
+            case JsonArray array when array.Count > 0:
+                _lines.Add(new Line(depth, label, path, "[", true));
+                for (var i = 0; i < array.Count; i++)
+                {
+                    Add(array[i], null, $"{path}[{i}]", depth + 1, i == array.Count - 1);
+                }
+                _lines.Add(new Line(depth, null, path, "]" + comma, true));
+                break;
+
+            default:
+                _lines.Add(new Line(depth, label, path, (node?.ToJsonString() ?? "null") + comma, false));
+                break;
+        }
+    }
+
+    static private readonly Regex Identifier = new("^[A-Za-z_$][A-Za-z0-9_$]*$", RegexOptions.Compiled);
+
+    /// <summary>JavaScript member access: <c>.name</c> where possible, <c>["odd name"]</c> otherwise.</summary>
+    static public string Member(string path, string key)
+        => Identifier.IsMatch(key) ? $"{path}.{key}" : $"{path}[{JsonSerializer.Serialize(key)}]";
+
+    private sealed record Line(int Depth, string? Key, string Path, string Text, bool IsBracket);
+}

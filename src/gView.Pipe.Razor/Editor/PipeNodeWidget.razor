@@ -7,6 +7,12 @@
             <div class="gview-pipe-node-title" title="@Node.Node.Name">@Node.Node.Name</div>
             <div class="gview-pipe-node-type">@(Node.Descriptor?.Name ?? "Unknown node type")</div>
         </div>
+        @if (Node.Pinned)
+        {
+            <MudTooltip Text="Output is pinned (manual runs)">
+                <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Color="Color.Info" Class="gview-pipe-node-status" />
+            </MudTooltip>
+        }
         @switch (Node.Run?.Status)
         {
             case PipeNodeRunStatus.Running:

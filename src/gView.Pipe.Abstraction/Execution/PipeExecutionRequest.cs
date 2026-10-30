@@ -9,6 +9,12 @@ public sealed class PipeExecutionRequest
     /// <summary>Node to start at. When null, all nodes without incoming connections are start nodes.</summary>
     public string? StartNodeId { get; init; }
 
+    /// <summary>
+    /// "Run to here": execute only this node and the nodes it depends on. Without <see cref="StartNodeId"/>
+    /// the start nodes are the roots this node can be reached from.
+    /// </summary>
+    public string? TargetNodeId { get; init; }
+
     /// <summary>Items fed into the start node(s). Defaults to one empty item.</summary>
     public IReadOnlyList<PipeItem>? InputItems { get; init; }
 

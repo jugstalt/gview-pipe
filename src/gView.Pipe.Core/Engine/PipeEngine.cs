@@ -101,6 +101,11 @@ internal sealed class PipeEngine : IPipeEngine
 
     static private HashSet<string> ResolveStartNodes(PipeWorkflowGraph graph, PipeExecutionRequest request)
     {
+        if (request.TargetNodeId is not null && !graph.Nodes.ContainsKey(request.TargetNodeId))
+        {
+            throw new PipeException($"Target node '{request.TargetNodeId}' not found");
+        }
+
         if (request.StartNodeId is not null)
         {
             return graph.Nodes.ContainsKey(request.StartNodeId)
@@ -109,8 +114,33 @@ internal sealed class PipeEngine : IPipeEngine
         }
 
         var roots = graph.Roots.ToHashSet();
+        if (request.TargetNodeId is not null)
+        {
+            roots.IntersectWith(graph.AncestorsOf(request.TargetNodeId));
+        }
         return roots.Count > 0 ? roots : throw new PipeException("Workflow has no start node");
     }
+
+    /// <summary>Nodes that take part in the run: reachable from the start nodes and, for "run to here", leading to the target.</summary>
+    static private HashSet<string> ResolveActiveNodes(PipeWorkflowGraph graph, HashSet<string> startNodeIds, PipeExecutionRequest request)
+    {
+        var active = graph.ReachableFrom(startNodeIds);
+        if (request.TargetNodeId is not null)
+        {
+            active.IntersectWith(graph.AncestorsOf(request.TargetNodeId));
+            if (!active.Contains(request.TargetNodeId))
+            {
+                throw new PipeException($"Node '{graph.Nodes[request.TargetNodeId].Name}' can't be reached from the start node");
+            }
+        }
+        return active;
+    }
+
+    /// <summary>Pin data counts in manual runs only, so a triggered run never works with test data.</summary>
+    static private PortItems? PinnedOutputs(PipeExecutionState state, PipeExecutionRequest request, string nodeId)
+        => request.Mode == PipeExecutionMode.Manual && state.Workflow.PinData?.GetValueOrDefault(nodeId) is { } pinned
+            ? pinned.ToDictionary(p => p.Key, p => (IReadOnlyList<PipeItem>)p.Value.Select(i => i.Clone()).ToList())
+            : null;
 
     private async Task RunGraphAsync(
         PipeExecutionState state,
@@ -121,7 +151,7 @@ internal sealed class PipeEngine : IPipeEngine
         CancellationToken cancellationToken)
     {
         var graph = state.Graph;
-        var reachable = graph.ReachableFrom(startNodeIds);
+        var reachable = ResolveActiveNodes(graph, startNodeIds, request);
         var pending = new HashSet<string>(reachable);
         var running = new Dictionary<Task<NodeOutcome>, string>();
 
@@ -158,6 +188,12 @@ internal sealed class PipeEngine : IPipeEngine
                             var passThrough = new Dictionary<string, IReadOnlyList<PipeItem>> { [PipePorts.Main] = inputs.Values.SelectMany(i => i).ToList() };
                             state.Outputs[nodeId] = passThrough;
                             await FinishRunAsync(state, run, PipeNodeRunStatus.Disabled, passThrough, observer);
+                        }
+                        else if (PinnedOutputs(state, request, nodeId) is { } pinned)
+                        {
+                            run.Pinned = true;
+                            state.Outputs[nodeId] = pinned;
+                            await FinishRunAsync(state, run, PipeNodeRunStatus.Success, pinned, observer);
                         }
                         else if (!isStart && !node.Settings.AlwaysExecute && inputs.Values.All(i => i.Count == 0))
                         {

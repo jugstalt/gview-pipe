@@ -5,6 +5,7 @@
 @using Blazor.Diagrams.Core.Models
 @using Blazor.Diagrams.Core.Models.Base
 @using Blazor.Diagrams.Options
+@using gView.Pipe.Abstraction.Data
 @using gView.Pipe.Abstraction.Nodes
 @using gView.Pipe.Abstraction.Serialization
 @using gView.Pipe.Abstraction.Triggers
@@ -14,6 +15,7 @@
 @inject IPipeTriggerManager TriggerManager
 @inject IPipeNodeRegistry Registry
 @inject ISnackbar Snackbar
+@inject PipeEditorClipboard Clipboard
 
 @*
     Workflow editor: node palette, canvas and a side panel for the selected node (or the workflow).
@@ -42,6 +44,9 @@
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">unsaved</MudChip>
             }
             <MudSpacer />
+            <MudTooltip Text="Paste nodes (Ctrl+V on the canvas)">
+                <MudIconButton Icon="@Icons.Material.Filled.ContentPaste" aria-label="Paste nodes" OnClick="PasteAsync" Class="mr-2" />
+            </MudTooltip>
             <MudTooltip Text="Active workflows have their triggers (e.g. cron) armed after saving">
                 <MudSwitch T="bool" Value="_workflow.Active" ValueChanged="SetActive" Color="Color.Success" Label="Active" Class="mr-2" />
             </MudTooltip>
@@ -52,7 +57,7 @@
             }
             else
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="RunAsync">Run</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="() => RunAsync()">Run</MudButton>
             }
         </div>
 
@@ -82,7 +87,13 @@
                 {
                     <PipeNodePanel @key="_selected" Model="_selected"
                                    IsNameTaken="IsNameTaken"
+                                   Running="_running"
+                                   PinnedOutputs="@_workflow.PinData?.GetValueOrDefault(_selected.Node.Id)"
+                                   OnPinChanged="SetPinData"
                                    OnChanged="NodeChanged"
+                                   OnRunToHere="() => RunAsync(_selected.Node.Id)"
+                                   OnDuplicate="DuplicateSelectionAsync"
+                                   OnCopy="CopySelectionAsync"
                                    OnDelete="DeleteSelected" />
                 }
                 else
@@ -141,6 +152,26 @@
         _diagram.Links.Added += _ => InvokeAsync(MarkDirty);
         _diagram.Links.Removed += _ => InvokeAsync(MarkDirty);
         _diagram.ContainerChanged += () => InvokeAsync(ContainerChanged);
+        _diagram.KeyDown += e => InvokeAsync(() => KeyDownAsync(e));
+    }
+
+    /// <summary>
+    /// Shortcuts on the focused canvas (Delete is handled by the diagram itself). Only keys whose browser default
+    /// does no harm: the server can't prevent defaults, and e.g. Ctrl+D would also open the bookmark dialog.
+    /// </summary>
+    private Task KeyDownAsync(Blazor.Diagrams.Core.Events.KeyboardEventArgs e)
+    {
+        if (!e.CtrlKey || e.AltKey)
+        {
+            return Task.CompletedTask;
+        }
+
+        return e.Key.ToLowerInvariant() switch
+        {
+            "c" => CopySelectionAsync(),
+            "v" => PasteAsync(),
+            _ => Task.CompletedTask
+        };
     }
 
     /// <summary>
@@ -225,7 +256,10 @@
 
     private PipeNodeModel AddNodeModel(PipeWorkflowNode node, bool keepConnectedPorts)
     {
-        var model = new PipeNodeModel(node, Registry.Find(node.Type));
+        var model = new PipeNodeModel(node, Registry.Find(node.Type))
+        {
+            Pinned = _workflow?.PinData?.ContainsKey(node.Id) == true
+        };
         SyncPorts(model, keepConnectedPorts);
         model.Moved += _ => InvokeAsync(MarkDirty);
         _diagram.Nodes.Add(model);
@@ -267,6 +301,13 @@
             .OfType<PipeConnection>()
             .DistinctBy(c => (c.SourceNodeId, c.SourcePort, c.TargetNodeId, c.TargetPort))
             .ToList();
+
+        // pin data of deleted nodes
+        workflow.PinData?.Keys.Where(id => models.All(m => m.Node.Id != id)).ToList().ForEach(id => workflow.PinData.Remove(id));
+        if (workflow.PinData?.Count == 0)
+        {
+            workflow.PinData = null;
+        }
 
         return workflow;
     }
@@ -423,7 +464,8 @@
         }
     }
 
-    private async Task RunAsync()
+    /// <param name="targetNodeId">"Run to here": only this node and the nodes it depends on.</param>
+    private async Task RunAsync(string? targetNodeId = null)
     {
         // the engine gets a snapshot, so editing during the run can't interfere
         var workflow = PipeJson.Clone(BuildWorkflow());
@@ -434,7 +476,8 @@
 
         try
         {
-            var execution = await Runner.RunAsync(workflow, new PipeExecutionRequest { Observer = new EditorObserver(this) }, _runCts.Token);
+            var request = new PipeExecutionRequest { Observer = new EditorObserver(this), TargetNodeId = targetNodeId };
+            var execution = await Runner.RunAsync(workflow, request, _runCts.Token);
             if (execution is null)
             {
                 Snackbar.Add("The workflow is already running (max concurrent runs reached)", Severity.Warning);
@@ -459,6 +502,125 @@
     }
 
     private void StopRun() => _runCts?.Cancel();
+
+    private void SetPinData(Dictionary<string, List<PipeItem>>? outputs)
+    {
+        if (_workflow is null || _selected is null)
+        {
+            return;
+        }
+
+        var nodeId = _selected.Node.Id;
+        if (outputs is null)
+        {
+            _workflow.PinData?.Remove(nodeId);
+        }
+        else
+        {
+            (_workflow.PinData ??= new())[nodeId] = outputs;
+        }
+
+        _selected.Pinned = outputs is not null;
+        _selected.Refresh();
+        MarkDirty();
+    }
+
+    // ---- copy, paste, duplicate ----
+
+    private List<PipeNodeModel> SelectedNodes() => _diagram.GetSelectedModels().OfType<PipeNodeModel>().ToList();
+
+    /// <summary>The selected nodes (with their current positions) and the connections among them.</summary>
+    private PipeClipboardContent? CopySelection()
+    {
+        var models = SelectedNodes();
+        if (models.Count == 0)
+        {
+            return null;
+        }
+
+        var ids = models.Select(m => m.Node.Id).ToHashSet();
+        var nodes = models.Select(m =>
+        {
+            var node = PipeJson.Clone(m.Node);
+            node.Position = new PipePosition { X = Math.Round(m.Position.X), Y = Math.Round(m.Position.Y) };
+            return node;
+        }).ToList();
+        var connections = _diagram.Links.Select(ToConnection).OfType<PipeConnection>()
+            .Where(c => ids.Contains(c.SourceNodeId) && ids.Contains(c.TargetNodeId))
+            .ToList();
+
+        return new PipeClipboardContent { Nodes = nodes, Connections = connections };
+    }
+
+    private async Task CopySelectionAsync()
+    {
+        if (CopySelection() is { } content)
+        {
+            await Clipboard.CopyAsync(content);
+            Snackbar.Add(content.Nodes.Count == 1 ? $"Copied '{content.Nodes[0].Name}'" : $"Copied {content.Nodes.Count} nodes", Severity.Info);
+        }
+    }
+
+    private Task DuplicateSelectionAsync()
+    {
+        if (CopySelection() is { } content)
+        {
+            InsertNodes(content, offset: new Point(40, 40));
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task PasteAsync()
+    {
+        if (_workflow is null)
+        {
+            return;
+        }
+
+        if (await Clipboard.PasteAsync() is not { } content)
+        {
+            Snackbar.Add("The clipboard contains no nodes", Severity.Info);
+            return;
+        }
+
+        // the copied group lands in the visible area
+        var target = NextPosition();
+        InsertNodes(content, new Point(target.X - content.Nodes.Min(n => n.Position.X), target.Y - content.Nodes.Min(n => n.Position.Y)));
+    }
+
+    /// <summary>Adds copies with new ids and unique names, keeps the connections among them and selects them.</summary>
+    private void InsertNodes(PipeClipboardContent content, Point offset)
+    {
+        var ids = new Dictionary<string, string>();
+        var models = new List<PipeNodeModel>();
+
+        foreach (var original in content.Nodes)
+        {
+            var node = PipeJson.Clone(original);
+            node.Id = Guid.NewGuid().ToString("N");
+            node.Name = UniqueName(original.Name);
+            node.Position = new PipePosition { X = original.Position.X + offset.X, Y = original.Position.Y + offset.Y };
+            ids[original.Id] = node.Id;
+            models.Add(AddNodeModel(node, keepConnectedPorts: false));
+        }
+
+        foreach (var connection in content.Connections)
+        {
+            var source = models.FirstOrDefault(m => m.Node.Id == ids.GetValueOrDefault(connection.SourceNodeId))?.FindPort(connection.SourcePort, isInput: false);
+            var target = models.FirstOrDefault(m => m.Node.Id == ids.GetValueOrDefault(connection.TargetNodeId))?.FindPort(connection.TargetPort, isInput: true);
+            if (source is not null && target is not null)
+            {
+                _diagram.Links.Add(new LinkModel(source, target));
+            }
+        }
+
+        _diagram.UnselectAll();
+        foreach (var model in models)
+        {
+            _diagram.SelectModel(model, unselectOthers: false);
+        }
+        MarkDirty();
+    }
 
     private void ShowExecution(PipeExecution execution)
     {

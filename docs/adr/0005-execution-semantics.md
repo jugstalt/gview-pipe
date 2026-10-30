@@ -11,6 +11,8 @@ Date: 2026-10-29 · Status: accepted
   - All items from all incoming connections are concatenated per target port.
 - **Empty input:** a node is skipped when all of its inputs are empty. Start nodes and nodes with `AlwaysExecute` still run. Skipping propagates downstream.
 - **Disabled nodes:** they pass all input items through on `main`.
+- **Pin data:** in manual runs, a node with pin data (`PipeWorkflow.PinData`, items per output port) is not executed; it returns the pinned items, and its run is marked `Pinned`. Triggered runs ignore pin data, so production runs never work with test data. Pinned items carry no binaries, because binary content belongs to the execution it came from.
+- **Run to here:** with `PipeExecutionRequest.TargetNodeId`, only the target and the nodes it depends on take part. Start nodes are the roots it can be reached from.
 - **Errors:** each node has `RetryCount`, `RetryDelayMs` and `TimeoutSeconds`, plus one of three `OnError` modes:
   - `Stop` (default): fails the execution and cancels running nodes.
   - `Continue`: passes the input on.

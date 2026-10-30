@@ -13,6 +13,10 @@ else
             {
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@((finished - started).TotalMilliseconds.ToString("0")) ms</MudText>
             }
+            @if (Run.Pinned)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.PushPin">pinned data</MudChip>
+            }
             @if (Run.Attempts > 1)
             {
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@Run.Attempts attempts</MudText>
@@ -26,7 +30,11 @@ else
 
         <MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-run-tabs" MinimumTabWidth="70px">
             <MudTabPanel Text="@($"Input ({Run.InputCounts.Values.Sum()})")">
-                <PipeItemsView Items="Run.Inputs" Counts="Run.InputCounts" EmptyText="The node received no items." />
+                @if (OnSelectInputPath.HasDelegate && Run.Inputs?.Values.Any(i => i.Count > 0) == true)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Click a property to insert it as an expression into the last edited parameter.</MudText>
+                }
+                <PipeItemsView Items="Run.Inputs" Counts="Run.InputCounts" EmptyText="The node received no items." OnSelectPath="OnSelectInputPath" />
             </MudTabPanel>
             <MudTabPanel Text="@($"Output ({Run.OutputCounts.Values.Sum()})")">
                 <PipeItemsView Items="Run.Outputs" Counts="Run.OutputCounts" EmptyText="The node produced no items." />
@@ -53,6 +61,9 @@ else
 
 @code {
     [Parameter] public PipeNodeRun? Run { get; set; }
+
+    /// <summary>When set, input properties are clickable and report their path (e.g. <c>$json.a.b</c>).</summary>
+    [Parameter] public EventCallback<string> OnSelectInputPath { get; set; }
 
     // output first: that is what one usually looks for
     private int _tab = 1;

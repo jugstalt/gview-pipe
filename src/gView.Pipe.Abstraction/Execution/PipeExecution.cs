@@ -33,6 +33,9 @@ public sealed class PipeNodeRun
     public int Attempts { get; set; }
     public string? Error { get; set; }
 
+    /// <summary>The node was not executed; its outputs are the workflow's pin data.</summary>
+    public bool Pinned { get; set; }
+
     /// <summary>Input items per port, as the node received them (null when data is not saved).</summary>
     public Dictionary<string, List<PipeItem>>? Inputs { get; set; }
 
