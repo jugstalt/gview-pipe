@@ -18,3 +18,7 @@ src/gView.Pipe.Shell/data/
 src/gView.Pipe.Shell/plugins/
 src/gView.Pipe.Shell/files/
 src/gView.Pipe.Shell/scripts/
+
+## nuke deploy build
+.nuke/temp/
+artifacts/

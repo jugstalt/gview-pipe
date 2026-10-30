@@ -1,0 +1,8 @@
+<Project>
+
+  <!-- This file prevents the import of the root Directory.Packages.props: the build project pins its own versions -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+</Project>
