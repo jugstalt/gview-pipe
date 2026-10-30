@@ -18,6 +18,21 @@ internal sealed class PipeExecutionBinaryStore : IPipeBinaryStore, IAsyncDisposa
         _tempFolder = Path.Combine(tempRoot ?? Path.GetTempPath(), "gview-pipe", Guid.NewGuid().ToString("N"));
     }
 
+    /// <summary>Content prepared before the execution started (e.g. webhook uploads), under its existing reference id.</summary>
+    public async Task AddAsync(string id, byte[] content, CancellationToken cancellationToken)
+    {
+        if (content.Length <= _memoryThreshold)
+        {
+            _memory[id] = content;
+            return;
+        }
+
+        Directory.CreateDirectory(_tempFolder);
+        var path = Path.Combine(_tempFolder, id);
+        await File.WriteAllBytesAsync(path, content, cancellationToken);
+        _files[id] = path;
+    }
+
     public async Task<PipeBinaryRef> StoreAsync(Stream content, string fileName, string mimeType, CancellationToken cancellationToken = default)
     {
         var id = Guid.NewGuid().ToString("N");

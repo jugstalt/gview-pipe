@@ -12,6 +12,7 @@ public sealed class PipeNodeDescriptor
     public Type? ParametersType { get; init; }
     public bool IsTrigger { get; init; }
     public bool HasDynamicPorts { get; init; }
+    public bool HasHints { get; init; }
     public bool Obsolete { get; init; }
     public required IReadOnlyList<PipePort> Inputs { get; init; }
     public required IReadOnlyList<PipePort> Outputs { get; init; }

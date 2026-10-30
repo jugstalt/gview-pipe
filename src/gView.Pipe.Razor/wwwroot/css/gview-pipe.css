@@ -313,6 +313,47 @@ pre.gview-pipe-code {
     color: var(--mud-palette-text-secondary);
 }
 
+.gview-pipe-run-tabs .mud-tabs-panels {
+    padding-top: 8px;
+}
+
+.gview-pipe-log-entry {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .74rem;
+}
+
+    .gview-pipe-log-entry:nth-child(odd) {
+        background: var(--gview-pipe-code-bg);
+    }
+
+    .gview-pipe-log-entry.warning .gview-pipe-log-level {
+        color: var(--mud-palette-warning);
+    }
+
+    .gview-pipe-log-entry.error .gview-pipe-log-level,
+    .gview-pipe-log-entry.error .gview-pipe-log-message {
+        color: var(--mud-palette-error);
+    }
+
+    .gview-pipe-log-entry.debug {
+        opacity: .7;
+    }
+
+.gview-pipe-log-time,
+.gview-pipe-log-level {
+    color: var(--mud-palette-text-secondary);
+}
+
+.gview-pipe-log-message {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .gview-pipe-history-item {
     display: flex;
     gap: 8px;

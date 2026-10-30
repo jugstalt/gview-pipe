@@ -1,0 +1,56 @@
+@using gView.Pipe.Abstraction.Data
+
+@* Items per port: one tab per port, items as indented JSON. *@
+
+@if (Items is null)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+        @(Counts.Count > 0
+            ? $"Item data was not saved for this execution ({string.Join(", ", Counts.Select(c => $"{c.Key}: {c.Value}"))})."
+            : "No data.")
+    </MudText>
+}
+else if (Items.Count == 0 || Items.All(p => p.Value.Count == 0) && Items.Count == 1)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">@EmptyText</MudText>
+}
+else
+{
+    <MudTabs Elevation="0" Rounded="false" Class="gview-pipe-output-tabs">
+        @foreach (var (port, items) in Items)
+        {
+            <MudTabPanel Text="@($"{port} ({items.Count})")">
+                @if (items.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">No items.</MudText>
+                }
+                @foreach (var (item, index) in items.Take(MaxItems).Select((item, index) => (item, index)))
+                {
+                    <div class="gview-pipe-item">
+                        <div class="gview-pipe-item-index">#@index</div>
+                        <pre class="gview-pipe-code">@PipeJsonText.ToIndentedJson(item.Json)</pre>
+                        @foreach (var (name, binary) in item.Binary)
+                        {
+                            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.AttachFile">@name: @binary.FileName (@binary.Length bytes)</MudChip>
+                        }
+                    </div>
+                }
+                @if (items.Count > MaxItems)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">… @(items.Count - MaxItems) more items</MudText>
+                }
+            </MudTabPanel>
+        }
+    </MudTabs>
+}
+
+@code {
+    private const int MaxItems = 50;
+
+    /// <summary>Items per port; null when the execution did not store item data.</summary>
+    [Parameter] public Dictionary<string, List<PipeItem>>? Items { get; set; }
+
+    [Parameter] public Dictionary<string, int> Counts { get; set; } = new();
+
+    [Parameter] public string EmptyText { get; set; } = "No items.";
+}

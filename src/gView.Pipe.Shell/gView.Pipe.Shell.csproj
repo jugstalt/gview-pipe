@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\gView.Pipe.Core\gView.Pipe.Core.csproj" />
+    <ProjectReference Include="..\gView.Pipe.AspNetCore\gView.Pipe.AspNetCore.csproj" />
     <ProjectReference Include="..\gView.Pipe.Razor\gView.Pipe.Razor.csproj" />
     <!-- built-in nodes; referenced only so the dll lands in the output folder, discovered like any plugin -->
     <ProjectReference Include="..\gView.Pipe.Plugins\gView.Pipe.Plugins.csproj" />

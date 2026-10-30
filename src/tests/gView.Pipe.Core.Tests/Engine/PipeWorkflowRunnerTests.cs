@@ -44,6 +44,8 @@ public class PipeWorkflowRunnerTests
         Assert.NotNull(execution.NodeRuns["emit"].Outputs);
         Assert.False(stored!.DataSaved);
         Assert.Null(stored.NodeRuns["emit"].Outputs);
+        Assert.Null(stored.NodeRuns["emit"].Inputs);
+        Assert.Equal(1, stored.NodeRuns["emit"].InputCounts["main"]);
         Assert.Equal(1, stored.NodeRuns["emit"].OutputCounts["main"]);
     }
 

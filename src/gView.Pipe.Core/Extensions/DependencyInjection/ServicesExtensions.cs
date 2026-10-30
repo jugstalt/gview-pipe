@@ -44,10 +44,15 @@ static public class ServicesExtensions
 
         services.TryAddSingleton<IPipeNodeRegistry, PipeNodeRegistry>();
         services.TryAddSingleton<IPipeCredentialTypeRegistry, PipeCredentialTypeRegistry>();
-        services.TryAddSingleton<IPipeExpressionEvaluator, PipeTemplateExpressionEvaluator>();
+        services.TryAddSingleton<PipeJavaScriptEngine>();
+        services.TryAddSingleton<IPipeExpressionEvaluator>(sp => sp.GetRequiredService<PipeJavaScriptEngine>());
+        services.TryAddSingleton<IPipeScriptRunner>(sp => sp.GetRequiredService<PipeJavaScriptEngine>());
         services.TryAddSingleton<IPipeEngine, PipeEngine>();
         services.TryAddSingleton<IPipeWorkflowRunner, PipeWorkflowRunner>();
-        services.TryAddSingleton<IPipeTriggerHost, PipeScheduler>();
+        services.TryAddSingleton<PipeScheduler>();
+        services.TryAddSingleton<PipeWebhookRegistry>();
+        services.TryAddSingleton<IPipeWebhookRouter>(sp => sp.GetRequiredService<PipeWebhookRegistry>());
+        services.TryAddSingleton<IPipeTriggerHost, PipeTriggerHost>();
         services.TryAddSingleton<IPipeUserContext, PipeAnonymousUserContext>();
 
         services.TryAddSingleton<PipeTriggerManager>();

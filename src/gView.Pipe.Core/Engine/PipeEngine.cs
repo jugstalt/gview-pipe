@@ -71,6 +71,10 @@ internal sealed class PipeEngine : IPipeEngine
             var startNodeIds = ResolveStartNodes(graph, request);
 
             await using var binaryStore = new PipeExecutionBinaryStore(_options.BinaryMemoryThreshold, _options.TempPath);
+            foreach (var (id, content) in request.BinaryContent ?? new Dictionary<string, byte[]>())
+            {
+                await binaryStore.AddAsync(id, content, cancellationToken);
+            }
             await using var scope = _scopeFactory.CreateAsyncScope();
 
             var state = new PipeExecutionState(workflow, execution, graph, binaryStore, _evaluator);
@@ -146,6 +150,7 @@ internal sealed class PipeEngine : IPipeEngine
                         var isStart = startNodeIds.Contains(nodeId);
                         var inputs = isStart ? StartInputs(request) : CollectInputs(state, nodeId, reachable);
                         var run = new PipeNodeRun { NodeId = node.Id, NodeName = node.Name };
+                        RecordInputs(run, inputs);
                         state.Execution.NodeRuns[nodeId] = run;
 
                         if (node.Disabled)
@@ -232,12 +237,16 @@ internal sealed class PipeEngine : IPipeEngine
         await observer.OnNodeStartedAsync(state.Execution, run);
 
         var settings = node.Settings;
+        var descriptor = _registry.Find(node.Type);
+        var runLogger = new PipeNodeRunLogger(descriptor is null ? _logger : _loggerFactory.CreateLogger(descriptor.NodeType));
         Exception? lastError;
 
         try
         {
-            var descriptor = _registry.Find(node.Type)
-                ?? throw new PipeException($"Unknown node type {node.Type}. Is the plugin installed?");
+            if (descriptor is null)
+            {
+                throw new PipeException($"Unknown node type {node.Type}. Is the plugin installed?");
+            }
 
             var attempt = 0;
             while (true)
@@ -251,8 +260,8 @@ internal sealed class PipeEngine : IPipeEngine
 
                 try
                 {
-                    var outputs = await ExecuteNodeAsync(state, node, descriptor, inputs, services, timeoutCts.Token);
-                    await FinishRunAsync(state, run, PipeNodeRunStatus.Success, outputs, observer);
+                    var outputs = await ExecuteNodeAsync(state, node, descriptor, inputs, services, runLogger, timeoutCts.Token);
+                    await FinishRunAsync(state, run, PipeNodeRunStatus.Success, outputs, observer, runLogger);
                     return new NodeOutcome(outputs, false, null);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -273,7 +282,8 @@ internal sealed class PipeEngine : IPipeEngine
                     break;
                 }
 
-                _logger.LogWarning("Node {NodeName} failed (attempt {Attempt}), retrying: {Error}", node.Name, attempt, lastError.Message);
+                runLogger.LogWarning("Node {NodeName}: attempt {Attempt} failed, retrying in {Delay} ms: {Error}",
+                    node.Name, attempt, settings.RetryDelayMs, lastError.Message);
                 if (settings.RetryDelayMs > 0)
                 {
                     await Task.Delay(settings.RetryDelayMs, cancellationToken);
@@ -282,8 +292,10 @@ internal sealed class PipeEngine : IPipeEngine
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            runLogger.LogWarning("Node {NodeName}: canceled", node.Name);
             run.Status = PipeNodeRunStatus.Canceled;
             run.FinishedAt = DateTimeOffset.UtcNow;
+            run.Logs = runLogger.Snapshot();
             await observer.OnNodeFinishedAsync(state.Execution, run);
             throw;
         }
@@ -292,7 +304,7 @@ internal sealed class PipeEngine : IPipeEngine
             lastError = ex;
         }
 
-        return await HandleFailureAsync(state, node, run, inputs, lastError, observer);
+        return await HandleFailureAsync(state, node, run, inputs, lastError, observer, runLogger);
     }
 
     private async Task<PortItems> ExecuteNodeAsync(
@@ -301,6 +313,7 @@ internal sealed class PipeEngine : IPipeEngine
         PipeNodeDescriptor descriptor,
         PortItems inputs,
         IServiceProvider services,
+        ILogger logger,
         CancellationToken cancellationToken)
     {
         var instance = (IPipeNode)ActivatorUtilities.CreateInstance(services, descriptor.NodeType);
@@ -312,7 +325,7 @@ internal sealed class PipeEngine : IPipeEngine
                 parameters = migration.MigrateParameters(node.TypeVersion, parameters);
             }
 
-            var context = new PipeNodeContext(state, node, parameters, inputs, services, _loggerFactory.CreateLogger(descriptor.NodeType));
+            var context = new PipeNodeContext(state, node, parameters, inputs, services, logger);
             var result = await instance.ExecuteAsync(context, cancellationToken);
             return result.Outputs;
         }
@@ -336,9 +349,10 @@ internal sealed class PipeEngine : IPipeEngine
         PipeNodeRun run,
         PortItems inputs,
         Exception error,
-        IPipeExecutionObserver observer)
+        IPipeExecutionObserver observer,
+        PipeNodeRunLogger runLogger)
     {
-        _logger.LogWarning("Node {NodeName} failed: {Error}", node.Name, error.Message);
+        runLogger.LogError("Node {NodeName} failed: {Error}", node.Name, error.Message);
         run.Error = error.Message;
 
         var inputItems = inputs.TryGetValue(PipePorts.Main, out var main) ? main : inputs.Values.SelectMany(i => i).ToList();
@@ -350,7 +364,7 @@ internal sealed class PipeEngine : IPipeEngine
             _ => null
         };
 
-        await FinishRunAsync(state, run, PipeNodeRunStatus.Error, outputs ?? NoOutputs, observer);
+        await FinishRunAsync(state, run, PipeNodeRunStatus.Error, outputs ?? NoOutputs, observer, runLogger);
 
         return outputs is null
             ? new NodeOutcome(NoOutputs, true, error.Message)
@@ -371,14 +385,31 @@ internal sealed class PipeEngine : IPipeEngine
         return errorItems;
     }
 
-    static private async Task FinishRunAsync(PipeExecutionState state, PipeNodeRun run, PipeNodeRunStatus status, PortItems outputs, IPipeExecutionObserver observer)
+    static private async Task FinishRunAsync(
+        PipeExecutionState state,
+        PipeNodeRun run,
+        PipeNodeRunStatus status,
+        PortItems outputs,
+        IPipeExecutionObserver observer,
+        PipeNodeRunLogger? runLogger = null)
     {
         run.Status = status;
         run.StartedAt ??= DateTimeOffset.UtcNow;
         run.FinishedAt = DateTimeOffset.UtcNow;
         run.Outputs = outputs.ToDictionary(p => p.Key, p => p.Value.ToList());
         run.OutputCounts = outputs.ToDictionary(p => p.Key, p => p.Value.Count);
+        if (runLogger is not null)
+        {
+            run.Logs = runLogger.Snapshot();
+        }
         await observer.OnNodeFinishedAsync(state.Execution, run);
+    }
+
+    /// <summary>A snapshot: nodes may change the items they received.</summary>
+    static private void RecordInputs(PipeNodeRun run, PortItems inputs)
+    {
+        run.Inputs = inputs.ToDictionary(p => p.Key, p => p.Value.Select(i => i.Clone()).ToList());
+        run.InputCounts = inputs.ToDictionary(p => p.Key, p => p.Value.Count);
     }
 
     static private PortItems StartInputs(PipeExecutionRequest request)

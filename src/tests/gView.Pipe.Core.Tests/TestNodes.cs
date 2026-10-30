@@ -15,7 +15,29 @@ static public class TestNodeIds
     public const string Tag = "00000000-0000-4000-8000-000000000005";
     public const string Trigger = "00000000-0000-4000-8000-000000000006";
     public const string Versioned = "00000000-0000-4000-8000-000000000007";
+    public const string BinaryLength = "00000000-0000-4000-8000-000000000008";
     public const string Unknown = "00000000-0000-4000-8000-0000000000ff";
+}
+
+/// <summary>Reads every binary attachment from the binary store and writes its length into the item.</summary>
+[PipeNode(TestNodeIds.BinaryLength, "Binary Length")]
+public sealed class BinaryLengthNode : IPipeNode
+{
+    public async Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)
+    {
+        var items = context.GetInput();
+        foreach (var item in items)
+        {
+            foreach (var (name, reference) in item.Binary)
+            {
+                await using var stream = await context.BinaryStore.OpenReadAsync(reference, cancellationToken);
+                using var buffer = new MemoryStream();
+                await stream.CopyToAsync(buffer, cancellationToken);
+                item.Json[$"{name}Length"] = buffer.Length;
+            }
+        }
+        return PipeNodeResult.FromMain(items);
+    }
 }
 
 public sealed class EmitParameters

@@ -49,6 +49,8 @@ public class CronTriggerNodeTests
             return new Handle(this);
         }
 
+        public IDisposable RegisterWebhook(PipeWebhookRegistration registration) => throw new NotSupportedException();
+
         private sealed class Handle(FakeTriggerHost host) : IDisposable
         {
             public void Dispose() => host.Disposed = true;

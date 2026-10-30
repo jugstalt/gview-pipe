@@ -49,6 +49,11 @@ internal sealed class PipeNodeRegistry : IPipeNodeRegistry
         return outputs;
     }
 
+    public IReadOnlyList<PipeNodeHint> GetHints(PipeNodeDescriptor descriptor, JsonObject parameters)
+        => descriptor.HasHints
+            ? ((IPipeNodeHints)ActivatorUtilities.CreateInstance(_services, descriptor.NodeType)).GetHints(parameters)
+            : [];
+
     private IPipeDynamicPorts CreatePortProvider(PipeNodeDescriptor descriptor)
         => (IPipeDynamicPorts)ActivatorUtilities.CreateInstance(_services, descriptor.NodeType);
 }

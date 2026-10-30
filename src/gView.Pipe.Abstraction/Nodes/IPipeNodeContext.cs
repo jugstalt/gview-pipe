@@ -1,5 +1,6 @@
 using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Data;
+using gView.Pipe.Abstraction.Expressions;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Nodes;
 
@@ -29,6 +30,9 @@ public interface IPipeNodeContext
 
     /// <summary>Evaluates a template string such as <c>"Hello {{ $json.name }}"</c>.</summary>
     JsonNode? Evaluate(string template, PipeItem? item = null, int itemIndex = 0);
+
+    /// <summary>The variables expressions see for <paramref name="item"/>; pass it to <see cref="IPipeScriptRunner"/>.</summary>
+    PipeExpressionScope CreateExpressionScope(PipeItem? item = null, int itemIndex = 0);
 
     Task<PipeCredential> GetCredentialAsync(string credentialId, CancellationToken cancellationToken = default);
 

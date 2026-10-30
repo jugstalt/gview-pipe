@@ -10,9 +10,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\gView.Pipe.Core\gView.Pipe.Core.csproj" />
     <ProjectReference Include="..\..\gView.Pipe.Plugins\gView.Pipe.Plugins.csproj" />
+    <ProjectReference Include="..\..\gView.Pipe.AspNetCore\gView.Pipe.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />

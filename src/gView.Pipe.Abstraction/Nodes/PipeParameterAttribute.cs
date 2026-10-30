@@ -12,6 +12,13 @@ public sealed class PipeParameterAttribute : Attribute
 
     /// <summary>Whether the editor offers <c>{{ }}</c> expressions for this field.</summary>
     public bool Expressions { get; set; } = true;
+
+    /// <summary>
+    /// Source code (e.g. JavaScript): edited in a large monospace field without expressions.
+    /// Read such values from <see cref="IPipeNodeContext.RawParameters"/>, because
+    /// <see cref="IPipeNodeContext.GetParameters{TParameters}"/> evaluates <c>{{ }}</c> in every string.
+    /// </summary>
+    public bool Code { get; set; }
 }
 
 /// <summary>

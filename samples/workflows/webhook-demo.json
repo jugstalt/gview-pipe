@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "webhook-demo",
+  "name": "Webhook Demo",
+  "description": "POST JSON to /webhook/demo and get a greeting back. Activate the workflow to arm the webhook.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "hook",
+      "name": "Webhook",
+      "type": "f1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b12",
+      "typeVersion": 1,
+      "parameters": { "path": "demo", "method": "post", "responseMode": "whenFinished", "timeoutSeconds": 10 },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "reply",
+      "name": "Reply",
+      "type": "5a9b3c7d-2e4f-4a6b-8c1d-9e0f1a2b3c04",
+      "typeVersion": 1,
+      "parameters": {
+        "fields": { "greeting": "Hello {{ $json.body?.name ?? 'stranger' }}!", "at": "{{ $now }}" },
+        "keepOnlySet": true
+      },
+      "position": { "x": 260, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "hook", "sourcePort": "main", "targetNodeId": "reply", "targetPort": "main" }
+  ]
+}

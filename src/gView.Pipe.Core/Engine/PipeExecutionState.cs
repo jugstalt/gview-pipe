@@ -37,21 +37,20 @@ internal sealed class PipeExecutionState
     /// <summary>Outputs of finished nodes: node id → port → items. Read concurrently by expressions.</summary>
     public ConcurrentDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<PipeItem>>> Outputs { get; } = new();
 
-    public PipeExpressionScope CreateScope(PipeItem? item, int itemIndex) => new()
+    public PipeExpressionScope CreateScope(PipeItem? item, int itemIndex, IReadOnlyList<PipeItem>? input = null) => new()
     {
         Json = item?.Json,
         ItemIndex = itemIndex,
         WorkflowId = Workflow.Id,
         WorkflowName = Workflow.Name,
         ExecutionId = Execution.Id,
-        NodeJson = FirstMainOutput
+        Input = input?.Select(i => i.Json).ToList(),
+        NodeItems = MainOutput
     };
 
-    private JsonObject? FirstMainOutput(string nodeName)
-        => _nodeIdsByName.TryGetValue(nodeName, out var id)
-           && Outputs.TryGetValue(id, out var ports)
-           && ports.TryGetValue(PipePorts.Main, out var items)
-           && items.Count > 0
-            ? items[0].Json
+    /// <summary>Main output of an executed node, by node name.</summary>
+    private IReadOnlyList<JsonObject>? MainOutput(string nodeName)
+        => _nodeIdsByName.TryGetValue(nodeName, out var id) && Outputs.TryGetValue(id, out var ports)
+            ? ports.TryGetValue(PipePorts.Main, out var items) ? items.Select(i => i.Json).ToList() : []
             : null;
 }

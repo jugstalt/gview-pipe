@@ -174,6 +174,7 @@ public sealed class PipePluginCatalog
             ParametersType = parametersType,
             IsTrigger = isTrigger,
             HasDynamicPorts = typeof(IPipeDynamicPorts).IsAssignableFrom(type),
+            HasHints = typeof(IPipeNodeHints).IsAssignableFrom(type),
             Obsolete = attribute.Obsolete,
             Inputs = isTrigger ? [] : attribute.Inputs.Select(p => new PipePort(p)).ToList(),
             Outputs = attribute.Outputs.Select(p => new PipePort(p)).ToList(),

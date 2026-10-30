@@ -1,3 +1,5 @@
+using gView.Pipe.Abstraction;
+using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Expressions;
@@ -76,15 +78,16 @@ internal sealed class PipeTriggerManager : IPipeTriggerManager, IHostedService
 
     public bool IsActive(string workflowId) => _activations.ContainsKey(workflowId);
 
-    public async Task ActivateAsync(PipeWorkflow workflow, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<string>> ActivateAsync(PipeWorkflow workflow, CancellationToken cancellationToken = default)
     {
         await DeactivateAsync(workflow.Id);
         if (!workflow.Active)
         {
-            return;
+            return [];
         }
 
         var handles = new List<IAsyncDisposable>();
+        var problems = new List<string>();
 
         foreach (var node in workflow.Nodes.Where(n => !n.Disabled))
         {
@@ -105,11 +108,13 @@ internal sealed class PipeTriggerManager : IPipeTriggerManager, IHostedService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Can't activate trigger {NodeName} of workflow {WorkflowName}", node.Name, workflow.Name);
+                problems.Add($"{node.Name}: {ex.Message}");
             }
         }
 
         _activations[workflow.Id] = handles;
         _logger.LogInformation("Workflow {WorkflowName} activated with {TriggerCount} trigger(s)", workflow.Name, handles.Count);
+        return problems;
     }
 
     public async Task DeactivateAsync(string workflowId)
@@ -147,6 +152,7 @@ internal sealed class PipeTriggerManager : IPipeTriggerManager, IHostedService
         }
 
         public string WorkflowId => _workflow.Id;
+        public string WorkflowName => _workflow.Name;
         public string NodeId => _node.Id;
         public string NodeName => _node.Name;
         public IPipeTriggerHost Host => _manager._host;
@@ -158,16 +164,22 @@ internal sealed class PipeTriggerManager : IPipeTriggerManager, IHostedService
                 _manager._evaluator,
                 new PipeExpressionScope { WorkflowId = _workflow.Id, WorkflowName = _workflow.Name });
 
-        public async Task FireAsync(IReadOnlyList<PipeItem> items, CancellationToken cancellationToken)
+        public async Task<PipeCredential> GetCredentialAsync(string credentialId, CancellationToken cancellationToken = default)
+            => await _manager._services.GetRequiredService<IPipeCredentialStore>().GetAsync(credentialId, cancellationToken)
+               ?? throw new PipeException($"Credential '{credentialId}' not found (trigger '{NodeName}')");
+
+        public Task<PipeExecution?> FireAsync(IReadOnlyList<PipeItem> items, CancellationToken cancellationToken, PipeTriggerFireOptions? options = null)
         {
             var request = new PipeExecutionRequest
             {
                 Mode = PipeExecutionMode.Trigger,
                 StartNodeId = _node.Id,
-                InputItems = items
+                InputItems = items,
+                ExecutionId = options?.ExecutionId,
+                BinaryContent = options?.BinaryContent
             };
 
-            await _manager._runner.RunAsync(_workflow, request, cancellationToken);
+            return _manager._runner.RunAsync(_workflow, request, cancellationToken);
         }
     }
 }

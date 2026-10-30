@@ -67,11 +67,11 @@ else
 
                 default:
                     <MudTextField T="string" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  Lines="@(field.Multiline ? 4 : 1)"
+                                  Lines="@(field.Code ? 14 : field.Multiline ? 4 : 1)"
                                   InputType="@(field.Secret ? InputType.Password : InputType.Text)"
                                   Placeholder="@(field.Secret && SecretsArePlaceholders ? "(unchanged)" : field.Placeholder)"
                                   HelperText="@HelperText(field)"
-                                  Class="@(field.Expressions ? "gview-pipe-expression-field" : null)"
+                                  Class="@(field.Code ? "gview-pipe-code" : field.Expressions ? "gview-pipe-expression-field" : null)"
                                   Value="@PipeJsonText.ToText(value)"
                                   ValueChanged="v => SetAsync(field, Convert(field, v))" />
                     break;

@@ -397,9 +397,18 @@
         {
             var workflow = BuildWorkflow();
             await WorkflowStore.SaveAsync(workflow);
-            await TriggerManager.ActivateAsync(workflow);
+            var problems = await TriggerManager.ActivateAsync(workflow);
             _dirty = false;
-            Snackbar.Add(workflow.Active ? "Saved, triggers armed" : "Saved", Severity.Success);
+
+            if (problems.Count > 0)
+            {
+                Snackbar.Add($"Saved, but some triggers are not armed: {string.Join("; ", problems)}", Severity.Warning,
+                    options => options.RequireInteraction = true);
+            }
+            else
+            {
+                Snackbar.Add(workflow.Active ? "Saved, triggers armed" : "Saved", Severity.Success);
+            }
         }
         catch (Exception ex)
         {

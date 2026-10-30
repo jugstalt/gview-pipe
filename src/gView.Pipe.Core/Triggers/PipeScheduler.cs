@@ -1,11 +1,10 @@
 using Cronos;
-using gView.Pipe.Abstraction.Triggers;
 using Microsoft.Extensions.Logging;
 
 namespace gView.Pipe.Core.Triggers;
 
 /// <summary>Cron schedules for triggers. Each registration runs its own delay loop.</summary>
-internal sealed class PipeScheduler : IPipeTriggerHost
+internal sealed class PipeScheduler
 {
     static private readonly TimeSpan MaxDelay = TimeSpan.FromDays(1);
 

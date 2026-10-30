@@ -13,4 +13,7 @@ public interface IPipeNodeRegistry
 
     /// <summary>Output ports, including the error port when <paramref name="settings"/> asks for it.</summary>
     IReadOnlyList<PipePort> GetOutputs(PipeNodeDescriptor descriptor, JsonObject parameters, PipeNodeSettings? settings = null);
+
+    /// <summary>Editor notes of nodes implementing <see cref="IPipeNodeHints"/>; empty otherwise.</summary>
+    IReadOnlyList<PipeNodeHint> GetHints(PipeNodeDescriptor descriptor, JsonObject parameters);
 }

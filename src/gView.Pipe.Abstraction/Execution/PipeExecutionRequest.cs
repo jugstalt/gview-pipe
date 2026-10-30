@@ -16,4 +16,7 @@ public sealed class PipeExecutionRequest
     public IPipeExecutionObserver? Observer { get; init; }
 
     public string? ExecutionId { get; init; }
+
+    /// <summary>Content for binary references of <see cref="InputItems"/>, moved into the execution's binary store.</summary>
+    public IReadOnlyDictionary<string, byte[]>? BinaryContent { get; init; }
 }

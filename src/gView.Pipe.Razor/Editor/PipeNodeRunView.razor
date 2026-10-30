@@ -1,6 +1,8 @@
+@using Microsoft.Extensions.Logging
+
 @if (Run is null)
 {
-    <MudText Typo="Typo.body2" Class="mud-text-secondary">Run the workflow, or pick an execution from the history, to see this node's output.</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">Run the workflow, or pick an execution from the history, to see this node's input, output and logs.</MudText>
 }
 else
 {
@@ -22,55 +24,38 @@ else
             <MudAlert Severity="Severity.Error" Dense="true">@error</MudAlert>
         }
 
-        @if (Run.Outputs is null)
-        {
-            @if (Run.OutputCounts.Count > 0)
-            {
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                    Item data was not saved for this execution (@string.Join(", ", Run.OutputCounts.Select(c => $"{c.Key}: {c.Value}"))).
-                </MudText>
-            }
-        }
-        else if (Run.Outputs.Count == 0)
-        {
-            <MudText Typo="Typo.body2" Class="mud-text-secondary">No output.</MudText>
-        }
-        else
-        {
-            <MudTabs Elevation="0" Rounded="false" Class="gview-pipe-output-tabs">
-                @foreach (var (port, items) in Run.Outputs)
+        <MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-run-tabs">
+            <MudTabPanel Text="@($"Input ({Run.InputCounts.Values.Sum()})")">
+                <PipeItemsView Items="Run.Inputs" Counts="Run.InputCounts" EmptyText="The node received no items." />
+            </MudTabPanel>
+            <MudTabPanel Text="@($"Output ({Run.OutputCounts.Values.Sum()})")">
+                <PipeItemsView Items="Run.Outputs" Counts="Run.OutputCounts" EmptyText="The node produced no items." />
+            </MudTabPanel>
+            <MudTabPanel Text="@($"Logs ({Run.Logs.Count})")">
+                @if (Run.Logs.Count == 0)
                 {
-                    <MudTabPanel Text="@($"{port} ({items.Count})")">
-                        @if (items.Count == 0)
-                        {
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary">No items.</MudText>
-                        }
-                        @foreach (var (item, index) in items.Take(MaxItems).Select((item, index) => (item, index)))
-                        {
-                            <div class="gview-pipe-item">
-                                <div class="gview-pipe-item-index">#@index</div>
-                                <pre class="gview-pipe-code">@PipeJsonText.ToIndentedJson(item.Json)</pre>
-                                @foreach (var (name, binary) in item.Binary)
-                                {
-                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.AttachFile">@name: @binary.FileName (@binary.Length bytes)</MudChip>
-                                }
-                            </div>
-                        }
-                        @if (items.Count > MaxItems)
-                        {
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">… @(items.Count - MaxItems) more items</MudText>
-                        }
-                    </MudTabPanel>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @(Run.Status == PipeNodeRunStatus.Running ? "Logs are shown when the node has finished." : "The node wrote no log entries.")
+                    </MudText>
                 }
-            </MudTabs>
-        }
+                @foreach (var entry in Run.Logs)
+                {
+                    <div class="gview-pipe-log-entry @LevelClass(entry.Level)">
+                        <span class="gview-pipe-log-time">@entry.Timestamp.LocalDateTime.ToString("HH:mm:ss.fff")</span>
+                        <span class="gview-pipe-log-level">@LevelText(entry.Level)</span>
+                        <span class="gview-pipe-log-message">@entry.Message</span>
+                    </div>
+                }
+            </MudTabPanel>
+        </MudTabs>
     </MudStack>
 }
 
 @code {
-    private const int MaxItems = 50;
-
     [Parameter] public PipeNodeRun? Run { get; set; }
+
+    // output first: that is what one usually looks for
+    private int _tab = 1;
 
     private Color StatusColor => Run?.Status switch
     {
@@ -78,5 +63,24 @@ else
         PipeNodeRunStatus.Error => Color.Error,
         PipeNodeRunStatus.Running => Color.Info,
         _ => Color.Default
+    };
+
+    static private string LevelText(LogLevel level) => level switch
+    {
+        LogLevel.Trace => "TRC",
+        LogLevel.Debug => "DBG",
+        LogLevel.Information => "INF",
+        LogLevel.Warning => "WRN",
+        LogLevel.Error => "ERR",
+        LogLevel.Critical => "CRT",
+        _ => ""
+    };
+
+    static private string? LevelClass(LogLevel level) => level switch
+    {
+        LogLevel.Warning => "warning",
+        LogLevel.Error or LogLevel.Critical => "error",
+        LogLevel.Trace or LogLevel.Debug => "debug",
+        _ => null
     };
 }

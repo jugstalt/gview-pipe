@@ -8,6 +8,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - No UI dependencies, and it must stay small: plugins share it with the host.
 - `gView.Pipe.Core`: engine, plugin catalog/loader, expression evaluator, scheduler, trigger manager, memory and file stores.
   - Headless, no Blazor.
+- `gView.Pipe.AspNetCore`: ASP.NET Core integration. `app.MapPipeWebhooks()` maps the webhook route (see ADR 0008). This is the only place with HTTP types; Core stays free of ASP.NET.
 - `gView.Pipe.Plugins`: the built-in nodes and credential types.
   - They use only the Abstraction contracts, exactly like external plugins.
   - Ids are in `PipeBuiltIn.cs` and must never change.
@@ -40,6 +41,8 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
 3. Describe the parameters as a POCO with `[PipeParameter]` and DataAnnotations.
 4. For triggers, implement `IPipeTriggerNode`. For ports that depend on parameters, implement `IPipeDynamicPorts`. When parameters change, increase `Version` and implement `IPipeNodeMigration`.
 5. Constructor injection works. A new instance is created per execution.
+6. To run JavaScript, inject `IPipeScriptRunner` and pass `context.CreateExpressionScope(item, index)`. Don't reference Jint from plugins.
+7. Code fields are marked `[PipeParameter(Code = true)]` and read from `context.RawParameters`, because `GetParameters` evaluates `{{ }}` in every string.
 
 ## Commands
 

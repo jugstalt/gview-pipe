@@ -11,8 +11,11 @@
 | **Item** | The unit of data on a connection: a JSON object plus optional binary attachments. Nodes receive and emit lists of items. | `PipeItem` |
 | **Binary** | File content attached to an item. The item only holds a reference; the bytes live in the execution's binary store. | `PipeBinaryRef`, `IPipeBinaryStore` |
 | **Parameters** | Configuration of a node. Declared as a POCO class (`IPipeNode<TParameters>`), stored as JSON. String values may contain expressions. | `PipeParameterAttribute` |
-| **Expression** | `{{ … }}` inside a parameter value, evaluated per item: `$json`, `$node["Name"].json`, `$itemIndex`, `$now`, `$workflow`, `$execution`. | `IPipeExpressionEvaluator` |
+| **Expression** | `{{ … }}` inside a parameter value: JavaScript, evaluated per item in a sandbox. Variables: `$json`, `$input`, `$node["Name"].json` / `.all`, `$itemIndex`, `$now`, `$workflow`, `$execution`. | `IPipeExpressionEvaluator` |
+| **Script** | A JavaScript function body run by a node (e.g. Code), with the same variables as expressions. | `IPipeScriptRunner` |
 | **Trigger** | A node type that starts executions (manual, cron, later webhook). Has no inputs. | `IPipeTriggerNode` |
+| **Webhook** | Trigger that starts a workflow when `/webhook/{path}` is called. The path is unique across all active workflows. It answers immediately (202) or with the output of the last node. | `PipeWebhookRegistration`, `IPipeWebhookRouter` |
+| **Node hint** | An info or warning a node shows in the editor depending on its parameters (e.g. the webhook URL). | `IPipeNodeHints` |
 | **Active workflow** | A workflow whose triggers are armed (e.g. its cron schedule runs). | `PipeWorkflow.Active`, `IPipeTriggerManager` |
 | **Execution** | One run of a workflow, with status and output items per node. | `PipeExecution`, `PipeNodeRun` |
 | **Start node** | Where an execution begins: the firing trigger, or for manual runs all nodes without incoming connections. Only nodes reachable from start nodes take part. | `PipeExecutionRequest.StartNodeId` |

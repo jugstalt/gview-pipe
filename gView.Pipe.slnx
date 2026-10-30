@@ -7,10 +7,13 @@
   </Folder>
   <Folder Name="/samples/">
     <File Path="samples/workflows/hello-pipe.json" />
+    <File Path="samples/workflows/code-transform.json" />
+    <File Path="samples/workflows/webhook-demo.json" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/gView.Pipe.Abstraction/gView.Pipe.Abstraction.csproj" />
     <Project Path="src/gView.Pipe.Core/gView.Pipe.Core.csproj" />
+    <Project Path="src/gView.Pipe.AspNetCore/gView.Pipe.AspNetCore.csproj" />
     <Project Path="src/gView.Pipe.Razor/gView.Pipe.Razor.csproj" />
     <Project Path="src/gView.Pipe.Plugins/gView.Pipe.Plugins.csproj" />
     <Project Path="src/gView.Pipe.Shell/gView.Pipe.Shell.csproj" />

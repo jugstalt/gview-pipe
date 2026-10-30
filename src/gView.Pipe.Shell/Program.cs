@@ -1,3 +1,4 @@
+using gView.Pipe.AspNetCore.Extensions.Routing;
 using gView.Pipe.Core.Extensions.DependencyInjection;
 using gView.Pipe.Razor.Extensions.DependencyInjection;
 using gView.Pipe.Shell.Components;
@@ -33,6 +34,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAntiforgery();
+
+app.MapPipeWebhooks();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

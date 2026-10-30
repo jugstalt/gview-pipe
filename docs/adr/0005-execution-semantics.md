@@ -17,11 +17,15 @@ Date: 2026-10-29 · Status: accepted
   - `ErrorOutput`: routes the input items to the `error` port, each with an `error` field.
 - **Versioning:** nodes are stored with `typeVersion`. When it is lower than the node type's version, `IPipeNodeMigration` upgrades the parameters before execution.
 - **Expressions:**
-  - The MVP uses path templating only (`IPipeExpressionEvaluator`), with no operators or functions. Comparisons are done by If, Filter and Switch.
+  - Expressions are JavaScript (`IPipeExpressionEvaluator`, see [ADR 0007](0007-javascript-expressions.md)). The MVP's path-only templating is replaced.
   - A template that is a single expression keeps its JSON type. Mixed text becomes a string.
+- **Node runs:** each node run records:
+  - a snapshot of its input items (nodes may change what they received)
+  - its output items
+  - its log entries. The node's `ILogger` writes to the application log and to the run. The engine adds its messages about the node (retries, failure, cancel). The log is capped at 1,000 entries per run.
 - **Concurrency and history:**
   - `MaxConcurrentRuns` applies per workflow (default 1). Surplus runs are skipped.
-  - The last 50 executions per workflow are kept. With `SaveExecutionData = false`, only statuses and counts are stored.
+  - The last 50 executions per workflow are kept. With `SaveExecutionData = false`, only statuses, counts and logs are stored, without input or output items.
 - **Schedules:** cron triggers use Cronos (5 or 6 fields) with a timer loop per registration.
 
 ## Consequences

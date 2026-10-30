@@ -1,4 +1,5 @@
 @using gView.Pipe.Abstraction.Nodes
+@inject IPipeNodeRegistry Registry
 
 <div class="gview-pipe-panel-header" style="--gview-pipe-accent:@PipeNodeVisuals.Accent(Model.Descriptor)">
     <MudIcon Icon="@PipeNodeVisuals.Icon(Model.Descriptor)" />
@@ -18,13 +19,17 @@
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mx-4 mb-2">The plugin providing this node is not installed. The node is kept but can't run.</MudAlert>
 }
+@foreach (var hint in _hints)
+{
+    <MudAlert Severity="@(hint.Level == PipeNodeHintLevel.Warning ? Severity.Warning : Severity.Info)" Dense="true" Class="mx-4 mb-2">@hint.Message</MudAlert>
+}
 
 <MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-panel-tabs">
     <MudTabPanel Text="Parameters">
         <PipeParameterForm ParametersType="Model.Descriptor?.ParametersType"
                            Parameters="Model.Node.Parameters"
                            ShowRawWithoutType="@(Model.Descriptor is null)"
-                           OnChanged="() => OnChanged.InvokeAsync(Model.Descriptor?.HasDynamicPorts == true)" />
+                           OnChanged="ParametersChangedAsync" />
     </MudTabPanel>
 
     <MudTabPanel Text="Settings">
@@ -56,7 +61,7 @@
         </MudStack>
     </MudTabPanel>
 
-    <MudTabPanel Text="Output" BadgeData="@OutputBadge" BadgeColor="@(Model.Run?.Status == PipeNodeRunStatus.Error ? Color.Error : Color.Primary)">
+    <MudTabPanel Text="Run" BadgeData="@OutputBadge" BadgeColor="@(Model.Run?.Status == PipeNodeRunStatus.Error ? Color.Error : Color.Primary)">
         <PipeNodeRunView Run="Model.Run" />
     </MudTabPanel>
 </MudTabs>
@@ -73,6 +78,18 @@
 
     private int _tab;
     private string? _nameError;
+    private IReadOnlyList<PipeNodeHint> _hints = [];
+
+    protected override void OnParametersSet() => UpdateHints();
+
+    private void UpdateHints()
+        => _hints = Model.Descriptor is { } descriptor ? Registry.GetHints(descriptor, Model.Node.Parameters) : [];
+
+    private async Task ParametersChangedAsync()
+    {
+        UpdateHints();
+        await OnChanged.InvokeAsync(Model.Descriptor?.HasDynamicPorts == true);
+    }
 
     private PipeNodeSettings Settings => Model.Node.Settings;
 

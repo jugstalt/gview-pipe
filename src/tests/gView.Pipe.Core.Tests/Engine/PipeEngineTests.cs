@@ -1,3 +1,4 @@
+using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Workflows;
@@ -328,6 +329,73 @@ public class PipeEngineTests
         var execution = await RunAsync(workflow);
 
         Assert.Equal("migrated", Output(execution, "versioned")[0]["name"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Node_runs_record_a_snapshot_of_their_inputs()
+    {
+        var workflow = new PipeWorkflowBuilder()
+            .Node("emit", TestNodeIds.Emit, TwoItems)
+            .Node("tag", TestNodeIds.Tag, new { field = "tag", value = "x" })
+            .Connect("emit", "tag")
+            .Build();
+
+        var execution = await RunAsync(workflow);
+        var run = execution.NodeRuns["tag"];
+
+        Assert.Equal(2, run.InputCounts[PipePorts.Main]);
+        // the Tag node changes the items it received; the recorded input must not change with them
+        Assert.All(run.Inputs![PipePorts.Main], i => Assert.Null(i.Json["tag"]));
+        Assert.All(Output(execution, "tag"), j => Assert.Equal("x", j["tag"]!.GetValue<string>()));
+    }
+
+    [Fact]
+    public async Task Retries_and_failures_are_written_to_the_node_log()
+    {
+        var workflow = new PipeWorkflowBuilder()
+            .Node("fail", TestNodeIds.Fail, new { key = Guid.NewGuid().ToString() }, n =>
+            {
+                n.Settings.RetryCount = 1;
+                n.Settings.RetryDelayMs = 0;
+            })
+            .Build();
+
+        var execution = await RunAsync(workflow);
+        var logs = execution.NodeRuns["fail"].Logs;
+
+        Assert.Collection(logs,
+            entry =>
+            {
+                Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Warning, entry.Level);
+                Assert.Contains("attempt 1 failed", entry.Message);
+            },
+            entry =>
+            {
+                Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Error, entry.Level);
+                Assert.Contains("boom 2", entry.Message);
+            });
+    }
+
+    [Fact]
+    public async Task Binary_content_of_the_request_is_available_in_the_execution()
+    {
+        var workflow = new PipeWorkflowBuilder()
+            .Node("start", TestNodeIds.Trigger)
+            .Node("read", TestNodeIds.BinaryLength)
+            .Connect("start", "read")
+            .Build();
+
+        var item = new PipeItem();
+        item.Binary["file"] = new PipeBinaryRef("upload-1", "a.txt", "text/plain", 5);
+
+        var execution = await RunAsync(workflow, new PipeExecutionRequest
+        {
+            InputItems = [item],
+            BinaryContent = new Dictionary<string, byte[]> { ["upload-1"] = "hello"u8.ToArray() }
+        });
+
+        Assert.Equal(PipeExecutionStatus.Success, execution.Status);
+        Assert.Equal(5, Output(execution, "read")[0]["fileLength"]!.GetValue<long>());
     }
 
     [Fact]

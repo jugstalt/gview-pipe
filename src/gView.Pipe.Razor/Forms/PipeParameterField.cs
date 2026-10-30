@@ -37,6 +37,9 @@ public sealed class PipeParameterField
     public bool Required { get; init; }
     public bool Secret { get; init; }
 
+    /// <summary>Source code: large monospace editor, no expressions.</summary>
+    public bool Code { get; init; }
+
     /// <summary>JSON names of the enum members (Kind = Enum).</summary>
     public IReadOnlyList<string> EnumValues { get; init; } = [];
 
@@ -83,8 +86,10 @@ static public class PipeParameterFields
             Placeholder = parameter?.Placeholder,
             // properties without an explicit order keep their declaration order, after ordered ones
             Order = parameter?.Order is > 0 ? parameter.Order : 1000 + index,
-            Multiline = parameter?.Multiline ?? false,
-            Expressions = (parameter?.Expressions ?? true) && kind is not (PipeFieldKind.Boolean or PipeFieldKind.Enum or PipeFieldKind.Credential),
+            Multiline = parameter?.Multiline == true || parameter?.Code == true,
+            Code = parameter?.Code ?? false,
+            Expressions = (parameter?.Expressions ?? true) && parameter?.Code != true
+                          && kind is not (PipeFieldKind.Boolean or PipeFieldKind.Enum or PipeFieldKind.Credential),
             Required = property.GetCustomAttribute<RequiredAttribute>() is not null,
             Secret = property.GetCustomAttribute<SecretAttribute>() is not null,
             EnumValues = propertyType.IsEnum

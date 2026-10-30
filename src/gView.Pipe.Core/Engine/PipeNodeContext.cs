@@ -1,6 +1,7 @@
 using gView.Pipe.Abstraction;
 using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Data;
+using gView.Pipe.Abstraction.Expressions;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Workflows;
@@ -51,10 +52,13 @@ internal sealed class PipeNodeContext : IPipeNodeContext
 
     public TParameters GetParameters<TParameters>(PipeItem? item = null, int itemIndex = 0)
         where TParameters : class, new()
-        => PipeParameterResolver.Resolve<TParameters>(RawParameters, _state.Evaluator, _state.CreateScope(item, itemIndex));
+        => PipeParameterResolver.Resolve<TParameters>(RawParameters, _state.Evaluator, CreateExpressionScope(item, itemIndex));
 
     public JsonNode? Evaluate(string template, PipeItem? item = null, int itemIndex = 0)
-        => _state.Evaluator.Evaluate(template, _state.CreateScope(item, itemIndex));
+        => _state.Evaluator.Evaluate(template, CreateExpressionScope(item, itemIndex));
+
+    public PipeExpressionScope CreateExpressionScope(PipeItem? item = null, int itemIndex = 0)
+        => _state.CreateScope(item, itemIndex, GetInput());
 
     public async Task<PipeCredential> GetCredentialAsync(string credentialId, CancellationToken cancellationToken = default)
     {

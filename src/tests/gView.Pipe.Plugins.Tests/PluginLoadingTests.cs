@@ -48,7 +48,7 @@ public sealed class PluginLoadingTests : IDisposable
         var manual = registry.Find(Guid.Parse(PipeBuiltInNodes.ManualTrigger));
 
         Assert.NotNull(manual);
-        Assert.Equal(10, registry.Nodes.Count);
+        Assert.Equal(12, registry.Nodes.Count);
         Assert.Equal(4, provider.GetRequiredService<IPipeCredentialTypeRegistry>().CredentialTypes.Count);
         Assert.NotSame(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(manual!.NodeType.Assembly));
         Assert.Same(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(typeof(IPipeNode).Assembly));
@@ -65,6 +65,31 @@ public sealed class PluginLoadingTests : IDisposable
         Assert.Equal(PipeNodeRunStatus.Success, execution.NodeRuns["log-high"].Status);
         Assert.Equal(PipeNodeRunStatus.Skipped, execution.NodeRuns["log-low"].Status);
         Assert.Equal("Hello Hello Pipe!", execution.Output("set")[0]["greeting"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("hello-pipe.json")]
+    [InlineData("code-transform.json")]
+    [InlineData("webhook-demo.json")]
+    public async Task Every_sample_workflow_runs_manually(string file)
+    {
+        var workflow = PipeJson.Deserialize<PipeWorkflow>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Samples", file)))!;
+
+        var execution = await PluginTestHost.RunAsync(workflow);
+
+        Assert.All(execution.NodeRuns.Values, run => Assert.NotEqual(PipeNodeRunStatus.Error, run.Status));
+    }
+
+    [Fact]
+    public async Task Code_transform_sample_routes_and_merges_orders()
+    {
+        var workflow = PipeJson.Deserialize<PipeWorkflow>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Samples", "code-transform.json")))!;
+
+        var execution = await PluginTestHost.RunAsync(workflow);
+
+        // Linus (FI) matches no case and goes to the unconnected fallback port
+        Assert.Equal([144.0, 372.0, 47.6], execution.Output("merge").Select(j => j["gross"]!.GetValue<double>()));
+        Assert.Equal(3, execution.NodeRuns["log"].Logs.Count(l => l.Message.Contains("Order")));
     }
 
     static private PipeWorkflow SampleWorkflow()

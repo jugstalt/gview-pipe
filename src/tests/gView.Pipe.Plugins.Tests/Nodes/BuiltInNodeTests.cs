@@ -86,6 +86,19 @@ public class BuiltInNodeTests
     }
 
     [Fact]
+    public async Task Filter_accepts_a_javascript_condition()
+    {
+        var builder = new PipeWorkflowBuilder()
+            .Node("start", PipeBuiltInNodes.ManualTrigger)
+            .Node("filter", PipeBuiltInNodes.Filter, new { value1 = "{{ $json.age >= 18 && $json.name.startsWith('A') }}", operation = "isTrue" })
+            .Connect("start", "filter");
+
+        var execution = await RunAsync(builder, Input("""{ "name": "Ada", "age": 36 }""", """{ "name": "Alan", "age": 12 }""", """{ "name": "Bob", "age": 40 }"""));
+
+        Assert.Equal("Ada", Assert.Single(execution.Output("filter"))["name"]!.GetValue<string>());
+    }
+
+    [Fact]
     public async Task Switch_routes_to_case_or_fallback_and_reports_dynamic_ports()
     {
         var parameters = new { value = "{{ $json.kind }}", cases = new[] { "point", "line" } };

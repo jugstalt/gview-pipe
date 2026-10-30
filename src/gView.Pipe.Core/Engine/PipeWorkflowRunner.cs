@@ -62,8 +62,10 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
             {
                 toStore = PipeJson.Clone(execution);
                 toStore.DataSaved = false;
+                // counts and logs stay; logs are diagnostics, not item data
                 foreach (var run in toStore.NodeRuns.Values)
                 {
+                    run.Inputs = null;
                     run.Outputs = null;
                 }
             }

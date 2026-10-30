@@ -39,6 +39,9 @@ public class PipeCoreOptions
     /// <summary>Executions kept per workflow.</summary>
     public int ExecutionRetention { get; set; } = 50;
 
+    /// <summary>Limits for JavaScript in expressions and Code nodes.</summary>
+    public PipeScriptOptions Scripts { get; } = new();
+
     /// <summary>Arm the triggers of all active workflows when the host starts.</summary>
     public bool ActivateTriggersOnStartup { get; set; } = true;
 }
