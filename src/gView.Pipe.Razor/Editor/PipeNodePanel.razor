@@ -45,6 +45,7 @@
                            Parameters="Model.Node.Parameters"
                            ShowRawWithoutType="@(Model.Descriptor is null)"
                            OnExpressionFieldFocused="f => _activeField = f"
+                           OptionsProvider="@(Model.Descriptor?.HasParameterOptions == true ? LoadOptionsAsync : null)"
                            OnChanged="ParametersChangedAsync" />
     </MudTabPanel>
 
@@ -229,6 +230,19 @@
     }
 
     private PipeNodeSettings Settings => Model.Node.Settings;
+
+    private async Task<IReadOnlyList<PipeParameterOption>> LoadOptionsAsync(string parameter, bool refresh)
+    {
+        try
+        {
+            return await Registry.GetParameterOptionsAsync(Model.Descriptor!, parameter, Model.Node.Parameters, refresh);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Can't load the choices for '{parameter}': {ex.Message}", Severity.Warning);
+            return [];
+        }
+    }
 
     private object? OutputBadge => Model.Run switch
     {

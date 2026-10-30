@@ -1,0 +1,165 @@
+@using System.Text.Json.Nodes
+
+@*
+    An ordered list of the node's options (e.g. scripts in a folder), each switched on or off.
+    The stored list is merged with the current options: options that are new appear at the end, switched off
+    (a file put into a folder never runs unasked); stored entries that are no longer offered are marked missing.
+    The first time, a single option is switched on, several are all off.
+*@
+
+<div class="gview-pipe-collection-field">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <MudText Typo="Typo.subtitle2">@Field.Label</MudText>
+        <MudSpacer />
+        <MudTooltip Text="Sort A–Z">
+            <MudIconButton Icon="@Icons.Material.Filled.SortByAlpha" Size="Size.Small" aria-label="Sort A-Z" Disabled="_rows.Count < 2" OnClick="SortAsync" />
+        </MudTooltip>
+        @if (Field.Refreshable)
+        {
+            <MudTooltip Text="Refresh">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" aria-label="Refresh" OnClick="() => LoadAsync(refresh: true)" />
+            </MudTooltip>
+        }
+    </MudStack>
+    @if (!string.IsNullOrEmpty(Field.Description))
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Field.Description</MudText>
+    }
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2" />
+    }
+    else if (_rows.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-1">Nothing found.</MudText>
+    }
+
+    @for (var i = 0; i < _rows.Count; i++)
+    {
+        var index = i;
+        var row = _rows[index];
+        <div class="gview-pipe-selection-row @(row.Missing ? "missing" : null)">
+            <MudCheckBox T="bool" Value="row.Enabled" ValueChanged="v => ToggleAsync(index, v)" Size="Size.Small" Dense="true" Disabled="row.Missing" />
+            <span class="gview-pipe-selection-value" title="@(row.Description ?? row.Value)">@(row.Label ?? row.Value)</span>
+            @if (row.Missing)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">missing</MudChip>
+            }
+            else if (row.IsNew)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">new</MudChip>
+            }
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" aria-label="Move up" Disabled="index == 0" OnClick="() => MoveAsync(index, -1)" />
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" aria-label="Move down" Disabled="index == _rows.Count - 1" OnClick="() => MoveAsync(index, 1)" />
+            @if (row.Missing)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" aria-label="Remove" OnClick="() => RemoveAsync(index)" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PipeParameterField Field { get; set; } = default!;
+    [Parameter] public JsonArray? Value { get; set; }
+    [Parameter] public EventCallback<JsonNode?> ValueChanged { get; set; }
+    [Parameter] public Func<string, bool, Task<IReadOnlyList<PipeParameterOption>>>? OptionsProvider { get; set; }
+
+    /// <summary>Changes when other parameters change; the options are loaded again.</summary>
+    [Parameter] public int Version { get; set; }
+
+    public sealed record Row(string Value, bool Enabled, bool Missing, bool IsNew, string? Label = null, string? Description = null);
+
+    private List<Row> _rows = [];
+    private bool _loading;
+    private int? _loadedVersion;
+    private JsonArray? _lastValue;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // other parameters changed, or the value was replaced from outside (e.g. undo)
+        if (_loadedVersion != Version || !ReferenceEquals(Value, _lastValue))
+        {
+            await LoadAsync(refresh: false);
+        }
+    }
+
+    private async Task LoadAsync(bool refresh)
+    {
+        _loadedVersion = Version;
+        _lastValue = Value;
+        _loading = true;
+        var options = OptionsProvider is null ? [] : await OptionsProvider(Field.Key, refresh);
+        _loading = false;
+
+        var stored = Stored(Value);
+        _rows = Merge(stored, options);
+
+        // first time: store what was found, so the list is configured even if the user touches nothing
+        if (stored.Count == 0 && _rows.Count > 0)
+        {
+            await PublishAsync();
+        }
+    }
+
+    static private List<PipeSelection> Stored(JsonArray? value)
+        => value?.Select(n => n is JsonObject o
+                ? new PipeSelection { Value = o["value"]?.GetValue<string>() ?? "", Enabled = o["enabled"]?.GetValue<bool>() ?? false }
+                : null)
+            .OfType<PipeSelection>()
+            .Where(s => s.Value.Length > 0)
+            .ToList() ?? [];
+
+    /// <summary>Stored order and switches, then options not stored yet (off); stored entries without option are missing.</summary>
+    static public List<Row> Merge(IReadOnlyList<PipeSelection> stored, IReadOnlyList<PipeParameterOption> options)
+    {
+        var byValue = options.ToDictionary(o => o.Value);
+        var rows = stored.Select(s => byValue.TryGetValue(s.Value, out var option)
+                ? new Row(s.Value, s.Enabled, false, false, option.Label, option.Description)
+                : new Row(s.Value, false, true, false))
+            .ToList();
+
+        var known = stored.Select(s => s.Value).ToHashSet();
+        var added = options.Where(o => !known.Contains(o.Value)).ToList();
+        var firstTime = stored.Count == 0;
+        rows.AddRange(added.Select(o => new Row(o.Value, firstTime && added.Count == 1, false, !firstTime, o.Label, o.Description)));
+        return rows;
+    }
+
+    private Task ToggleAsync(int index, bool enabled)
+    {
+        _rows[index] = _rows[index] with { Enabled = enabled, IsNew = false };
+        return PublishAsync();
+    }
+
+    private Task MoveAsync(int index, int delta)
+    {
+        (_rows[index], _rows[index + delta]) = (_rows[index + delta], _rows[index]);
+        return PublishAsync();
+    }
+
+    private Task SortAsync()
+    {
+        _rows = _rows.OrderBy(r => r.Value, StringComparer.OrdinalIgnoreCase).ToList();
+        return PublishAsync();
+    }
+
+    private Task RemoveAsync(int index)
+    {
+        _rows.RemoveAt(index);
+        return PublishAsync();
+    }
+
+    private async Task PublishAsync()
+    {
+        var value = new JsonArray(_rows
+            .Select(r => (JsonNode)new JsonObject { ["value"] = r.Value, ["enabled"] = r.Enabled && !r.Missing })
+            .ToArray());
+        _lastValue = value;
+        // the form bumps the version for this change; that is no reason to load the options again
+        _loadedVersion = Version + 1;
+        await ValueChanged.InvokeAsync(value);
+    }
+}

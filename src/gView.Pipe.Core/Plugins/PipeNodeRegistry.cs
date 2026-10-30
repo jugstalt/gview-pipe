@@ -54,6 +54,25 @@ internal sealed class PipeNodeRegistry : IPipeNodeRegistry
             ? ((IPipeNodeHints)ActivatorUtilities.CreateInstance(_services, descriptor.NodeType)).GetHints(parameters)
             : [];
 
+    public async Task<IReadOnlyList<PipeParameterOption>> GetParameterOptionsAsync(PipeNodeDescriptor descriptor, string parameter, JsonObject parameters,
+        bool refresh = false, CancellationToken cancellationToken = default)
+    {
+        if (!descriptor.HasParameterOptions)
+        {
+            return [];
+        }
+
+        var provider = (IPipeParameterOptions)ActivatorUtilities.CreateInstance(_services, descriptor.NodeType);
+        try
+        {
+            return await provider.GetOptionsAsync(parameter, parameters, refresh, cancellationToken);
+        }
+        finally
+        {
+            (provider as IDisposable)?.Dispose();
+        }
+    }
+
     private IPipeDynamicPorts CreatePortProvider(PipeNodeDescriptor descriptor)
         => (IPipeDynamicPorts)ActivatorUtilities.CreateInstance(_services, descriptor.NodeType);
 }

@@ -1,0 +1,43 @@
+@* A string parameter chosen from the node's options. A stored value that is no longer offered stays visible. *@
+
+<MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start">
+    <MudSelect T="string" Label="@(Field.Required ? Field.Label + " *" : Field.Label)" Dense="true" Variant="Variant.Outlined" Clearable="true"
+               HelperText="@Field.Description" Value="@Value" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
+        @foreach (var option in _options)
+        {
+            <MudSelectItem Value="@option.Value">@(option.Label ?? option.Value)</MudSelectItem>
+        }
+        @if (!string.IsNullOrEmpty(Value) && _loaded && _options.All(o => o.Value != Value))
+        {
+            <MudSelectItem Value="@Value">@Value (not available)</MudSelectItem>
+        }
+    </MudSelect>
+    @if (Field.Refreshable)
+    {
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" aria-label="Refresh" Class="mt-2" OnClick="() => LoadAsync(refresh: true)" />
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public PipeParameterField Field { get; set; } = default!;
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public Func<string, bool, Task<IReadOnlyList<PipeParameterOption>>>? OptionsProvider { get; set; }
+
+    /// <summary>Changes when other parameters change; the options are loaded again.</summary>
+    [Parameter] public int Version { get; set; }
+
+    private IReadOnlyList<PipeParameterOption> _options = [];
+    private bool _loaded;
+    private int? _loadedVersion;
+
+    protected override Task OnParametersSetAsync()
+        => _loadedVersion == Version ? Task.CompletedTask : LoadAsync(refresh: false);
+
+    private async Task LoadAsync(bool refresh)
+    {
+        _loadedVersion = Version;
+        _options = OptionsProvider is null ? [] : await OptionsProvider(Field.Key, refresh);
+        _loaded = true;
+    }
+}

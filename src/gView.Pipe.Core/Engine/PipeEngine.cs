@@ -400,7 +400,10 @@ internal sealed class PipeEngine : IPipeEngine
         runLogger.LogError("Node {NodeName} failed: {Error}", node.Name, error.Message);
         run.Error = error.Message;
 
-        var inputItems = inputs.TryGetValue(PipePorts.Main, out var main) ? main : inputs.Values.SelectMany(i => i).ToList();
+        // a node may hand over result items for the failure paths; otherwise its input items go on
+        var inputItems = error is PipeNodeException { Items: var results }
+            ? results
+            : inputs.TryGetValue(PipePorts.Main, out var main) ? main : inputs.Values.SelectMany(i => i).ToList();
 
         PortItems? outputs = node.Settings.OnError switch
         {

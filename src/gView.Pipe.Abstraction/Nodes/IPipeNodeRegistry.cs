@@ -16,4 +16,8 @@ public interface IPipeNodeRegistry
 
     /// <summary>Editor notes of nodes implementing <see cref="IPipeNodeHints"/>; empty otherwise.</summary>
     IReadOnlyList<PipeNodeHint> GetHints(PipeNodeDescriptor descriptor, JsonObject parameters);
+
+    /// <summary>Values for a parameter of nodes implementing <see cref="IPipeParameterOptions"/>; empty otherwise.</summary>
+    Task<IReadOnlyList<PipeParameterOption>> GetParameterOptionsAsync(PipeNodeDescriptor descriptor, string parameter, JsonObject parameters,
+        bool refresh = false, CancellationToken cancellationToken = default);
 }

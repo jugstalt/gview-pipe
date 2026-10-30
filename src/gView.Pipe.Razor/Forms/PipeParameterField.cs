@@ -18,6 +18,12 @@ public enum PipeFieldKind
     Json,
     Credential,
     Workflow,
+
+    /// <summary>A string chosen from the node's options (<see cref="IPipeParameterOptions"/>).</summary>
+    Option,
+
+    /// <summary>An ordered <c>List&lt;PipeSelection&gt;</c> of the node's options, each switched on or off.</summary>
+    SelectionList,
     Dictionary,
     List,
     RawJson
@@ -46,6 +52,9 @@ public sealed class PipeParameterField
 
     public IReadOnlyList<Guid> CredentialTypeIds { get; init; } = [];
 
+    /// <summary>Options (<see cref="PipeOptionsAttribute"/>): offer a refresh button.</summary>
+    public bool Refreshable { get; init; }
+
     /// <summary>Kind of the values of a dictionary or list (Text or Json).</summary>
     public PipeFieldKind ItemKind { get; init; } = PipeFieldKind.Text;
 }
@@ -69,8 +78,10 @@ static public class PipeParameterFields
         var credential = property.GetCustomAttribute<PipeCredentialAttribute>();
         var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
+        var options = property.GetCustomAttribute<PipeOptionsAttribute>();
         var kind = credential is not null ? PipeFieldKind.Credential
             : property.GetCustomAttribute<PipeWorkflowReferenceAttribute>() is not null ? PipeFieldKind.Workflow
+            : options is not null ? (propertyType == typeof(string) ? PipeFieldKind.Option : PipeFieldKind.SelectionList)
             : KindOf(propertyType);
         var itemKind = kind switch
         {
@@ -92,7 +103,9 @@ static public class PipeParameterFields
             Multiline = parameter?.Multiline == true || parameter?.Code == true,
             Code = parameter?.Code ?? false,
             Expressions = (parameter?.Expressions ?? true) && parameter?.Code != true
-                          && kind is not (PipeFieldKind.Boolean or PipeFieldKind.Enum or PipeFieldKind.Credential or PipeFieldKind.Workflow),
+                          && kind is not (PipeFieldKind.Boolean or PipeFieldKind.Enum or PipeFieldKind.Credential or PipeFieldKind.Workflow
+                                         or PipeFieldKind.Option or PipeFieldKind.SelectionList),
+            Refreshable = options?.Refreshable ?? false,
             Required = property.GetCustomAttribute<RequiredAttribute>() is not null,
             Secret = property.GetCustomAttribute<SecretAttribute>() is not null,
             EnumValues = propertyType.IsEnum

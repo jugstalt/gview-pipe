@@ -29,6 +29,33 @@
     vertical-align: middle;
 }
 
+/* ---- ordered selection lists (e.g. scripts) ---- */
+
+.gview-pipe-selection-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+    border-radius: 6px;
+}
+
+    .gview-pipe-selection-row:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .gview-pipe-selection-row.missing .gview-pipe-selection-value {
+        text-decoration: line-through;
+        color: var(--mud-palette-text-disabled);
+    }
+
+.gview-pipe-selection-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .8rem;
+}
+
 /* ---- workflow groups ---- */
 
 .gview-pipe-workflow-search {

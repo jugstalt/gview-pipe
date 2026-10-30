@@ -42,6 +42,10 @@ These packages are part of the built application (`gView.Pipe.Shell` and the lib
 
 The PostgreSQL License is a permissive license similar to MIT/BSD: https://opensource.org/license/postgresql.
 
+### Scripts plugin
+
+`gView.Pipe.Plugins.Scripts` contains no third-party components. For Git repository sources it calls the git command line installed on the host; git is not part of gView.Pipe and keeps its own license (GPLv2, https://git-scm.com/about/free-and-open-source).
+
 Polly participates in the [Open Source Maintenance Fee](https://thepollyproject.org/2026/07/14/polly-osmf-announcement.html) from the first major version released after November 16, 2026. The fee applies only to direct references to Polly, not to Polly as a dependency of Microsoft.Extensions.Http.Resilience, and not to existing versions such as 8.x. gView.Pipe does not reference Polly directly; keep it that way, or check the fee before adding a direct reference.
 
 MudBlazor includes the Material Design icons by Google as SVG paths. They are licensed under the Apache License 2.0 (https://github.com/google/material-design-icons).

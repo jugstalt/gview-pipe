@@ -53,6 +53,16 @@ else
                     </MudSelect>
                     break;
 
+                case PipeFieldKind.Option:
+                    <PipeOptionSelectField Field="field" Value="@PipeJsonText.ToText(value)" Version="_version" OptionsProvider="OptionsProvider"
+                                           ValueChanged="v => SetAsync(field, v is null ? null : JsonValue.Create(v))" />
+                    break;
+
+                case PipeFieldKind.SelectionList:
+                    <PipeSelectionListField Field="field" Value="@(value as JsonArray)" Version="_version" OptionsProvider="OptionsProvider"
+                                            ValueChanged="v => SetAsync(field, v)" />
+                    break;
+
                 case PipeFieldKind.Workflow:
                     <PipeWorkflowSelect Label="@(field.Required ? field.Label + " *" : field.Label)" HelperText="@field.Description"
                                         Value="@PipeJsonText.ToText(value)" ValueChanged="v => SetAsync(field, v is null ? null : JsonValue.Create(v))" />
@@ -100,6 +110,12 @@ else
 
     [Parameter] public bool ShowRawWithoutType { get; set; }
 
+    /// <summary>Values of option fields: (parameter, refresh) → options. Without it, option fields show no choices.</summary>
+    [Parameter] public Func<string, bool, Task<IReadOnlyList<PipeParameterOption>>>? OptionsProvider { get; set; }
+
+    // changes with every edit, so option fields reload when the parameters they depend on change
+    private int _version;
+
     /// <summary>A text field that supports expressions got the focus (e.g. to insert expressions into it later).</summary>
     [Parameter] public EventCallback<PipeExpressionTarget> OnExpressionFieldFocused { get; set; }
 
@@ -135,6 +151,7 @@ else
     private async Task SetAsync(PipeParameterField field, JsonNode? value)
     {
         Parameters[field.Key] = value;
+        _version++;
         await OnChanged.InvokeAsync();
     }
 

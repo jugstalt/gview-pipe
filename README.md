@@ -55,9 +55,10 @@ dotnet run --project src/Aspire/gView.Pipe.AppHost
 |---|---|---|
 | `Pipe:DataPath` | `data` | Folder for `workflows/`, `groups.json`, `executions/`, `credentials/` and the Data Protection `keys/`. |
 | `Pipe:PluginPath` | `plugins` | Folder with external plugins, one sub folder per plugin: `plugins/<Name>/<Name>.dll`. |
-| `Pipe:FileRoots` | `files` ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ `files` | Folders Read File and Write File may use, by name. Nothing outside them is reachable. |
+| `Pipe:FileRoots` | `files` → `files` | Folders Read File and Write File may use, by name. Nothing outside them is reachable. |
+| `Pipe:Scripts` | `ScriptRoots`: `scripts` → `scripts` | Script folders and Git repositories (`Repositories`: `Url`, `Branch`, `CredentialId`) Run Scripts may use, plus `Interpreters` and `GitPath`. See ADR 0011. |
 
-The Wait node waits at most one hour; change it with `services.Configure<PipeWaitOptions>(o => o.MaxWait = ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦)`. Further options (execution retention, script limits, binary thresholds) are on `PipeCoreOptions` and `PipeFileStoreOptions` and can be set in `Program.cs`.
+The Wait node waits at most one hour; change it with `services.Configure<PipeWaitOptions>(o => o.MaxWait = …)`. Further options (execution retention, script limits, binary thresholds) are on `PipeCoreOptions` and `PipeFileStoreOptions` and can be set in `Program.cs`.
 
 ## Projects
 
@@ -67,6 +68,7 @@ The Wait node waits at most one hour; change it with `services.Configure<PipeWai
 | `gView.Pipe.Core` | Headless engine, plugin loader, JavaScript engine, scheduler, trigger manager, file and memory stores. |
 | `gView.Pipe.AspNetCore` | ASP.NET Core integration: `app.MapPipeWebhooks()`. |
 | `gView.Pipe.Plugins` | Built-in nodes and credential types. They use only the Abstraction, exactly like external plugins. |
+| `gView.Pipe.Plugins.Scripts` | Run Scripts node: batch, PowerShell, Python and shell scripts from released folders or Git repositories. An external plugin; install it only where running scripts is wanted. |
 | `gView.Pipe.Plugins.Database` | SQL node for SQL Server, PostgreSQL and SQLite. An external plugin: building it installs it into `src/gView.Pipe.Shell/plugins/`. |
 | `gView.Pipe.Razor` | MudBlazor components: workflow list with groups, credential list and the editor. |
 | `gView.Pipe.Shell` | The app: layout, routing and service composition. |
@@ -97,6 +99,7 @@ The host must reference the MudBlazor and Z.Blazor.Diagrams CSS/JS plus `_conten
 | Network | HTTP Request, Respond to Webhook, Send Email |
 | Files | Read File, Write File |
 | Database (plugin) | SQL |
+| Scripts (plugin) | Run Scripts |
 | Utility | Log, No Operation |
 
 Credential types: Basic Auth, Bearer Token, API Key Header, Connection String and SMTP.
@@ -104,6 +107,7 @@ Credential types: Basic Auth, Bearer Token, API Key Header, Connection String an
 - **Read File / Write File** work only inside folders the host releases (`Pipe:FileRoots`); a node names the folder and a path relative to it. Formats: binary attachment, text, JSON and CSV.
 - **SQL** (`gView.Pipe.Plugins.Database`) runs a query or statement per input item over a Connection String credential (provider `sqlserver`, `postgres` or `sqlite`). Values go in as `@name` parameters only; the SQL text itself is never evaluated as an expression.
 - **Send Email** sends one mail per item over SMTP (MailKit), optionally with the item's attachments.
+- **Run Scripts** (`gView.Pipe.Plugins.Scripts`) runs `.bat`/`.cmd`, `.ps1`, `.py` or `.sh` files from a released script folder or a configured Git repository (needs git installed). The parameters list the scripts found; switch them on and order them. Each runs in its own process; a non-zero exit code or an output line matching the error pattern fails it. Scripts run with the rights of the host process.
 
 ## Sub-workflows and error workflows
 
@@ -112,7 +116,7 @@ Credential types: Basic Auth, Bearer Token, API Key Header, Connection String an
 
 ## Expressions
 
-Every string parameter can contain `{{ ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ }}` blocks with JavaScript. A parameter that consists of a single block keeps the type of the result (number, object, array); otherwise the results are inserted into the text.
+Every string parameter can contain `{{ … }}` blocks with JavaScript. A parameter that consists of a single block keeps the type of the result (number, object, array); otherwise the results are inserted into the text.
 
 ```text
 Hello {{ $json.customer }}!
