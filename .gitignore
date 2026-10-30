@@ -16,3 +16,4 @@ TestResults/
 ## Sample workflows live in /samples and are seeded into an empty store on first start.
 src/gView.Pipe.Shell/data/
 src/gView.Pipe.Shell/plugins/
+src/gView.Pipe.Shell/files/

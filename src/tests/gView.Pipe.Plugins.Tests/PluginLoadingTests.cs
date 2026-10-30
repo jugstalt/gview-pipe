@@ -51,7 +51,7 @@ public sealed class PluginLoadingTests : IDisposable
         Assert.NotNull(manual);
         // every id in PipeBuiltInNodes belongs to exactly one node type
         Assert.Equal(typeof(PipeBuiltInNodes).GetFields().Length, registry.Nodes.Count);
-        Assert.Equal(4, provider.GetRequiredService<IPipeCredentialTypeRegistry>().CredentialTypes.Count);
+        Assert.Equal(typeof(PipeBuiltInCredentials).GetFields().Length, provider.GetRequiredService<IPipeCredentialTypeRegistry>().CredentialTypes.Count);
         Assert.NotSame(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(manual!.NodeType.Assembly));
         Assert.Same(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(typeof(IPipeNode).Assembly));
 
@@ -78,10 +78,12 @@ public sealed class PluginLoadingTests : IDisposable
     [InlineData("price-calculator.json")]
     [InlineData("error-alerts.json")]
     [InlineData("api-demo.json")]
+    [InlineData("file-export.json")]
     public async Task Every_sample_workflow_runs_manually(string file)
     {
         // all samples are stored, so samples calling others (sub-workflows) find them
-        using var services = PluginTestHost.Create();
+        // the folder 'files' the file samples use
+        using var services = PluginTestHost.Create(options: o => o.FileRoots["files"] = Path.Combine(_pluginRoot, "..", "files"));
         var store = services.GetRequiredService<IPipeWorkflowStore>();
         foreach (var path in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Samples"), "*.json"))
         {

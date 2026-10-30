@@ -19,6 +19,28 @@ These packages are part of the built application (`gView.Pipe.Shell` and the lib
 | OpenTelemetry.Extensions.Hosting, OpenTelemetry.Exporter.OpenTelemetryProtocol, OpenTelemetry.Instrumentation.AspNetCore, OpenTelemetry.Instrumentation.Http, OpenTelemetry.Instrumentation.Runtime | 1.20.0 | Apache-2.0 | Copyright The OpenTelemetry Authors | directly (ServiceDefaults) | https://opentelemetry.io |
 | OpenTelemetry, OpenTelemetry.Api, OpenTelemetry.Api.ProviderBuilderExtensions | 1.20.0 | Apache-2.0 | Copyright The OpenTelemetry Authors | transitively via the OpenTelemetry packages above | https://opentelemetry.io |
 | Microsoft.Extensions.\*, Microsoft.AspNetCore.Components.Web, Microsoft.AspNetCore.DataProtection | 10.x | MIT | Copyright (c) Microsoft Corporation | directly, plus their own Microsoft.Extensions.\* dependencies | https://github.com/dotnet/dotnet |
+| MailKit | 4.18.1 | MIT | Copyright (c) .NET Foundation and Contributors | directly (Plugins) | https://www.mimekit.net |
+| MimeKit | 4.18.1 | MIT | Copyright (c) .NET Foundation and Contributors | transitively via MailKit | https://www.mimekit.net |
+| BouncyCastle.Cryptography | 2.7.0 | MIT | Copyright (c) Legion of the Bouncy Castle Inc. | transitively via MimeKit | https://www.bouncycastle.org |
+| System.Security.Cryptography.Pkcs | 10.0.14 | MIT | Copyright (c) Microsoft Corporation | directly (Plugins, Plugins.Database), lifting the vulnerable version MimeKit and SqlClient bring | https://github.com/dotnet/dotnet |
+
+### Database plugin
+
+`gView.Pipe.Plugins.Database` is installed as an external plugin (`plugins/gView.Pipe.Plugins.Database/`) and brings these components:
+
+| Component | Version | License | Copyright | Referenced | Project |
+|---|---|---|---|---|---|
+| Microsoft.Data.SqlClient (+ .Extensions.Abstractions, .Internal.Logging) | 7.1.1 | MIT | Copyright (c) Microsoft Corporation | directly | https://aka.ms/sqlclientproject |
+| Microsoft.Data.SqlClient.SNI.runtime | 7.1.0 | Microsoft Software License Terms (redistributable object code) | Copyright (c) Microsoft Corporation | transitively via Microsoft.Data.SqlClient | https://aka.ms/sqlclientproject |
+| Microsoft.SqlServer.Server | 1.0.0 | MIT | Copyright (c) Microsoft Corporation | transitively via Microsoft.Data.SqlClient | https://aka.ms/sqlclientproject |
+| Microsoft.IdentityModel.\*, System.IdentityModel.Tokens.Jwt | 8.16.0 | MIT | Copyright (c) Microsoft Corporation | transitively via Microsoft.Data.SqlClient | https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet |
+| Microsoft.Bcl.Cryptography, System.Configuration.ConfigurationManager, System.Diagnostics.EventLog, System.Security.Cryptography.ProtectedData, System.Threading.RateLimiting, Microsoft.Extensions.Caching.\* | 9.0.18 | MIT | Copyright (c) Microsoft Corporation | transitively via Microsoft.Data.SqlClient | https://github.com/dotnet/dotnet |
+| Npgsql | 10.0.3 | PostgreSQL License | Copyright (c) The Npgsql Development Team | directly | https://github.com/npgsql/npgsql |
+| Microsoft.Data.Sqlite, Microsoft.Data.Sqlite.Core | 10.0.14 | MIT | Copyright (c) Microsoft Corporation | directly / via Microsoft.Data.Sqlite | https://learn.microsoft.com/dotnet/standard/data/sqlite/ |
+| SQLitePCLRaw.bundle_e_sqlite3, .core, .provider.e_sqlite3, .lib.e_sqlite3 | 2.1.13 | Apache-2.0 | Copyright (c) 2014-2024 SourceGear, LLC | transitively via Microsoft.Data.Sqlite | https://github.com/ericsink/SQLitePCL.raw |
+| SQLite (native e_sqlite3) | bundled | Public domain | — | transitively via SQLitePCLRaw.lib.e_sqlite3 | https://sqlite.org/copyright.html |
+
+The PostgreSQL License is a permissive license similar to MIT/BSD: https://opensource.org/license/postgresql.
 
 Polly participates in the [Open Source Maintenance Fee](https://thepollyproject.org/2026/07/14/polly-osmf-announcement.html) from the first major version released after November 16, 2026. The fee applies only to direct references to Polly, not to Polly as a dependency of Microsoft.Extensions.Http.Resilience, and not to existing versions such as 8.x. gView.Pipe does not reference Polly directly; keep it that way, or check the fee before adding a direct reference.
 

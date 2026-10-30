@@ -10,6 +10,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="MailKit" />
+    <!-- lifts the transitive System.Security.Cryptography.Pkcs of MimeKit above the versions with known advisories -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
 </Project>

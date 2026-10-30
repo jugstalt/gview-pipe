@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "file-export",
+  "name": "File Export",
+  "description": "Sample: writes orders as CSV into the released folder 'files' and reads them back.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "3f6c1a52-9d0e-4b7a-8c11-0a5e2f7d9b01",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "orders",
+      "name": "Orders",
+      "type": "8e9f0a1b-2c3d-4e5f-9a6b-7c8d9e0f1a11",
+      "typeVersion": 1,
+      "parameters": {
+        "mode": "allItems",
+        "code": "return [\n  { id: 1, customer: 'Ada', total: 120.5 },\n  { id: 2, customer: 'Grace', total: 40 },\n  { id: 3, customer: 'Alan', total: 310 }\n];"
+      },
+      "position": { "x": 240, "y": 0 }
+    },
+    {
+      "id": "write",
+      "name": "Write CSV",
+      "type": "def4eb54-c93e-40d1-9d27-49dfe8f19b41",
+      "typeVersion": 1,
+      "parameters": { "folder": "files", "path": "exports/orders-{{ $now.substring(0, 10) }}.csv", "content": "itemsAsCsv", "ifExists": "overwrite", "csvDelimiter": ";" },
+      "position": { "x": 480, "y": 0 }
+    },
+    {
+      "id": "read",
+      "name": "Read Back",
+      "type": "26912bb1-7982-47e7-b6ae-73937b3e83f9",
+      "typeVersion": 1,
+      "parameters": { "folder": "files", "path": "{{ $json.path }}", "format": "csv", "csvDelimiter": ";" },
+      "position": { "x": 720, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "start", "sourcePort": "main", "targetNodeId": "orders", "targetPort": "main" },
+    { "sourceNodeId": "orders", "sourcePort": "main", "targetNodeId": "write", "targetPort": "main" },
+    { "sourceNodeId": "write", "sourcePort": "main", "targetNodeId": "read", "targetPort": "main" }
+  ]
+}

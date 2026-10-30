@@ -40,3 +40,36 @@ public sealed class ConnectionStringCredential
     [Required, Secret, PipeParameter(Label = "Connection string")]
     public string ConnectionString { get; set; } = "";
 }
+
+public enum SmtpSecurity
+{
+    /// <summary>TLS on connect for port 465, STARTTLS when the server offers it otherwise.</summary>
+    Auto,
+    SslOnConnect,
+    StartTls,
+
+    /// <summary>Unencrypted; only for local test servers.</summary>
+    None
+}
+
+[PipeCredentialType(PipeBuiltInCredentials.Smtp, "SMTP", Description = "Mail server for sending emails")]
+public sealed class SmtpCredential
+{
+    [Required, PipeParameter(Label = "Host", Order = 1)]
+    public string Host { get; set; } = "";
+
+    [PipeParameter(Label = "Port", Order = 2)]
+    public int Port { get; set; } = 587;
+
+    [PipeParameter(Label = "Security", Order = 3)]
+    public SmtpSecurity Security { get; set; } = SmtpSecurity.Auto;
+
+    [PipeParameter(Label = "User name", Order = 4, Description = "Leave empty if the server needs no login")]
+    public string? UserName { get; set; }
+
+    [Secret, PipeParameter(Label = "Password", Order = 5)]
+    public string? Password { get; set; }
+
+    [PipeParameter(Label = "Default sender", Order = 6, Placeholder = "Pipe <pipe@example.com>")]
+    public string? From { get; set; }
+}

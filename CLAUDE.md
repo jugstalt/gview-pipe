@@ -12,6 +12,9 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
 - `gView.Pipe.Plugins`: the built-in nodes and credential types.
   - They use only the Abstraction contracts, exactly like external plugins.
   - Ids are in `PipeBuiltIn.cs` and must never change.
+- `gView.Pipe.Plugins.Database`: the SQL node, as an external plugin with its own dependencies (SqlClient, Npgsql, SQLite).
+  - Building it copies the output into `src/gView.Pipe.Shell/plugins/gView.Pipe.Plugins.Database/` (ignored by Git).
+  - Values reach SQL only as parameters; the SQL text is read from `RawParameters` and never evaluated.
 - `gView.Pipe.Razor`: MudBlazor UI components.
   - Depends on Abstraction only.
   - `Components/`: `PipeWorkflowList`, `PipeCredentialList`.

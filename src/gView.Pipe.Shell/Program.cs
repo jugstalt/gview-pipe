@@ -14,7 +14,15 @@ builder.Services.AddRazorComponents()
 builder.Services.AddMudServices();
 
 builder.Services
-    .AddPipeCore(options => options.PluginPath = builder.Configuration["Pipe:PluginPath"] ?? "plugins")
+    .AddPipeCore(options =>
+    {
+        options.PluginPath = builder.Configuration["Pipe:PluginPath"] ?? "plugins";
+        // folders released for Read File / Write File, by name
+        foreach (var root in builder.Configuration.GetSection("Pipe:FileRoots").GetChildren().Where(r => !string.IsNullOrEmpty(r.Value)))
+        {
+            options.FileRoots[root.Key] = root.Value!;
+        }
+    })
     .AddPipeFileStore(options =>
     {
         options.RootPath = builder.Configuration["Pipe:DataPath"] ?? "data";

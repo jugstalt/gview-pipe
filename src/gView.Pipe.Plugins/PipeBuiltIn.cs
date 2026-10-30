@@ -25,6 +25,9 @@ static public class PipeBuiltInNodes
     public const string ExecuteWorkflowTrigger = "bd47c3b0-0e64-4234-ae83-1f465875ac34";
     public const string ErrorTrigger = "c102a313-b62c-4465-bf28-139c6b1ebbb0";
     public const string RespondToWebhook = "5aaad06c-980a-4e67-8c1e-40cf04926333";
+    public const string ReadFile = "26912bb1-7982-47e7-b6ae-73937b3e83f9";
+    public const string WriteFile = "def4eb54-c93e-40d1-9d27-49dfe8f19b41";
+    public const string SendEmail = "fafaca25-a6f7-49bd-a689-c3a7f01b1c7a";
 }
 
 /// <summary>Ids of the built-in credential types.</summary>
@@ -34,4 +37,5 @@ static public class PipeBuiltInCredentials
     public const string BearerToken = "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d12";
     public const string ApiKeyHeader = "c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e13";
     public const string ConnectionString = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f14";
+    public const string Smtp = "f697d17c-18a2-4ea9-a4a5-81d45f2c387a";
 }

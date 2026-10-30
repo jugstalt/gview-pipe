@@ -14,6 +14,8 @@ static public class PipeNodeVisuals
                 : descriptor.Category switch
                 {
                     "Network" => Icons.Material.Filled.Language,
+                    "Files" => Icons.Material.Filled.Folder,
+                    "Database" => Icons.Material.Filled.Storage,
                     "Transform" => Icons.Material.Filled.Edit,
                     "Flow" => Icons.Material.Filled.CallSplit,
                     "Utility" => Icons.Material.Filled.Build,
@@ -28,6 +30,8 @@ static public class PipeNodeVisuals
                 : descriptor.Category switch
                 {
                     "Network" => "#3d6fd6",
+                    "Files" => "#b7791f",
+                    "Database" => "#2f855a",
                     "Transform" => "#7a5af5",
                     "Flow" => "#1f9d7a",
                     "Utility" => "#6b7280",

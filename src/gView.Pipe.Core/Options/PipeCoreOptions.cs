@@ -39,6 +39,12 @@ public class PipeCoreOptions
     /// <summary>Executions kept per workflow.</summary>
     public int ExecutionRetention { get; set; } = 50;
 
+    /// <summary>
+    /// Folders workflows may read and write (Read File, Write File), by name: e.g. <c>"import" → "D:\data\import"</c>.
+    /// Nothing outside these folders is reachable. Relative paths are resolved against the current directory.
+    /// </summary>
+    public Dictionary<string, string> FileRoots { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Maximum nesting of sub-workflow calls (Execute Workflow), so recursion can't run forever.</summary>
     public int MaxSubWorkflowDepth { get; set; } = 10;
 

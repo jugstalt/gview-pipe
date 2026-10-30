@@ -2,6 +2,7 @@ using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Extensions.DependencyInjection;
+using gView.Pipe.Core.Options;
 using gView.Pipe.Plugins.Nodes.Utility;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Nodes;
@@ -10,14 +11,15 @@ namespace gView.Pipe.Plugins.Tests;
 
 static public class PluginTestHost
 {
-    static public ServiceProvider Create(Action<IServiceCollection>? configure = null)
+    static public ServiceProvider Create(Action<IServiceCollection>? configure = null, Action<PipeCoreOptions>? options = null)
     {
         var services = new ServiceCollection();
-        services.AddPipeCore(options =>
+        services.AddPipeCore(o =>
         {
-            options.ScanApplicationDirectory = false;
-            options.PluginPath = null;
-            options.PluginAssemblies.Add(typeof(NoOpNode).Assembly);
+            o.ScanApplicationDirectory = false;
+            o.PluginPath = null;
+            o.PluginAssemblies.Add(typeof(NoOpNode).Assembly);
+            options?.Invoke(o);
         });
         configure?.Invoke(services);
         return services.BuildServiceProvider();

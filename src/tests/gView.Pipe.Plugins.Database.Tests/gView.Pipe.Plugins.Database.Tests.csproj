@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\gView.Pipe.Core\gView.Pipe.Core.csproj" />
+    <ProjectReference Include="..\..\gView.Pipe.Plugins\gView.Pipe.Plugins.csproj" />
+    <!-- not referenced: the tests load it from a plugin folder like the Shell does -->
+    <ProjectReference Include="..\..\gView.Pipe.Plugins.Database\gView.Pipe.Plugins.Database.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <Target Name="CopyDatabasePlugin" AfterTargets="Build">
+    <ItemGroup>
+      <DatabasePluginFiles Include="..\..\gView.Pipe.Plugins.Database\bin\$(Configuration)\$(TargetFramework)\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DatabasePluginFiles)" DestinationFiles="@(DatabasePluginFiles->'$(OutDir)plugins\gView.Pipe.Plugins.Database\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

@@ -37,6 +37,7 @@ Open the URL printed in the console (http://localhost:5240 with the `http` profi
 - **Item Tools**: splits order lines into items, removes duplicate SKUs, sorts by price, keeps the top 3 and collects them.
 - **Sub-workflow Demo** and **Price Calculator**: a workflow calling another one per batch of two items; failures go to **Error Alerts**, an error workflow.
 - **API Demo**: `POST /webhook/api/greet` answers 200 with a greeting, or 400 without a name, through Respond to Webhook nodes.
+- **File Export**: writes orders as CSV into the folder `files` and reads them back.
 - **Webhook Demo**: answers `POST /webhook/demo` with a greeting. It is inactive until you switch it on.
 
 To run the Shell with the Aspire dashboard (logs, traces, metrics):
@@ -53,6 +54,7 @@ dotnet run --project src/Aspire/gView.Pipe.AppHost
 |---|---|---|
 | `Pipe:DataPath` | `data` | Folder for `workflows/`, `executions/`, `credentials/` and the Data Protection `keys/`. |
 | `Pipe:PluginPath` | `plugins` | Folder with external plugins, one sub folder per plugin: `plugins/<Name>/<Name>.dll`. |
+| `Pipe:FileRoots` | `files` → `files` | Folders Read File and Write File may use, by name. Nothing outside them is reachable. |
 
 The Wait node waits at most one hour; change it with `services.Configure<PipeWaitOptions>(o => o.MaxWait = …)`. Further options (execution retention, script limits, binary thresholds) are on `PipeCoreOptions` and `PipeFileStoreOptions` and can be set in `Program.cs`.
 
@@ -64,10 +66,11 @@ The Wait node waits at most one hour; change it with `services.Configure<PipeWai
 | `gView.Pipe.Core` | Headless engine, plugin loader, JavaScript engine, scheduler, trigger manager, file and memory stores. |
 | `gView.Pipe.AspNetCore` | ASP.NET Core integration: `app.MapPipeWebhooks()`. |
 | `gView.Pipe.Plugins` | Built-in nodes and credential types. They use only the Abstraction, exactly like external plugins. |
+| `gView.Pipe.Plugins.Database` | SQL node for SQL Server, PostgreSQL and SQLite. An external plugin: building it installs it into `src/gView.Pipe.Shell/plugins/`. |
 | `gView.Pipe.Razor` | MudBlazor components: workflow list, credential list and the editor. |
 | `gView.Pipe.Shell` | The app: layout, routing and service composition. |
 | `Aspire/` | AppHost and ServiceDefaults. |
-| `tests/` | xUnit v3 tests for Core, Plugins and the Razor components (bUnit). |
+| `tests/` | xUnit v3 tests for Core, Plugins, the database plugin and the Razor components (bUnit). |
 
 ### Embedding in another Blazor app
 
@@ -90,10 +93,16 @@ The host must reference the MudBlazor and Z.Blazor.Diagrams CSS/JS plus `_conten
 | Triggers | Manual Trigger, Cron Trigger, Webhook Trigger, Execute Workflow Trigger, Error Trigger |
 | Flow | If, Switch, Filter, Merge, Wait, Execute Workflow |
 | Transform | Set, Code, Sort, Limit, Aggregate, Split Out, Remove Duplicates |
-| Network | HTTP Request, Respond to Webhook |
+| Network | HTTP Request, Respond to Webhook, Send Email |
+| Files | Read File, Write File |
+| Database (plugin) | SQL |
 | Utility | Log, No Operation |
 
-Credential types: Basic Auth, Bearer Token, API Key Header and Connection String.
+Credential types: Basic Auth, Bearer Token, API Key Header, Connection String and SMTP.
+
+- **Read File / Write File** work only inside folders the host releases (`Pipe:FileRoots`); a node names the folder and a path relative to it. Formats: binary attachment, text, JSON and CSV.
+- **SQL** (`gView.Pipe.Plugins.Database`) runs a query or statement per input item over a Connection String credential (provider `sqlserver`, `postgres` or `sqlite`). Values go in as `@name` parameters only; the SQL text itself is never evaluated as an expression.
+- **Send Email** sends one mail per item over SMTP (MailKit), optionally with the item's attachments.
 
 ## Sub-workflows and error workflows
 

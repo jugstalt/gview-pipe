@@ -1,12 +1,14 @@
 using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Expressions;
+using gView.Pipe.Abstraction.Files;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Triggers;
 using gView.Pipe.Abstraction.Users;
 using gView.Pipe.Core.Engine;
 using gView.Pipe.Core.Expressions;
+using gView.Pipe.Core.Files;
 using gView.Pipe.Core.Options;
 using gView.Pipe.Core.Plugins;
 using gView.Pipe.Core.Storage;
@@ -54,6 +56,7 @@ static public class ServicesExtensions
         services.TryAddSingleton<IPipeWebhookRouter>(sp => sp.GetRequiredService<PipeWebhookRegistry>());
         services.TryAddSingleton<IPipeTriggerHost, PipeTriggerHost>();
         services.TryAddSingleton<IPipeUserContext, PipeAnonymousUserContext>();
+        services.TryAddSingleton<IPipeFileRoots, PipeFileRoots>();
 
         services.TryAddSingleton<PipeTriggerManager>();
         services.TryAddSingleton<IPipeTriggerManager>(sp => sp.GetRequiredService<PipeTriggerManager>());

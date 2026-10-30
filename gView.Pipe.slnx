@@ -14,6 +14,7 @@
     <File Path="samples/workflows/price-calculator.json" />
     <File Path="samples/workflows/error-alerts.json" />
     <File Path="samples/workflows/api-demo.json" />
+    <File Path="samples/workflows/file-export.json" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/gView.Pipe.Abstraction/gView.Pipe.Abstraction.csproj" />
@@ -21,6 +22,7 @@
     <Project Path="src/gView.Pipe.AspNetCore/gView.Pipe.AspNetCore.csproj" />
     <Project Path="src/gView.Pipe.Razor/gView.Pipe.Razor.csproj" />
     <Project Path="src/gView.Pipe.Plugins/gView.Pipe.Plugins.csproj" />
+    <Project Path="src/gView.Pipe.Plugins.Database/gView.Pipe.Plugins.Database.csproj" />
     <Project Path="src/gView.Pipe.Shell/gView.Pipe.Shell.csproj" />
   </Folder>
   <Folder Name="/Aspire/">
@@ -30,6 +32,7 @@
   <Folder Name="/tests/">
     <Project Path="src/tests/gView.Pipe.Core.Tests/gView.Pipe.Core.Tests.csproj" />
     <Project Path="src/tests/gView.Pipe.Plugins.Tests/gView.Pipe.Plugins.Tests.csproj" />
+    <Project Path="src/tests/gView.Pipe.Plugins.Database.Tests/gView.Pipe.Plugins.Database.Tests.csproj" />
     <Project Path="src/tests/gView.Pipe.Razor.Tests/gView.Pipe.Razor.Tests.csproj" />
   </Folder>
 </Solution>
