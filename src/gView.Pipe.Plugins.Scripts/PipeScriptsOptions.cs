@@ -18,10 +18,10 @@ public sealed class PipeScriptsOptions
     /// </summary>
     public Dictionary<string, string> ScriptRoots { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Git repositories with scripts, by name.</summary>
-    public Dictionary<string, PipeScriptRepository> Repositories { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Git servers whose repositories Run Scripts Repo may use, by name (e.g. a Gitea organization).</summary>
+    public Dictionary<string, PipeGitServer> GitServers { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Where repositories are checked out, one folder per name.</summary>
+    /// <summary>Where repositories are cloned for a run, one temporary folder per run (deleted afterwards).</summary>
     public string RepositoriesPath { get; set; } = Path.Combine("data", "script-repos");
 
     /// <summary>Interpreter per file extension, e.g. <c>".py" → "C:\Python313\python.exe"</c>; overrides the defaults.</summary>
@@ -31,15 +31,29 @@ public sealed class PipeScriptsOptions
     public string GitPath { get; set; } = "git";
 }
 
-public sealed class PipeScriptRepository
+static public class PipeGitProviders
 {
-    /// <summary>HTTPS URL (or a local path, e.g. for tests).</summary>
+    public const string Gitea = "gitea";
+    public const string GitHub = "github";
+}
+
+/// <summary>A Git server and the owner (organization or user) whose repositories are offered.</summary>
+public sealed class PipeGitServer
+{
+    /// <summary><see cref="PipeGitProviders.Gitea"/> or <see cref="PipeGitProviders.GitHub"/>; decides the API for listing.</summary>
+    public string Provider { get; set; } = PipeGitProviders.Gitea;
+
+    /// <summary>Base URL, e.g. <c>http://localhost:3000</c> or <c>https://github.com</c>.</summary>
     public string Url { get; set; } = "";
 
-    public string Branch { get; set; } = "main";
+    /// <summary>Organization or user.</summary>
+    public string Owner { get; set; } = "";
 
-    /// <summary>Basic Auth (user + password or personal access token) or Bearer Token credential, for private repositories.</summary>
+    /// <summary>Basic Auth (user + password or personal access token) or Bearer Token credential.</summary>
     public string? CredentialId { get; set; }
+
+    /// <summary>Regex; only repositories whose name matches are offered (e.g. <c>^ops-</c>).</summary>
+    public string? RepositoryFilter { get; set; }
 }
 
 public sealed class PipeScriptsPluginStartup : IPipePluginStartup
@@ -54,7 +68,8 @@ public sealed class PipeScriptsPluginStartup : IPipePluginStartup
                 configuration.GetSection("Pipe:Scripts").Bind(options);
             }
         });
-        services.TryAddSingleton<PipeScriptRepositories>();
+        services.TryAddSingleton<PipeGitServers>();
+        services.AddHttpClient(PipeGitServers.HttpClientName);
     }
 }
 

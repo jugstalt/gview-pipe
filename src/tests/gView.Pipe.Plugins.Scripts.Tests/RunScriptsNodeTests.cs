@@ -16,7 +16,7 @@ namespace gView.Pipe.Plugins.Scripts.Tests;
 /// <summary>Run Scripts with real interpreters; tests needing one that isn't installed are skipped.</summary>
 public sealed class RunScriptsNodeTests : IDisposable
 {
-    private const string RunScripts = "2f3f6f81-f55e-4b5c-87c1-59632ef03445";
+    private const string RunScripts = PipeScriptNodes.RunScriptsFolder;
 
     private readonly string _root = Directory.CreateTempSubdirectory("gview-pipe-scripts-").FullName;
     private readonly ServiceProvider _services;
@@ -29,13 +29,12 @@ public sealed class RunScriptsNodeTests : IDisposable
             options.ScanApplicationDirectory = false;
             options.PluginPath = null;
             options.PluginAssemblies.Add(typeof(NoOpNode).Assembly);
-            options.PluginAssemblies.Add(typeof(RunScriptsNode).Assembly);
+            options.PluginAssemblies.Add(typeof(RunScriptsFolderNode).Assembly);
         });
         services.Configure<PipeScriptsOptions>(o =>
         {
             o.ScriptRoots["jobs"] = Path.Combine(_root, "jobs");
             o.RepositoriesPath = Path.Combine(_root, "repos");
-            o.Repositories["ops"] = new PipeScriptRepository { Url = Path.Combine(_root, "origin"), Branch = "main" };
         });
         _services = services.BuildServiceProvider();
         Directory.CreateDirectory(Path.Combine(_root, "jobs"));
@@ -61,11 +60,14 @@ public sealed class RunScriptsNodeTests : IDisposable
 
     static private object Scripts(params string[] names) => names.Select(n => new { value = n, enabled = true }).ToArray();
 
-    private async Task<PipeExecution> RunAsync(object parameters, Action<PipeWorkflowNode>? configure = null, params JsonObject[] input)
+    private Task<PipeExecution> RunAsync(object parameters, Action<PipeWorkflowNode>? configure = null, params JsonObject[] input)
+        => RunNodeAsync(RunScripts, parameters, configure, input);
+
+    private async Task<PipeExecution> RunNodeAsync(string type, object parameters, Action<PipeWorkflowNode>? configure = null, params JsonObject[] input)
     {
         var workflow = new PipeWorkflowBuilder("Jobs")
             .Node("start", PipeBuiltInNodes.ManualTrigger)
-            .Node("run", RunScripts, parameters, configure)
+            .Node("run", type, parameters, configure)
             .Connect("start", "run")
             .Build();
         var request = new PipeExecutionRequest { InputItems = input.Length > 0 ? input.Select(j => new PipeItem(j)).ToList() : null };
@@ -206,7 +208,7 @@ public sealed class RunScriptsNodeTests : IDisposable
         var unknownRoot = await RunAsync(new { root = "nope", scripts = Scripts("ok.bat") });
 
         Assert.Contains("No script is switched on", none.NodeRuns["run"].Error);
-        Assert.Contains("leaves the script source", outside.NodeRuns["run"].Error);
+        Assert.Contains("leaves the script folder", outside.NodeRuns["run"].Error);
         Assert.Contains("'gone.bat' is missing", missing.NodeRuns["run"].Error);
         Assert.Contains("Unknown script folder 'nope'", unknownRoot.NodeRuns["run"].Error);
     }
@@ -233,73 +235,40 @@ public sealed class RunScriptsNodeTests : IDisposable
     }
 
     [Fact]
-    public async Task Git_repository_is_cloned_updated_and_its_commit_reported()
+    public async Task Run_script_runs_one_file_from_a_subfolder_in_its_folder()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows() && CanRun("git"), "needs git (and cmd for the script)");
-        var origin = Path.Combine(_root, "origin");
-        Git(_root, "init", "-b", "main", origin);
-        Git(origin, "config", "user.email", "test@example.com");
-        Git(origin, "config", "user.name", "Test");
-        File.WriteAllText(Path.Combine(origin, "deploy.bat"), "@echo off\r\necho version 1\r\n");
-        Git(origin, "add", ".");
-        Git(origin, "commit", "-m", "v1");
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "cmd scripts need Windows");
+        Directory.CreateDirectory(Path.Combine(_root, "jobs", "nightly"));
+        Script(Path.Combine("nightly", "where.bat"), "@echo off\r\necho %CD%\r\n");
 
-        var parameters = new { source = "gitRepository", repository = "ops", scripts = Scripts("deploy.bat") };
-        var first = await RunAsync(parameters);
-        Assert.True(first.Status == PipeExecutionStatus.Success, first.Error);
-        Assert.Equal("version 1", Results(first)[0]["stdout"]!.GetValue<string>().Trim());
+        var execution = await RunNodeAsync(PipeScriptNodes.RunScript, new { root = "jobs", script = "nightly/where.bat" });
 
-        File.WriteAllText(Path.Combine(origin, "deploy.bat"), "@echo off\r\necho version 2\r\n");
-        Git(origin, "commit", "-am", "v2");
-        var head = Git(origin, "rev-parse", "HEAD").Trim();
-
-        var second = await RunAsync(parameters);
-        var result = Results(second)[0];
-        Assert.Equal("version 2", result["stdout"]!.GetValue<string>().Trim());
-        Assert.Equal(head, result["commit"]!.GetValue<string>());
+        Assert.True(execution.Status == PipeExecutionStatus.Success, execution.Error);
+        var result = Assert.Single(Results(execution));
+        Assert.Equal("nightly/where.bat", result["script"]!.GetValue<string>());
+        Assert.Equal(Path.Combine(_root, "jobs", "nightly"), result["stdout"]!.GetValue<string>().Trim(), ignoreCase: true);
     }
 
     [Fact]
-    public async Task Failing_pull_can_fall_back_to_the_last_checkout()
+    public async Task Run_script_offers_all_runnable_files_of_the_folder()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows() && CanRun("git"), "needs git (and cmd for the script)");
-        var origin = Path.Combine(_root, "origin");
-        Git(_root, "init", "-b", "main", origin);
-        Git(origin, "config", "user.email", "test@example.com");
-        Git(origin, "config", "user.name", "Test");
-        File.WriteAllText(Path.Combine(origin, "deploy.bat"), "@echo off\r\necho cached\r\n");
-        Git(origin, "add", ".");
-        Git(origin, "commit", "-m", "v1");
-        Assert.Equal(PipeExecutionStatus.Success, (await RunAsync(new { source = "gitRepository", repository = "ops", scripts = Scripts("deploy.bat") })).Status);
+        Directory.CreateDirectory(Path.Combine(_root, "jobs", "nightly"));
+        Script("a.py", "");
+        Script("notes.txt", "");
+        Script(Path.Combine("nightly", "b.ps1"), "");
+        var registry = _services.GetRequiredService<IPipeNodeRegistry>();
 
-        // the origin disappears: pull fails
-        foreach (var file in Directory.EnumerateFiles(origin, "*", SearchOption.AllDirectories))
-        {
-            File.SetAttributes(file, FileAttributes.Normal);
-        }
-        Directory.Delete(origin, recursive: true);
+        var options = await registry.GetParameterOptionsAsync(registry.Find(Guid.Parse(PipeScriptNodes.RunScript))!, "script", new JsonObject { ["root"] = "jobs" });
 
-        var strict = await RunAsync(new { source = "gitRepository", repository = "ops", scripts = Scripts("deploy.bat") });
-        var lenient = await RunAsync(new { source = "gitRepository", repository = "ops", scripts = Scripts("deploy.bat"), useLastCheckoutIfPullFails = true });
-
-        Assert.Contains("git fetch failed", strict.NodeRuns["run"].Error);
-        Assert.True(lenient.Status == PipeExecutionStatus.Success, lenient.Error);
-        Assert.Equal("cached", Results(lenient)[0]["stdout"]!.GetValue<string>().Trim());
-        Assert.Contains(lenient.NodeRuns["run"].Logs, l => l.Message.Contains("ran the last checkout"));
+        Assert.Equal(["a.py", "nightly/b.ps1"], options.Select(o => o.Value));
     }
 
-    static private string Git(string workingDirectory, params string[] arguments)
+    [Fact]
+    public async Task Version_1_nodes_with_a_git_source_ask_for_run_scripts_repo()
     {
-        var startInfo = new ProcessStartInfo("git") { WorkingDirectory = workingDirectory, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
-        foreach (var argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
-        using var process = Process.Start(startInfo)!;
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        Assert.True(process.ExitCode == 0, $"git {string.Join(' ', arguments)}: {error}");
-        return output;
+        var execution = await RunAsync(new { source = "gitRepository", repository = "ops", scripts = Scripts("deploy.bat") },
+            node => node.TypeVersion = 1);
+
+        Assert.Contains("Run Scripts Repo", execution.NodeRuns["run"].Error);
     }
 }

@@ -21,6 +21,12 @@
     --gview-pipe-code-bg: rgba(255, 255, 255, .05);
 }
 
+.gview-pipe-credential-id {
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .8rem;
+    color: var(--mud-palette-text-secondary);
+}
+
 .gview-pipe-clickable {
     cursor: pointer;
 }

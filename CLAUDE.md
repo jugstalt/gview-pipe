@@ -15,7 +15,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
 - `gView.Pipe.Plugins.Database`: the SQL node, as an external plugin with its own dependencies (SqlClient, Npgsql, SQLite).
   - Building it copies the output into `src/gView.Pipe.Shell/plugins/gView.Pipe.Plugins.Database/` (ignored by Git).
   - Values reach SQL only as parameters; the SQL text is read from `RawParameters` and never evaluated.
-- `gView.Pipe.Plugins.Scripts`: Run Scripts (bat/cmd, PowerShell, Python, sh) from released script folders or Git repositories (git CLI); see ADR 0011. Installed into the Shell like the database plugin.
+- `gView.Pipe.Plugins.Scripts`: Run Script, Run Scripts Folder and Run Scripts Repo (bat/cmd, PowerShell, Python, sh) from released script folders or configured Git servers (Gitea/GitHub API, temporary clones via git CLI); see ADR 0011. Installed into the Shell like the database plugin.
 - `gView.Pipe.Razor`: MudBlazor UI components.
   - Depends on Abstraction only.
   - `Components/`: `PipeWorkflowList` (start page with group tiles and search via `ShowGroups`, a group page via `GroupId`), `PipeCredentialList`.

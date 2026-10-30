@@ -14,6 +14,7 @@
   <ItemGroup>
     <!-- provided by the host at runtime (Microsoft.Extensions.* are shared) -->
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Extensions.Http" ExcludeAssets="runtime" />
   </ItemGroup>
 
   <ItemGroup>

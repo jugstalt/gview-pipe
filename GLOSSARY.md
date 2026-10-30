@@ -25,7 +25,8 @@
 | **Pin data** | Fixed output items of a node, per output port, stored in the workflow. In manual runs a pinned node is not executed and returns them; triggered runs ignore pin data. | `PipeWorkflow.PinData`, `PipeNodeRun.Pinned` |
 | **Run to here** | A manual run limited to one node and the nodes it depends on. | `PipeExecutionRequest.TargetNodeId` |
 | **File root** | A folder of the host released for Read File and Write File, by name. Nodes give a root and a relative path; nothing outside the roots is reachable. | `PipeCoreOptions.FileRoots`, `IPipeFileRoots` |
-| **Script root** | A folder of the host released for Run Scripts, by name; separate from the file roots. | `PipeScriptsOptions.ScriptRoots` |
+| **Script root** | A folder of the host released for Run Script and Run Scripts Folder, by name; separate from the file roots. | `PipeScriptsOptions.ScriptRoots` |
+| **Git server** | A Gitea or GitHub owner (organization or user) released for Run Scripts Repo, by name, with the id of a Pipe credential; its repositories are cloned temporarily per run. | `PipeScriptsOptions.GitServers` |
 | **Parameter options** | Values a node offers for a parameter, depending on its other parameters (e.g. the scripts in a folder); a string picks one, a `List<PipeSelection>` is an ordered on/off list. | `IPipeParameterOptions`, `PipeOptionsAttribute` |
 | **Running executions** | The executions running in this process (and those finished in the last minute), with node states and live output; can be watched in the editor and stopped. | `IPipeRunningExecutions`, `PipeExecutionMonitor` |
 | **Engine** | Executes a workflow graph; stores nothing. | `IPipeEngine` |
