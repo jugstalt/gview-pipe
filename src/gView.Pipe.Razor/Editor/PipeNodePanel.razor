@@ -98,6 +98,10 @@
                 </MudTooltip>
             </MudStack>
         }
+        @if (LiveLines is not null && Model.Run?.Status == PipeNodeRunStatus.Running)
+        {
+            <PipeLiveOutput Lines="LiveLines" Running="true" />
+        }
         <PipeNodeRunView Run="Model.Run" OnSelectInputPath="InsertExpressionAsync" />
     </MudTabPanel>
 </MudTabs>
@@ -120,6 +124,9 @@
 
     /// <summary>A run of the workflow is in progress.</summary>
     [Parameter] public bool Running { get; set; }
+
+    /// <summary>Log lines of this node while a run is in progress; null when there is no run.</summary>
+    [Parameter] public IReadOnlyList<PipeLiveLine>? LiveLines { get; set; }
 
     /// <summary>Pin data of the node (items per output port), null when not pinned.</summary>
     [Parameter] public Dictionary<string, List<PipeItem>>? PinnedOutputs { get; set; }
@@ -145,7 +152,18 @@
             _pinJson = PinnedOutputs is null ? null : PinToJson(PinnedOutputs);
             _pinError = null;
         }
+
+        // the node just started: show its live output
+        var running = LiveLines is not null && Model.Run?.Status == PipeNodeRunStatus.Running;
+        if (running && !_wasRunning)
+        {
+            _tab = RunTab;
+        }
+        _wasRunning = running;
     }
+
+    private const int RunTab = 2;
+    private bool _wasRunning;
 
     /// <summary>Only data of a successful run can be pinned; binary content belongs to its execution and is dropped.</summary>
     private bool CanPin => Model.Run is { Status: PipeNodeRunStatus.Success, Pinned: false, Outputs: not null };

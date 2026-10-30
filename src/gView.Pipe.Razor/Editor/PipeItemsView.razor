@@ -1,6 +1,11 @@
 @using gView.Pipe.Abstraction.Data
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
 
-@* Items per port: one tab per port, items as indented JSON. *@
+@*
+    Items per port: one tab per port. Shown as indented JSON, or as text: every field a heading, its value a paragraph
+    with line breaks kept (readable output of scripts, HTTP bodies, …). The choice is kept in the browser.
+*@
 
 @if (Items is null)
 {
@@ -16,6 +21,12 @@ else if (Items.Count == 0 || Items.All(p => p.Value.Count == 0) && Items.Count =
 }
 else
 {
+    <div class="gview-pipe-items-mode">
+        <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
+            <MudButton Variant="@(_textMode ? Variant.Outlined : Variant.Filled)" OnClick="() => SetModeAsync(false)">JSON</MudButton>
+            <MudButton Variant="@(_textMode ? Variant.Filled : Variant.Outlined)" OnClick="() => SetModeAsync(true)">Text</MudButton>
+        </MudButtonGroup>
+    </div>
     <MudTabs Elevation="0" Rounded="false" Class="gview-pipe-output-tabs" MinimumTabWidth="60px">
         @foreach (var (port, items) in Items)
         {
@@ -28,7 +39,11 @@ else
                 {
                     <div class="gview-pipe-item">
                         <div class="gview-pipe-item-index">#@index</div>
-                        @if (OnSelectPath.HasDelegate)
+                        @if (_textMode)
+                        {
+                            <PipeItemText Value="item.Json" />
+                        }
+                        else if (OnSelectPath.HasDelegate)
                         {
                             <PipeJsonTree Value="item.Json" OnSelectPath="OnSelectPath" />
                         }
@@ -53,6 +68,7 @@ else
 
 @code {
     private const int MaxItems = 50;
+    private const string ModeKey = "gview-pipe.items.mode";
 
     /// <summary>Items per port; null when the execution did not store item data.</summary>
     [Parameter] public Dictionary<string, List<PipeItem>>? Items { get; set; }
@@ -61,6 +77,35 @@ else
 
     [Parameter] public string EmptyText { get; set; } = "No items.";
 
-    /// <summary>When set, properties are clickable and report their path (e.g. <c>$json.a.b</c>).</summary>
+    /// <summary>When set, properties are clickable (JSON view) and report their path (e.g. <c>$json.a.b</c>).</summary>
     [Parameter] public EventCallback<string> OnSelectPath { get; set; }
+
+    private bool _textMode;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+        try
+        {
+            if (await JS.InvokeAsync<string?>("localStorage.getItem", ModeKey) == "text")
+            {
+                _textMode = true;
+                StateHasChanged();
+            }
+        }
+        catch (JSException) { }
+    }
+
+    private async Task SetModeAsync(bool text)
+    {
+        _textMode = text;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", ModeKey, text ? "text" : "json");
+        }
+        catch (JSException) { }
+    }
 }

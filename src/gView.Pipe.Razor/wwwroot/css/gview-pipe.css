@@ -558,6 +558,33 @@ div.gview-pipe-json-tree {
         text-decoration: underline;
     }
 
+.gview-pipe-items-mode {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: -4px;
+}
+
+.gview-pipe-item-text-name {
+    margin-top: 6px;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    color: var(--mud-palette-text-secondary);
+}
+
+.gview-pipe-item-text-value {
+    padding: 4px 8px;
+    border-left: 2px solid var(--mud-palette-lines-default);
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .8rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+    .gview-pipe-item-text-value.empty {
+        color: var(--mud-palette-text-disabled);
+    }
+
 .gview-pipe-item {
     margin-bottom: 8px;
 }
@@ -606,6 +633,58 @@ div.gview-pipe-json-tree {
 .gview-pipe-log-message {
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+/* ---- live output of a running execution ---- */
+
+.gview-pipe-live {
+    margin-bottom: 12px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.gview-pipe-live-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--mud-palette-background-gray);
+}
+
+/* column-reverse keeps the view at the newest line */
+.gview-pipe-live-lines {
+    display: flex;
+    flex-direction: column-reverse;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 4px 6px;
+    background: var(--gview-pipe-code-bg);
+}
+
+.gview-pipe-live-line {
+    display: flex;
+    gap: 6px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .74rem;
+    line-height: 1.4;
+}
+
+    .gview-pipe-live-line.warning .gview-pipe-log-message {
+        color: var(--mud-palette-warning);
+    }
+
+    .gview-pipe-live-line.error .gview-pipe-log-message {
+        color: var(--mud-palette-error);
+    }
+
+    .gview-pipe-live-line.debug {
+        opacity: .7;
+    }
+
+.gview-pipe-live-node {
+    color: var(--mud-palette-primary);
+    white-space: nowrap;
 }
 
 .gview-pipe-history-item {

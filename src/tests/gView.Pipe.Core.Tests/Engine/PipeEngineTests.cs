@@ -467,6 +467,22 @@ public class PipeEngineTests
         Assert.Equal(2, Output(execution, "a").Count);
     }
 
+    [Fact]
+    public async Task Log_entries_reach_the_observer_while_the_node_runs()
+    {
+        var observer = new RecordingObserver();
+        var workflow = new PipeWorkflowBuilder()
+            .Node("chatty", TestNodeIds.Chatty)
+            .Build();
+
+        var execution = await RunAsync(workflow, new PipeExecutionRequest { Observer = observer });
+
+        // in order, and before the node finished
+        Assert.Equal(["node-started:chatty", "log:chatty:step 1", "log:chatty:step 2", "log:chatty:step 3", "node-finished:chatty"],
+            observer.Events.Where(e => e.Contains("chatty")));
+        Assert.Equal(3, execution.NodeRuns["chatty"].Logs.Count(l => l.Message.StartsWith("step")));
+    }
+
     private sealed class RecordingObserver : IPipeExecutionObserver
     {
         public List<string> Events { get; } = new();
@@ -475,6 +491,7 @@ public class PipeEngineTests
         public Task OnNodeStartedAsync(PipeExecution execution, PipeNodeRun run) => Record($"node-started:{run.NodeId}");
         public Task OnNodeFinishedAsync(PipeExecution execution, PipeNodeRun run) => Record($"node-finished:{run.NodeId}");
         public Task OnExecutionFinishedAsync(PipeExecution execution) => Record("execution-finished");
+        public Task OnNodeLogAsync(PipeExecution execution, PipeNodeRun run, PipeLogEntry entry) => Record($"log:{run.NodeId}:{entry.Message}");
 
         private Task Record(string text)
         {

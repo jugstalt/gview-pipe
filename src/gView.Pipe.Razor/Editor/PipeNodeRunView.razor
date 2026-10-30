@@ -43,7 +43,7 @@ else
                 @if (Run.Logs.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                        @(Run.Status == PipeNodeRunStatus.Running ? "Logs are shown when the node has finished." : "The node wrote no log entries.")
+                        @(Run.Status == PipeNodeRunStatus.Running ? "The node is running; its output appears above as it comes." : "The node wrote no log entries.")
                     </MudText>
                 }
                 @foreach (var entry in Run.Logs)

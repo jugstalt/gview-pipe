@@ -12,5 +12,11 @@ public interface IPipeExecutionObserver
 
     Task OnNodeFinishedAsync(PipeExecution execution, PipeNodeRun run) => Task.CompletedTask;
 
+    /// <summary>
+    /// A node wrote a log entry, while it runs (e.g. a line of a script's output). The entries are also in
+    /// <see cref="PipeNodeRun.Logs"/> when the node has finished. Called in order, without waiting for the observer.
+    /// </summary>
+    Task OnNodeLogAsync(PipeExecution execution, PipeNodeRun run, PipeLogEntry entry) => Task.CompletedTask;
+
     Task OnExecutionFinishedAsync(PipeExecution execution) => Task.CompletedTask;
 }

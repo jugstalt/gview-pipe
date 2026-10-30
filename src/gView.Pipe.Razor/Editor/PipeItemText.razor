@@ -1,0 +1,30 @@
+@using System.Text.Json
+@using System.Text.Json.Nodes
+
+@* An item as text: each field a heading, its value a paragraph with line breaks kept; nested values as JSON. *@
+
+<div class="gview-pipe-item-text">
+    @foreach (var (name, value) in Value)
+    {
+        <div class="gview-pipe-item-text-name">@name</div>
+        @switch (value)
+        {
+            case null:
+                <div class="gview-pipe-item-text-value empty">null</div>
+                break;
+            case JsonObject or JsonArray:
+                <pre class="gview-pipe-code">@PipeJsonText.ToIndentedJson(value)</pre>
+                break;
+            case JsonValue text when text.GetValueKind() == JsonValueKind.String && text.GetValue<string>().Length == 0:
+                <div class="gview-pipe-item-text-value empty">(empty)</div>
+                break;
+            default:
+                <div class="gview-pipe-item-text-value">@PipeJsonText.ToText(value)</div>
+                break;
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public JsonObject Value { get; set; } = new();
+}

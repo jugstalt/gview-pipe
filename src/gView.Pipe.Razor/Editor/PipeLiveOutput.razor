@@ -1,0 +1,53 @@
+@using Microsoft.Extensions.Logging
+
+@*
+    Log lines of a running execution as they arrive (e.g. the output of a script). The list is laid out bottom-up
+    (column-reverse), so the browser keeps it scrolled to the newest line without any script.
+*@
+
+<div class="gview-pipe-live">
+    <div class="gview-pipe-live-header">
+        <MudProgressCircular Indeterminate="@Running" Value="100" Size="Size.Small" Color="@(Running ? Color.Info : Color.Default)" />
+        <MudText Typo="Typo.subtitle2">@Title</MudText>
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Lines.Count line@(Lines.Count == 1 ? "" : "s")</MudText>
+    </div>
+    <div class="gview-pipe-live-lines">
+        <div>
+            @if (Lines.Count == 0)
+            {
+                <div class="gview-pipe-live-line mud-text-secondary">Waiting for output…</div>
+            }
+            @foreach (var line in Lines)
+            {
+                <div class="gview-pipe-live-line @LevelClass(line.Entry.Level)">
+                    <span class="gview-pipe-log-time">@line.Entry.Timestamp.LocalDateTime.ToString("HH:mm:ss")</span>
+                    @if (ShowNodeName)
+                    {
+                        <span class="gview-pipe-live-node">@line.NodeName</span>
+                    }
+                    <span class="gview-pipe-log-message">@line.Entry.Message</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PipeLiveLine> Lines { get; set; } = [];
+
+    [Parameter] public string Title { get; set; } = "Live output";
+
+    /// <summary>Prefix lines with the node that wrote them (output of the whole workflow).</summary>
+    [Parameter] public bool ShowNodeName { get; set; }
+
+    [Parameter] public bool Running { get; set; }
+
+    static private string? LevelClass(LogLevel level) => level switch
+    {
+        LogLevel.Warning => "warning",
+        LogLevel.Error or LogLevel.Critical => "error",
+        LogLevel.Trace or LogLevel.Debug => "debug",
+        _ => null
+    };
+}

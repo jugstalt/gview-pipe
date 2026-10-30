@@ -117,10 +117,17 @@
                                    OnRunToHere="() => RunAsync(_selected.Node.Id)"
                                    OnDuplicate="DuplicateSelectionAsync"
                                    OnCopy="CopySelectionAsync"
-                                   OnDelete="DeleteSelected" />
+                                   OnDelete="DeleteSelected"
+                                   LiveLines="@(_running ? LiveLinesOf(_selected.Node.Id) : null)" />
                 }
                 else
                 {
+                    @if (_running)
+                    {
+                        <div class="pa-4 pb-0">
+                            <PipeLiveOutput Lines="_liveLines.ToList()" ShowNodeName="true" Running="true" Title="Live output of the run" />
+                        </div>
+                    }
                     <PipeWorkflowPanel Workflow="_workflow" HistoryVersion="_historyVersion"
                                        SelectedExecutionId="@_execution?.Id"
                                        OnChanged="MarkDirty"
@@ -906,6 +913,7 @@
         // the engine gets a snapshot, so editing during the run can't interfere
         var workflow = PipeJson.Clone(BuildWorkflow());
         ClearExecution();
+        _liveLines.Clear();
 
         _running = true;
         _runCts = new CancellationTokenSource();
@@ -1079,6 +1087,33 @@
         }
     }
 
+    // ---- live output ----
+
+    private const int MaxLiveLines = 2000;
+    private readonly List<PipeLiveLine> _liveLines = new();
+    private bool _liveRenderPending;
+
+    /// <summary>Collects a line; the panel is rendered at most every 200 ms, however fast the lines come.</summary>
+    private Task LiveLineAsync(PipeNodeRun run, PipeLogEntry entry) => InvokeAsync(async () =>
+    {
+        _liveLines.Add(new PipeLiveLine(run.NodeId, run.NodeName, entry));
+        if (_liveLines.Count > MaxLiveLines)
+        {
+            _liveLines.RemoveRange(0, _liveLines.Count - MaxLiveLines);
+        }
+
+        if (_liveRenderPending)
+        {
+            return;
+        }
+        _liveRenderPending = true;
+        await Task.Delay(200);
+        _liveRenderPending = false;
+        StateHasChanged();
+    });
+
+    private IReadOnlyList<PipeLiveLine> LiveLinesOf(string nodeId) => _liveLines.Where(l => l.NodeId == nodeId).ToList();
+
     private Task NodeRunChangedAsync(PipeNodeRun run) => InvokeAsync(() =>
     {
         if (_diagram.Nodes.OfType<PipeNodeModel>().FirstOrDefault(m => m.Node.Id == run.NodeId) is { } model)
@@ -1126,5 +1161,7 @@
         public Task OnNodeStartedAsync(PipeExecution execution, PipeNodeRun run) => _editor.NodeRunChangedAsync(run);
 
         public Task OnNodeFinishedAsync(PipeExecution execution, PipeNodeRun run) => _editor.NodeRunChangedAsync(run);
+
+        public Task OnNodeLogAsync(PipeExecution execution, PipeNodeRun run, PipeLogEntry entry) => _editor.LiveLineAsync(run, entry);
     }
 }

@@ -27,7 +27,7 @@ Date: 2026-10-29 · Status: accepted
 - **Node runs:** each node run records:
   - a snapshot of its input items (nodes may change what they received)
   - its output items
-  - its log entries. The node's `ILogger` writes to the application log and to the run. The engine adds its messages about the node (retries, failure, cancel). The log is capped at 1,000 entries per run.
+  - its log entries. The node's `ILogger` writes to the application log and to the run, and every entry also goes to the observers right away (`IPipeExecutionObserver.OnNodeLogAsync`), so the editor can show a node's output live while it runs (e.g. a script's progress). The engine adds its messages about the node (retries, failure, cancel). The log is capped at 1,000 entries per run.
 - **Concurrency and history:**
   - `MaxConcurrentRuns` applies per workflow (default 1). Surplus runs are skipped.
   - The last 50 executions per workflow are kept. With `SaveExecutionData = false`, only statuses, counts and logs are stored, without input or output items.

@@ -1,6 +1,7 @@
 using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Triggers;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 
@@ -16,6 +17,7 @@ static public class TestNodeIds
     public const string Trigger = "00000000-0000-4000-8000-000000000006";
     public const string Versioned = "00000000-0000-4000-8000-000000000007";
     public const string BinaryLength = "00000000-0000-4000-8000-000000000008";
+    public const string Chatty = "00000000-0000-4000-8000-000000000009";
     public const string Unknown = "00000000-0000-4000-8000-0000000000ff";
 }
 
@@ -85,6 +87,21 @@ public sealed class FailNode : IPipeNode<FailParameters>
             throw new InvalidOperationException($"boom {call}");
         }
         return Task.FromResult(PipeNodeResult.FromMain(context.GetInput()));
+    }
+}
+
+/// <summary>Logs three lines with a pause between them, like a script printing its progress.</summary>
+[PipeNode(TestNodeIds.Chatty, "Chatty")]
+public sealed class ChattyNode : IPipeNode
+{
+    public async Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)
+    {
+        for (var i = 1; i <= 3; i++)
+        {
+            context.Logger.LogInformation("step {Step}", i);
+            await Task.Delay(30, cancellationToken);
+        }
+        return PipeNodeResult.FromMain(context.GetInput());
     }
 }
 

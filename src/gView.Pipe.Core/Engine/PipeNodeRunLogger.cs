@@ -13,12 +13,15 @@ internal sealed class PipeNodeRunLogger : ILogger
     private const int MaxMessageLength = 4000;
 
     private readonly ILogger _inner;
+    private readonly Action<PipeLogEntry>? _live;
     private readonly List<PipeLogEntry> _entries = new();
     private bool _truncated;
 
-    public PipeNodeRunLogger(ILogger inner)
+    /// <param name="live">Gets every recorded entry right away (live output in the editor).</param>
+    public PipeNodeRunLogger(ILogger inner, Action<PipeLogEntry>? live = null)
     {
         _inner = inner;
+        _live = live;
     }
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => _inner.BeginScope(state);
@@ -48,11 +51,15 @@ internal sealed class PipeNodeRunLogger : ILogger
             message = message[..MaxMessageLength] + "…";
         }
 
+        var entry = new PipeLogEntry(DateTimeOffset.UtcNow, logLevel, message);
+        // live: also beyond the recorded maximum, so a long running script stays visible
+        _live?.Invoke(entry);
+
         lock (_entries)
         {
             if (_entries.Count < MaxEntries)
             {
-                _entries.Add(new PipeLogEntry(DateTimeOffset.UtcNow, logLevel, message));
+                _entries.Add(entry);
             }
             else if (!_truncated)
             {

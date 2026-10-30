@@ -283,7 +283,8 @@ internal sealed class PipeEngine : IPipeEngine
 
         var settings = node.Settings;
         var descriptor = _registry.Find(node.Type);
-        var runLogger = new PipeNodeRunLogger(descriptor is null ? _logger : _loggerFactory.CreateLogger(descriptor.NodeType));
+        var runLogger = new PipeNodeRunLogger(descriptor is null ? _logger : _loggerFactory.CreateLogger(descriptor.NodeType),
+            entry => _ = observer.OnNodeLogAsync(state.Execution, run, entry));
         Exception? lastError;
 
         try

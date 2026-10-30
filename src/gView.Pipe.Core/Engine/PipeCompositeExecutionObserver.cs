@@ -24,6 +24,9 @@ internal sealed class PipeCompositeExecutionObserver : IPipeExecutionObserver
     public Task OnNodeFinishedAsync(PipeExecution execution, PipeNodeRun run)
         => NotifyAsync(o => o.OnNodeFinishedAsync(execution, run));
 
+    public Task OnNodeLogAsync(PipeExecution execution, PipeNodeRun run, PipeLogEntry entry)
+        => NotifyAsync(o => o.OnNodeLogAsync(execution, run, entry));
+
     public Task OnExecutionFinishedAsync(PipeExecution execution)
         => NotifyAsync(o => o.OnExecutionFinishedAsync(execution));
 
