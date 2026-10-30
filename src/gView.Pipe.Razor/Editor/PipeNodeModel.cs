@@ -86,12 +86,21 @@ public sealed class PipeNodeModel : NodeModel
 
 public sealed class PipePortModel : PortModel
 {
+    /// <summary>Port circle as laid out by gview-pipe.css (.gview-pipe-port, .gview-pipe-node borders).</summary>
+    public const double Diameter = 12;
+    private const double BorderLeft = 1, BorderTop = 3, Overhang = 7;
+
     public PipePortModel(PipeNodeModel parent, string portName, bool isInput)
         : base(parent, isInput ? PortAlignment.Left : PortAlignment.Right)
     {
         PortName = portName;
         IsInput = isInput;
         Label = portName;
+
+        // The diagram measures ports in the browser, asynchronously. If zoom, pan or the canvas position change
+        // while a measurement is under way, the port ends up shifted and its links point into the void.
+        // Our ports have a fixed place inside the node, so the measured position is replaced by the computed one.
+        Changed += _ => SnapToNode();
     }
 
     public string PortName { get; }
@@ -101,6 +110,20 @@ public sealed class PipePortModel : PortModel
 
     /// <summary>Vertical center of the port inside the node widget.</summary>
     public double OffsetY => PipeNodeModel.HeaderHeight + Index * PipeNodeModel.PortSpacing + PipeNodeModel.PortSpacing / 2;
+
+    /// <summary>Top left corner of the port circle in diagram coordinates.</summary>
+    public Point ExpectedPosition => new(
+        Parent.Position.X + (IsInput ? BorderLeft - Overhang : PipeNodeModel.Width - BorderLeft + Overhang - Diameter),
+        Parent.Position.Y + BorderTop + OffsetY - Diameter / 2);
+
+    private void SnapToNode()
+    {
+        if (Initialized)
+        {
+            Position = ExpectedPosition;
+            Size = new Size(Diameter, Diameter);
+        }
+    }
 
     /// <summary>Links always connect an output with an input of another node, whichever end is dragged.</summary>
     public override bool CanAttachTo(ILinkable other)

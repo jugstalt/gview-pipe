@@ -34,6 +34,7 @@ Open the URL printed in the console (http://localhost:5240 with the `http` profi
 
 - **Hello Pipe**: a manual trigger, Set and Log.
 - **Code Transform**: generates orders with JavaScript, routes them by country with Switch, adds VAT and merges them again.
+- **Item Tools**: splits order lines into items, removes duplicate SKUs, sorts by price, keeps the top 3 and collects them.
 - **Webhook Demo**: answers `POST /webhook/demo` with a greeting. It is inactive until you switch it on.
 
 To run the Shell with the Aspire dashboard (logs, traces, metrics):
@@ -51,7 +52,7 @@ dotnet run --project src/Aspire/gView.Pipe.AppHost
 | `Pipe:DataPath` | `data` | Folder for `workflows/`, `executions/`, `credentials/` and the Data Protection `keys/`. |
 | `Pipe:PluginPath` | `plugins` | Folder with external plugins, one sub folder per plugin: `plugins/<Name>/<Name>.dll`. |
 
-Further options (execution retention, script limits, binary thresholds) are on `PipeCoreOptions` and `PipeFileStoreOptions` and can be set in `Program.cs`.
+The Wait node waits at most one hour; change it with `services.Configure<PipeWaitOptions>(o => o.MaxWait = …)`. Further options (execution retention, script limits, binary thresholds) are on `PipeCoreOptions` and `PipeFileStoreOptions` and can be set in `Program.cs`.
 
 ## Projects
 
@@ -85,8 +86,8 @@ The host must reference the MudBlazor and Z.Blazor.Diagrams CSS/JS plus `_conten
 | Category | Nodes |
 |---|---|
 | Triggers | Manual Trigger, Cron Trigger, Webhook Trigger |
-| Flow | If, Switch, Filter, Merge |
-| Transform | Set, Code |
+| Flow | If, Switch, Filter, Merge, Wait |
+| Transform | Set, Code, Sort, Limit, Aggregate, Split Out, Remove Duplicates |
 | Network | HTTP Request |
 | Utility | Log, No Operation |
 

@@ -5,6 +5,20 @@ namespace gView.Pipe.Plugins.Common;
 /// <summary>Dotted paths (<c>address.city</c>) into JSON objects.</summary>
 static public class PipeJsonPath
 {
+    /// <summary>The value at the path, or null if a part of it is missing.</summary>
+    static public JsonNode? Get(JsonObject root, string path)
+    {
+        JsonNode? current = root;
+        foreach (var part in path.Split('.'))
+        {
+            if (current is not JsonObject obj || !obj.TryGetPropertyValue(part, out current))
+            {
+                return null;
+            }
+        }
+        return current;
+    }
+
     static public void Set(JsonObject root, string path, JsonNode? value)
     {
         var parts = path.Split('.');

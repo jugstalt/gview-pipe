@@ -13,6 +13,7 @@ Date: 2026-10-29 · Status: accepted
 - **Disabled nodes:** they pass all input items through on `main`.
 - **Pin data:** in manual runs, a node with pin data (`PipeWorkflow.PinData`, items per output port) is not executed; it returns the pinned items, and its run is marked `Pinned`. Triggered runs ignore pin data, so production runs never work with test data. Pinned items carry no binaries, because binary content belongs to the execution it came from.
 - **Run to here:** with `PipeExecutionRequest.TargetNodeId`, only the target and the nodes it depends on take part. Start nodes are the roots it can be reached from.
+- **Loops and waiting:** there are no cycles. Repetition is done by calling a sub-workflow per item or batch (planned Execute Workflow node). The Wait node pauses in memory, up to `PipeWaitOptions.MaxWait` (default one hour); a host restart ends a waiting execution. Resumable waits need persisted executions and come later.
 - **Errors:** each node has `RetryCount`, `RetryDelayMs` and `TimeoutSeconds`, plus one of three `OnError` modes:
   - `Stop` (default): fails the execution and cancels running nodes.
   - `Continue`: passes the input on.

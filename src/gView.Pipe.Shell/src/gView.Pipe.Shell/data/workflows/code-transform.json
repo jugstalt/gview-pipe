@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "code-transform",
+  "name": "Code Transform",
+  "description": "Sample: generate items with JavaScript, route them with Switch and merge them back.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "3f6c1a52-9d0e-4b7a-8c11-0a5e2f7d9b01",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "generate",
+      "name": "Generate Orders",
+      "type": "8e9f0a1b-2c3d-4e5f-9a6b-7c8d9e0f1a11",
+      "typeVersion": 1,
+      "parameters": {
+        "mode": "allItems",
+        "code": "const orders = [\n  { id: 1, customer: 'Ada', total: 120, country: 'AT' },\n  { id: 2, customer: 'Grace', total: 40, country: 'DE' },\n  { id: 3, customer: 'Alan', total: 310, country: 'AT' },\n  { id: 4, customer: 'Linus', total: 75, country: 'FI' }\n];\nconsole.log(`generated ${orders.length} orders`);\nreturn orders;"
+      },
+      "position": { "x": 240, "y": 0 }
+    },
+    {
+      "id": "country",
+      "name": "By Country",
+      "type": "7c8d9e0f-1a2b-4c3d-9e4f-5a6b7c8d9e06",
+      "typeVersion": 1,
+      "parameters": { "value": "{{ $json.country }}", "cases": [ "AT", "DE" ] },
+      "position": { "x": 480, "y": 0 }
+    },
+    {
+      "id": "vat-at",
+      "name": "VAT 20%",
+      "type": "5a9b3c7d-2e4f-4a6b-8c1d-9e0f1a2b3c04",
+      "typeVersion": 1,
+      "parameters": { "fields": { "gross": "{{ Math.round($json.total * 1.2 * 100) / 100 }}" } },
+      "position": { "x": 730, "y": -90 }
+    },
+    {
+      "id": "vat-de",
+      "name": "VAT 19%",
+      "type": "5a9b3c7d-2e4f-4a6b-8c1d-9e0f1a2b3c04",
+      "typeVersion": 1,
+      "parameters": { "fields": { "gross": "{{ Math.round($json.total * 1.19 * 100) / 100 }}" } },
+      "position": { "x": 730, "y": 70 }
+    },
+    {
+      "id": "merge",
+      "name": "Merge",
+      "type": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d07",
+      "typeVersion": 1,
+      "parameters": { "mode": "append" },
+      "position": { "x": 980, "y": 0 }
+    },
+    {
+      "id": "log",
+      "name": "Log Totals",
+      "type": "6f7a8b9c-0d1e-4f2a-b3c4-d5e6f7a8b910",
+      "typeVersion": 1,
+      "parameters": { "message": "Order {{ $json.id }} ({{ $json.customer }}): {{ $json.gross }}" },
+      "position": { "x": 1220, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "start", "sourcePort": "main", "targetNodeId": "generate", "targetPort": "main" },
+    { "sourceNodeId": "generate", "sourcePort": "main", "targetNodeId": "country", "targetPort": "main" },
+    { "sourceNodeId": "country", "sourcePort": "case-0", "targetNodeId": "vat-at", "targetPort": "main" },
+    { "sourceNodeId": "country", "sourcePort": "case-1", "targetNodeId": "vat-de", "targetPort": "main" },
+    { "sourceNodeId": "vat-at", "sourcePort": "main", "targetNodeId": "merge", "targetPort": "input1" },
+    { "sourceNodeId": "vat-de", "sourcePort": "main", "targetNodeId": "merge", "targetPort": "input2" },
+    { "sourceNodeId": "merge", "sourcePort": "main", "targetNodeId": "log", "targetPort": "main" }
+  ]
+}

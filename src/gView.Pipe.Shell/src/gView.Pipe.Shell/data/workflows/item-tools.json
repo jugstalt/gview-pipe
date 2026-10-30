@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "item-tools",
+  "name": "Item Tools",
+  "description": "Sample: split order lines into items, remove duplicates, sort, limit and aggregate them.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "3f6c1a52-9d0e-4b7a-8c11-0a5e2f7d9b01",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "orders",
+      "name": "Orders",
+      "type": "8e9f0a1b-2c3d-4e5f-9a6b-7c8d9e0f1a11",
+      "typeVersion": 1,
+      "parameters": {
+        "mode": "allItems",
+        "code": "return [\n  { order: 1, lines: [ { sku: 'pen', price: 2 }, { sku: 'ink', price: 9 } ] },\n  { order: 2, lines: [ { sku: 'pad', price: 4 }, { sku: 'pen', price: 2 } ] },\n  { order: 3, lines: [ { sku: 'lamp', price: 35 } ] }\n];"
+      },
+      "position": { "x": 240, "y": 0 }
+    },
+    {
+      "id": "lines",
+      "name": "Lines",
+      "type": "9e32aa56-9056-4d5e-81bd-254f36ab5e8e",
+      "typeVersion": 1,
+      "parameters": { "field": "lines", "includeOtherFields": false },
+      "position": { "x": 480, "y": 0 }
+    },
+    {
+      "id": "unique",
+      "name": "Unique SKUs",
+      "type": "66640ff1-7fde-47ee-a2f3-ca0b08a62c9f",
+      "typeVersion": 1,
+      "parameters": { "compare": "selectedFields", "fields": [ "sku" ] },
+      "position": { "x": 720, "y": 0 }
+    },
+    {
+      "id": "sort",
+      "name": "Most Expensive",
+      "type": "4dde5db0-ab76-422e-a9f7-ef32d7fb4577",
+      "typeVersion": 1,
+      "parameters": { "fields": [ "price desc" ] },
+      "position": { "x": 960, "y": 0 }
+    },
+    {
+      "id": "limit",
+      "name": "Top 3",
+      "type": "3b4bb3f2-ba00-4c92-9175-eedd0f0e28e0",
+      "typeVersion": 1,
+      "parameters": { "maxItems": 3, "keep": "firstItems" },
+      "position": { "x": 1200, "y": 0 }
+    },
+    {
+      "id": "aggregate",
+      "name": "Collect",
+      "type": "4d1b5980-4a4a-4e32-9a57-c19ca053d6f2",
+      "typeVersion": 1,
+      "parameters": { "mode": "individualFields", "fields": [ "sku" ] },
+      "position": { "x": 1440, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "start", "sourcePort": "main", "targetNodeId": "orders", "targetPort": "main" },
+    { "sourceNodeId": "orders", "sourcePort": "main", "targetNodeId": "lines", "targetPort": "main" },
+    { "sourceNodeId": "lines", "sourcePort": "main", "targetNodeId": "unique", "targetPort": "main" },
+    { "sourceNodeId": "unique", "sourcePort": "main", "targetNodeId": "sort", "targetPort": "main" },
+    { "sourceNodeId": "sort", "sourcePort": "main", "targetNodeId": "limit", "targetPort": "main" },
+    { "sourceNodeId": "limit", "sourcePort": "main", "targetNodeId": "aggregate", "targetPort": "main" }
+  ]
+}

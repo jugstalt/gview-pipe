@@ -48,7 +48,8 @@ public sealed class PluginLoadingTests : IDisposable
         var manual = registry.Find(Guid.Parse(PipeBuiltInNodes.ManualTrigger));
 
         Assert.NotNull(manual);
-        Assert.Equal(12, registry.Nodes.Count);
+        // every id in PipeBuiltInNodes belongs to exactly one node type
+        Assert.Equal(typeof(PipeBuiltInNodes).GetFields().Length, registry.Nodes.Count);
         Assert.Equal(4, provider.GetRequiredService<IPipeCredentialTypeRegistry>().CredentialTypes.Count);
         Assert.NotSame(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(manual!.NodeType.Assembly));
         Assert.Same(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(typeof(IPipeNode).Assembly));
@@ -71,6 +72,7 @@ public sealed class PluginLoadingTests : IDisposable
     [InlineData("hello-pipe.json")]
     [InlineData("code-transform.json")]
     [InlineData("webhook-demo.json")]
+    [InlineData("item-tools.json")]
     public async Task Every_sample_workflow_runs_manually(string file)
     {
         var workflow = PipeJson.Deserialize<PipeWorkflow>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Samples", file)))!;
@@ -90,6 +92,16 @@ public sealed class PluginLoadingTests : IDisposable
         // Linus (FI) matches no case and goes to the unconnected fallback port
         Assert.Equal([144.0, 372.0, 47.6], execution.Output("merge").Select(j => j["gross"]!.GetValue<double>()));
         Assert.Equal(3, execution.NodeRuns["log"].Logs.Count(l => l.Message.Contains("Order")));
+    }
+
+    [Fact]
+    public async Task Item_tools_sample_collects_the_most_expensive_unique_skus()
+    {
+        var workflow = PipeJson.Deserialize<PipeWorkflow>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Samples", "item-tools.json")))!;
+
+        var execution = await PluginTestHost.RunAsync(workflow);
+
+        Assert.Equal("""{"sku":["lamp","ink","pad"]}""", Assert.Single(execution.Output("aggregate")).ToJsonString());
     }
 
     static private PipeWorkflow SampleWorkflow()

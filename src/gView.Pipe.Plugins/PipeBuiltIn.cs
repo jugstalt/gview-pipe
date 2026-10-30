@@ -15,6 +15,12 @@ static public class PipeBuiltInNodes
     public const string NoOp = "4e5f6a7b-8c9d-4e0f-a1b2-c3d4e5f6a709";
     public const string Log = "6f7a8b9c-0d1e-4f2a-b3c4-d5e6f7a8b910";
     public const string Code = "8e9f0a1b-2c3d-4e5f-9a6b-7c8d9e0f1a11";
+    public const string Sort = "4dde5db0-ab76-422e-a9f7-ef32d7fb4577";
+    public const string Limit = "3b4bb3f2-ba00-4c92-9175-eedd0f0e28e0";
+    public const string Aggregate = "4d1b5980-4a4a-4e32-9a57-c19ca053d6f2";
+    public const string SplitOut = "9e32aa56-9056-4d5e-81bd-254f36ab5e8e";
+    public const string RemoveDuplicates = "66640ff1-7fde-47ee-a2f3-ca0b08a62c9f";
+    public const string Wait = "65f9894e-ae0f-4bbb-9b04-6652aabaed61";
 }
 
 /// <summary>Ids of the built-in credential types.</summary>
