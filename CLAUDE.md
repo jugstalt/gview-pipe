@@ -59,4 +59,12 @@ dotnet run --project src/Aspire/gView.Pipe.AppHost
 
 The Shell keeps its runtime state in `src/gView.Pipe.Shell/data/`, which Git ignores; never commit it. It loads external plugins from `plugins/<Name>/<Name>.dll`.
 
+## Dev containers
+
+The AppHost can start optional containers. They are switched on by uncommenting the `#define` lines at the top of `src/Aspire/gView.Pipe.AppHost/AppHost.cs`, as in webgis. They are persistent and not wired into the Shell: enter hosts and ports in the Pipe credentials yourself.
+
+- `ADD_MAILPIT`: Mailpit for the Send Mail node, with SMTP on `localhost:1025` and the UI at http://localhost:8025.
+- `ADD_GITEA`: Gitea for Run Scripts with Git, at http://localhost:3000 (SSH on port 2222). Login is `gitea`/`gitea`.
+- `ADD_IDENTITYSERVER`: IdentityServer.NET at https://localhost:8443 with admin password `admin`. Client `local-gview-pipe`/`secret` for `https://localhost:7240` is prepared for future authentication.
+
 Sample workflows live in `samples/workflows/`. They are seeded into an empty `data/workflows/` on first start, and the plugin tests run them too.

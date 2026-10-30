@@ -10,6 +10,8 @@
   <ItemGroup>
     <!-- lifts the transitive MessagePack of Aspire.Hosting above the versions with known advisories -->
     <PackageReference Include="MessagePack" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" />
+    <PackageReference Include="IdentityServerNET.Aspire.Hosting" IsAspireProjectResource="false" />
   </ItemGroup>
 
   <ItemGroup>
