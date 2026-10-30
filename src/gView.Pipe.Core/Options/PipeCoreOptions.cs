@@ -39,6 +39,9 @@ public class PipeCoreOptions
     /// <summary>Executions kept per workflow.</summary>
     public int ExecutionRetention { get; set; } = 50;
 
+    /// <summary>Maximum nesting of sub-workflow calls (Execute Workflow), so recursion can't run forever.</summary>
+    public int MaxSubWorkflowDepth { get; set; } = 10;
+
     /// <summary>Limits for JavaScript in expressions and Code nodes.</summary>
     public PipeScriptOptions Scripts { get; } = new();
 

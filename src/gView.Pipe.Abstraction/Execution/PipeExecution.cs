@@ -16,6 +16,14 @@ public sealed class PipeExecution
     public string? Error { get; set; }
     public string? ErrorNodeId { get; set; }
 
+    /// <summary>Execution that started this one: the caller of a sub-workflow, or the failed run of an error workflow.</summary>
+    public string? ParentExecutionId { get; set; }
+
+    public string? ParentWorkflowId { get; set; }
+
+    /// <summary>Nesting level of sub-workflow calls; 0 for top-level executions.</summary>
+    public int Depth { get; set; }
+
     /// <summary>False when the workflow is configured not to store item data.</summary>
     public bool DataSaved { get; set; } = true;
 
@@ -55,7 +63,13 @@ public sealed record PipeLogEntry(DateTimeOffset Timestamp, LogLevel Level, stri
 public enum PipeExecutionMode
 {
     Manual,
-    Trigger
+    Trigger,
+
+    /// <summary>Called by an Execute Workflow node of another execution.</summary>
+    SubWorkflow,
+
+    /// <summary>Error workflow, started because another execution failed.</summary>
+    Error
 }
 
 public enum PipeExecutionStatus

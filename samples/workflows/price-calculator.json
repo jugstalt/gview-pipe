@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "price-calculator",
+  "name": "Price Calculator",
+  "description": "Sample sub-workflow: adds 20 % VAT. Called by 'Sub-workflow Demo'; run it alone to test it with an empty item.",
+  "active": false,
+  "settings": { "maxConcurrentRuns": 5, "saveExecutionData": true },
+  "nodes": [
+    {
+      "id": "in",
+      "name": "When Called",
+      "type": "bd47c3b0-0e64-4234-ae83-1f465875ac34",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "vat",
+      "name": "Add VAT",
+      "type": "5a9b3c7d-2e4f-4a6b-8c1d-9e0f1a2b3c04",
+      "typeVersion": 1,
+      "parameters": {
+        "fields": { "gross": "{{ Math.round(($json.net ?? 0) * 1.2 * 100) / 100 }}", "batchSize": "{{ $input.all().length }}" }
+      },
+      "position": { "x": 240, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "in", "sourcePort": "main", "targetNodeId": "vat", "targetPort": "main" }
+  ]
+}

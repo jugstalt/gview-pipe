@@ -17,6 +17,7 @@ public enum PipeFieldKind
     Enum,
     Json,
     Credential,
+    Workflow,
     Dictionary,
     List,
     RawJson
@@ -68,7 +69,9 @@ static public class PipeParameterFields
         var credential = property.GetCustomAttribute<PipeCredentialAttribute>();
         var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
-        var kind = credential is not null ? PipeFieldKind.Credential : KindOf(propertyType);
+        var kind = credential is not null ? PipeFieldKind.Credential
+            : property.GetCustomAttribute<PipeWorkflowReferenceAttribute>() is not null ? PipeFieldKind.Workflow
+            : KindOf(propertyType);
         var itemKind = kind switch
         {
             PipeFieldKind.Dictionary => ValueKindOf(propertyType.GetGenericArguments()[1]),
@@ -89,7 +92,7 @@ static public class PipeParameterFields
             Multiline = parameter?.Multiline == true || parameter?.Code == true,
             Code = parameter?.Code ?? false,
             Expressions = (parameter?.Expressions ?? true) && parameter?.Code != true
-                          && kind is not (PipeFieldKind.Boolean or PipeFieldKind.Enum or PipeFieldKind.Credential),
+                          && kind is not (PipeFieldKind.Boolean or PipeFieldKind.Enum or PipeFieldKind.Credential or PipeFieldKind.Workflow),
             Required = property.GetCustomAttribute<RequiredAttribute>() is not null,
             Secret = property.GetCustomAttribute<SecretAttribute>() is not null,
             EnumValues = propertyType.IsEnum

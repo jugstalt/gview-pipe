@@ -1,5 +1,6 @@
 using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Data;
+using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Expressions;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Nodes;
@@ -40,6 +41,15 @@ public interface IPipeNodeContext
         where TData : class, new();
 
     IPipeBinaryStore BinaryStore { get; }
+
+    /// <summary>
+    /// Runs another workflow as a sub-workflow, starting at its <see cref="Triggers.IPipeSubWorkflowTrigger"/> node
+    /// with <paramref name="items"/>, and returns its execution once it has finished (successful or not).
+    /// The sub-workflow shares this execution's binary store.
+    /// </summary>
+    /// <exception cref="PipeException">The workflow doesn't exist, has no such trigger, is already running too often,
+    /// or the nesting limit is reached.</exception>
+    Task<PipeExecution> ExecuteWorkflowAsync(string workflowId, IReadOnlyList<PipeItem> items, CancellationToken cancellationToken = default);
 
     ILogger Logger { get; }
 

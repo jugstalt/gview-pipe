@@ -18,6 +18,9 @@
                      Value="Workflow.Settings.MaxConcurrentRuns" ValueChanged="v => ChangeAsync(() => Workflow.Settings.MaxConcurrentRuns = v)" />
     <MudSwitch T="bool" Label="Save item data of executions" Color="Color.Primary"
                Value="Workflow.Settings.SaveExecutionData" ValueChanged="v => ChangeAsync(() => Workflow.Settings.SaveExecutionData = v)" />
+    <PipeWorkflowSelect Label="Error workflow" ExcludeId="@Workflow.Id"
+                        HelperText="Runs (via its Error Trigger) when a triggered run of this workflow fails"
+                        Value="@Workflow.Settings.ErrorWorkflowId" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ErrorWorkflowId = v)" />
 </MudStack>
 
 <MudDivider />

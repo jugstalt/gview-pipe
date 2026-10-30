@@ -23,6 +23,20 @@ public sealed class PipeExecutionRequest
 
     public string? ExecutionId { get; init; }
 
+    /// <summary>See <see cref="PipeExecution.ParentExecutionId"/>.</summary>
+    public string? ParentExecutionId { get; init; }
+
+    public string? ParentWorkflowId { get; init; }
+
+    /// <summary>See <see cref="PipeExecution.Depth"/>.</summary>
+    public int Depth { get; init; }
+
+    /// <summary>
+    /// Binary store to use instead of a new one (e.g. the caller's, so a sub-workflow can read and return binaries).
+    /// The engine doesn't dispose it.
+    /// </summary>
+    public IPipeBinaryStore? BinaryStore { get; init; }
+
     /// <summary>Content for binary references of <see cref="InputItems"/>, moved into the execution's binary store.</summary>
     public IReadOnlyDictionary<string, byte[]>? BinaryContent { get; init; }
 }

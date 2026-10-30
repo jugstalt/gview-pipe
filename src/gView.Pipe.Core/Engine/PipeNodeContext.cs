@@ -1,11 +1,15 @@
 using gView.Pipe.Abstraction;
 using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Data;
+using gView.Pipe.Abstraction.Execution;
+using gView.Pipe.Abstraction.Triggers;
 using gView.Pipe.Abstraction.Expressions;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Expressions;
+using gView.Pipe.Core.Options;
+using Microsoft.Extensions.Options;
 using gView.Pipe.Abstraction.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -72,5 +76,34 @@ internal sealed class PipeNodeContext : IPipeNodeContext
     {
         var credential = await GetCredentialAsync(credentialId, cancellationToken);
         return credential.Data.Deserialize<TData>(PipeJson.Options) ?? new TData();
+    }
+
+    public async Task<PipeExecution> ExecuteWorkflowAsync(string workflowId, IReadOnlyList<PipeItem> items, CancellationToken cancellationToken = default)
+    {
+        var execution = _state.Execution;
+        var maxDepth = Services.GetRequiredService<IOptions<PipeCoreOptions>>().Value.MaxSubWorkflowDepth;
+        if (execution.Depth >= maxDepth)
+        {
+            throw new PipeException($"Sub-workflows are nested more than {maxDepth} levels deep; is a workflow calling itself?");
+        }
+
+        var workflow = await Services.GetRequiredService<IPipeWorkflowStore>().GetAsync(workflowId, cancellationToken)
+            ?? throw new PipeException($"Workflow '{workflowId}' not found");
+        var entry = PipeEntryNodes.Find<IPipeSubWorkflowTrigger>(workflow, Services.GetRequiredService<IPipeNodeRegistry>())
+            ?? throw new PipeException($"Workflow '{workflow.Name}' has no Execute Workflow Trigger");
+
+        var request = new PipeExecutionRequest
+        {
+            Mode = PipeExecutionMode.SubWorkflow,
+            StartNodeId = entry.Id,
+            InputItems = items,
+            ParentExecutionId = execution.Id,
+            ParentWorkflowId = execution.WorkflowId,
+            Depth = execution.Depth + 1,
+            BinaryStore = BinaryStore
+        };
+
+        return await Services.GetRequiredService<IPipeWorkflowRunner>().RunAsync(workflow, request, cancellationToken)
+            ?? throw new PipeException($"Workflow '{workflow.Name}' is already running {workflow.Settings.MaxConcurrentRuns} time(s); raise its max concurrent runs to call it in parallel");
     }
 }

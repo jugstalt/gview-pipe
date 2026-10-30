@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "api-demo",
+  "name": "API Demo",
+  "description": "Sample: POST { \"name\": \"Ada\" } to /webhook/api/greet; answers 200 with a greeting or 400 without a name. Activate it first.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "hook",
+      "name": "Webhook",
+      "type": "f1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b12",
+      "typeVersion": 1,
+      "parameters": { "path": "api/greet", "method": "post", "responseMode": "usingRespondNode", "timeoutSeconds": 10 },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "check",
+      "name": "Has Name",
+      "type": "e1f2a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a05",
+      "typeVersion": 1,
+      "parameters": { "value1": "{{ $json.body?.name ?? '' }}", "operation": "isNotEmpty" },
+      "position": { "x": 240, "y": 0 }
+    },
+    {
+      "id": "ok",
+      "name": "Respond 200",
+      "type": "5aaad06c-980a-4e67-8c1e-40cf04926333",
+      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "customBody",
+        "body": "{{ { greeting: 'Hello ' + $json.body.name + '!', at: $now } }}",
+        "statusCode": 200,
+        "headers": {}
+      },
+      "position": { "x": 500, "y": -80 }
+    },
+    {
+      "id": "bad",
+      "name": "Respond 400",
+      "type": "5aaad06c-980a-4e67-8c1e-40cf04926333",
+      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "customBody",
+        "body": "{{ { error: 'name is required' } }}",
+        "statusCode": 400,
+        "headers": {}
+      },
+      "position": { "x": 500, "y": 80 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "hook", "sourcePort": "main", "targetNodeId": "check", "targetPort": "main" },
+    { "sourceNodeId": "check", "sourcePort": "true", "targetNodeId": "ok", "targetPort": "main" },
+    { "sourceNodeId": "check", "sourcePort": "false", "targetNodeId": "bad", "targetPort": "main" }
+  ]
+}

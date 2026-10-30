@@ -13,7 +13,9 @@
 | **Parameters** | Configuration of a node. Declared as a POCO class (`IPipeNode<TParameters>`), stored as JSON. String values may contain expressions. | `PipeParameterAttribute` |
 | **Expression** | `{{ … }}` inside a parameter value: JavaScript, evaluated per item in a sandbox. Variables: `$json`, `$input`, `$node["Name"].json` / `.all`, `$itemIndex`, `$now`, `$workflow`, `$execution`. | `IPipeExpressionEvaluator` |
 | **Script** | A JavaScript function body run by a node (e.g. Code), with the same variables as expressions. | `IPipeScriptRunner` |
-| **Trigger** | A node type that starts executions (manual, cron, later webhook). Has no inputs. | `IPipeTriggerNode` |
+| **Trigger** | A node type that starts executions (manual, cron, webhook, sub-workflow call, error). Has no inputs. | `IPipeTriggerNode` |
+| **Sub-workflow** | A workflow run by the Execute Workflow node of another execution, starting at its Execute Workflow Trigger. Shares the caller's binary store; nesting is limited (default 10). Calling it per item or per batch is how loops are built. | `IPipeNodeContext.ExecuteWorkflowAsync`, `IPipeSubWorkflowTrigger` |
+| **Error workflow** | Workflow named in another workflow's settings; its Error Trigger runs when a triggered (not manual) run of that workflow fails. | `PipeWorkflowSettings.ErrorWorkflowId`, `IPipeErrorTrigger` |
 | **Webhook** | Trigger that starts a workflow when `/webhook/{path}` is called. The path is unique across all active workflows. It answers immediately (202) or with the output of the last node. | `PipeWebhookRegistration`, `IPipeWebhookRouter` |
 | **Node hint** | An info or warning a node shows in the editor depending on its parameters (e.g. the webhook URL). | `IPipeNodeHints` |
 | **Active workflow** | A workflow whose triggers are armed (e.g. its cron schedule runs). | `PipeWorkflow.Active`, `IPipeTriggerManager` |

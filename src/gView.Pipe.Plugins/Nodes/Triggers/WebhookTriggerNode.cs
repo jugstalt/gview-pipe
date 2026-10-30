@@ -4,7 +4,9 @@ using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Serialization;
 using gView.Pipe.Abstraction.Triggers;
+using gView.Pipe.Plugins.Common;
 using gView.Pipe.Plugins.Credentials;
+using gView.Pipe.Plugins.Nodes.Network;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
@@ -30,7 +32,10 @@ public enum WebhookResponseMode
     Immediately,
 
     /// <summary>Waits for the execution and returns the items of the last executed node.</summary>
-    WhenFinished
+    WhenFinished,
+
+    /// <summary>Waits until a Respond to Webhook node answers (or the execution ends without one).</summary>
+    UsingRespondNode
 }
 
 public sealed class WebhookTriggerNodeParameters
@@ -46,7 +51,7 @@ public sealed class WebhookTriggerNodeParameters
     public WebhookResponseMode ResponseMode { get; set; } = WebhookResponseMode.Immediately;
 
     [PipeParameter(Label = "Wait timeout (seconds)", Order = 4, Expressions = false,
-        Description = "When responding after the run: after this time 202 is returned and the run continues")]
+        Description = "When waiting for the run or a respond node: after this time 202 is returned and the run continues")]
     public int TimeoutSeconds { get; set; } = 30;
 
     [PipeCredential(PipeBuiltInCredentials.BasicAuth, PipeBuiltInCredentials.BearerToken, PipeBuiltInCredentials.ApiKeyHeader)]
@@ -139,6 +144,9 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
         var (item, binaryContent) = ToItem(request, hiddenHeaders);
         var executionId = Guid.NewGuid().ToString("N");
 
+        // registered before the run starts, so a fast respond node can't miss it
+        using var waiting = parameters.ResponseMode == WebhookResponseMode.UsingRespondNode ? PipeWebhookResponses.Wait(executionId) : null;
+
         // the run must not stop when the caller disconnects
         var run = context.FireAsync([item], CancellationToken.None, new PipeTriggerFireOptions { ExecutionId = executionId, BinaryContent = binaryContent });
 
@@ -151,6 +159,11 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
         }
 
         var timeout = TimeSpan.FromSeconds(Math.Max(1, parameters.TimeoutSeconds));
+        if (waiting is not null)
+        {
+            return await RespondNodeResponseAsync(waiting, run, executionId, timeout, cancellationToken);
+        }
+
         if (await Task.WhenAny(run, Task.Delay(timeout, cancellationToken)) != run)
         {
             return PipeWebhookResponse.Json(202, new JsonObject { ["executionId"] = executionId, ["status"] = "running" });
@@ -161,6 +174,38 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
             null => PipeWebhookResponse.Error(429, "The workflow is already running (max concurrent runs reached)"),
             { Status: not PipeExecutionStatus.Success } failed => PipeWebhookResponse.Error(500, failed.Error ?? failed.Status.ToString(), executionId),
             var execution => PipeWebhookResponse.Json(200, ResponseBody(execution))
+        };
+    }
+
+    /// <summary>The respond node's answer; without one, the run's error or a hint that no respond node ran.</summary>
+    static private async Task<PipeWebhookResponse> RespondNodeResponseAsync(
+        PipeWebhookResponses.Waiting waiting,
+        Task<PipeExecution?> run,
+        string executionId,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        var finished = await Task.WhenAny(waiting.Response, run, Task.Delay(timeout, cancellationToken));
+        if (finished == waiting.Response)
+        {
+            return await waiting.Response;
+        }
+        if (finished != run)
+        {
+            return PipeWebhookResponse.Json(202, new JsonObject { ["executionId"] = executionId, ["status"] = "running" });
+        }
+
+        // the respond node may have answered just before the run ended
+        if (waiting.Response.IsCompleted)
+        {
+            return await waiting.Response;
+        }
+
+        return await run switch
+        {
+            null => PipeWebhookResponse.Error(429, "The workflow is already running (max concurrent runs reached)"),
+            { Status: not PipeExecutionStatus.Success } failed => PipeWebhookResponse.Error(500, failed.Error ?? failed.Status.ToString(), executionId),
+            _ => PipeWebhookResponse.Error(500, "The workflow finished without reaching a Respond to Webhook node", executionId)
         };
     }
 
@@ -243,14 +288,7 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
     /// <summary>Items of the node that finished last: one item as object, several as array.</summary>
     static private JsonNode ResponseBody(PipeExecution execution)
     {
-        var last = execution.NodeRuns.Values
-            .Where(r => r.Status == PipeNodeRunStatus.Success && r.Outputs is not null)
-            .OrderByDescending(r => r.FinishedAt)
-            .FirstOrDefault();
-
-        var items = last?.Outputs is { } outputs
-            ? outputs.TryGetValue(PipePorts.Main, out var main) ? main : outputs.Values.SelectMany(i => i).ToList()
-            : [];
+        var items = PipeExecutionOutput.LastNodeItems(execution);
 
         return items.Count == 1
             ? items[0].Json.DeepClone()

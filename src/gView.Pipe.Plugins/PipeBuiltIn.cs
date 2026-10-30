@@ -21,6 +21,10 @@ static public class PipeBuiltInNodes
     public const string SplitOut = "9e32aa56-9056-4d5e-81bd-254f36ab5e8e";
     public const string RemoveDuplicates = "66640ff1-7fde-47ee-a2f3-ca0b08a62c9f";
     public const string Wait = "65f9894e-ae0f-4bbb-9b04-6652aabaed61";
+    public const string ExecuteWorkflow = "a02238ee-6819-42b5-8b15-837078d74adc";
+    public const string ExecuteWorkflowTrigger = "bd47c3b0-0e64-4234-ae83-1f465875ac34";
+    public const string ErrorTrigger = "c102a313-b62c-4465-bf28-139c6b1ebbb0";
+    public const string RespondToWebhook = "5aaad06c-980a-4e67-8c1e-40cf04926333";
 }
 
 /// <summary>Ids of the built-in credential types.</summary>

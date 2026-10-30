@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "sub-workflow-demo",
+  "name": "Sub-workflow Demo",
+  "description": "Sample: calls 'Price Calculator' per batch of 2 items, like the body of a loop. Errors go to 'Error Alerts'.",
+  "active": false,
+  "settings": { "maxConcurrentRuns": 1, "saveExecutionData": true, "errorWorkflowId": "error-alerts" },
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "3f6c1a52-9d0e-4b7a-8c11-0a5e2f7d9b01",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "products",
+      "name": "Products",
+      "type": "8e9f0a1b-2c3d-4e5f-9a6b-7c8d9e0f1a11",
+      "typeVersion": 1,
+      "parameters": {
+        "mode": "allItems",
+        "code": "return [\n  { product: 'pen', net: 2 },\n  { product: 'ink', net: 9 },\n  { product: 'pad', net: 4 },\n  { product: 'lamp', net: 35 },\n  { product: 'desk', net: 240 }\n];"
+      },
+      "position": { "x": 240, "y": 0 }
+    },
+    {
+      "id": "calculate",
+      "name": "Calculate Prices",
+      "type": "a02238ee-6819-42b5-8b15-837078d74adc",
+      "typeVersion": 1,
+      "parameters": { "workflowId": "price-calculator", "mode": "batches", "batchSize": 2 },
+      "position": { "x": 480, "y": 0 }
+    },
+    {
+      "id": "log",
+      "name": "Log Prices",
+      "type": "6f7a8b9c-0d1e-4f2a-b3c4-d5e6f7a8b910",
+      "typeVersion": 1,
+      "parameters": { "message": "{{ $json.product }}: {{ $json.gross }} (batch of {{ $json.batchSize }})" },
+      "position": { "x": 720, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "start", "sourcePort": "main", "targetNodeId": "products", "targetPort": "main" },
+    { "sourceNodeId": "products", "sourcePort": "main", "targetNodeId": "calculate", "targetPort": "main" },
+    { "sourceNodeId": "calculate", "sourcePort": "main", "targetNodeId": "log", "targetPort": "main" }
+  ]
+}

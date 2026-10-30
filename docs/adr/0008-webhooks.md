@@ -26,6 +26,8 @@ Most real workflows are started from outside by an HTTP call. Core must stay fre
 - **Response modes:**
   - "Immediately" answers 202 with `executionId`.
   - "When finished" waits for the run, up to the timeout. It answers with the items of the node that finished last: one item as an object, several as an array. After the timeout it answers 202 and the run continues.
+  - "Using respond node" waits until a **Respond to Webhook** node answers with its own status code, headers and body (first item, all items, a custom body or none). The workflow goes on after responding. If the run ends without reaching a respond node, the caller gets 500; after the timeout, 202. The trigger registers the waiting call by execution id before the run starts, so a fast respond node can't miss it.
+  - A response with its own non-JSON `Content-Type` and a text body is written as plain text (e.g. HTML).
   - Runs are never canceled when the caller disconnects.
 - **Editor hints:** Nodes can show hints next to their parameters (`IPipeNodeHints`). The webhook uses this for its URL and for a warning when it is public.
 

@@ -35,3 +35,9 @@ public sealed class PipeCredentialAttribute : Attribute
 
     public Guid[] CredentialTypeIds { get; }
 }
+
+/// <summary>Marks a string property that holds the id of a stored workflow; the editor offers a workflow picker.</summary>
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class PipeWorkflowReferenceAttribute : Attribute
+{
+}

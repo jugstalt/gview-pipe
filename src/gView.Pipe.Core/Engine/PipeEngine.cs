@@ -58,6 +58,9 @@ internal sealed class PipeEngine : IPipeEngine
             WorkflowId = workflow.Id,
             WorkflowName = workflow.Name,
             Mode = request.Mode,
+            ParentExecutionId = request.ParentExecutionId,
+            ParentWorkflowId = request.ParentWorkflowId,
+            Depth = request.Depth,
             Status = PipeExecutionStatus.Running,
             StartedAt = DateTimeOffset.UtcNow
         };
@@ -70,10 +73,16 @@ internal sealed class PipeEngine : IPipeEngine
             var graph = PipeWorkflowGraph.Build(workflow);
             var startNodeIds = ResolveStartNodes(graph, request);
 
-            await using var binaryStore = new PipeExecutionBinaryStore(_options.BinaryMemoryThreshold, _options.TempPath);
+            // a caller's store (sub-workflow) stays open; it belongs to the caller
+            await using var ownStore = request.BinaryStore is null ? new PipeExecutionBinaryStore(_options.BinaryMemoryThreshold, _options.TempPath) : null;
+            var binaryStore = request.BinaryStore ?? ownStore!;
             foreach (var (id, content) in request.BinaryContent ?? new Dictionary<string, byte[]>())
             {
-                await binaryStore.AddAsync(id, content, cancellationToken);
+                if (ownStore is null)
+                {
+                    throw new PipeException("Binary content can't be added to a caller's binary store");
+                }
+                await ownStore.AddAsync(id, content, cancellationToken);
             }
             await using var scope = _scopeFactory.CreateAsyncScope();
 

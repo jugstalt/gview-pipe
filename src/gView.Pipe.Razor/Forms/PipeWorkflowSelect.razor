@@ -1,0 +1,37 @@
+@inject IPipeWorkflowStore WorkflowStore
+
+@* Picks a stored workflow by id. An id that no longer exists stays visible, so it isn't lost silently. *@
+
+<MudSelect T="string" Label="@Label" Dense="true" Variant="Variant.Outlined" Clearable="true" HelperText="@HelperText"
+           Value="@Value" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
+    @foreach (var workflow in _workflows)
+    {
+        <MudSelectItem Value="@workflow.Id">@workflow.Name</MudSelectItem>
+    }
+    @if (!string.IsNullOrEmpty(Value) && _loaded && _workflows.All(w => w.Id != Value))
+    {
+        <MudSelectItem Value="@Value">Missing workflow '@Value'</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Not offered, e.g. the workflow being edited.</summary>
+    [Parameter] public string? ExcludeId { get; set; }
+
+    private IReadOnlyList<PipeWorkflow> _workflows = [];
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _workflows = (await WorkflowStore.ListAsync())
+            .Where(w => w.Id != ExcludeId)
+            .OrderBy(w => w.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        _loaded = true;
+    }
+}

@@ -127,10 +127,21 @@ static internal class PipeWebhookEndpoint
             context.Response.Headers[name] = value;
         }
 
-        if (response.Body is not null)
+        if (response.Body is null)
         {
-            context.Response.ContentType = "application/json; charset=utf-8";
-            await context.Response.WriteAsync(response.Body.ToJsonString(ResponseJson), context.RequestAborted);
+            return;
         }
+
+        // a text body with its own non-JSON content type (e.g. text/html from a respond node) is written as is
+        var contentType = response.Headers.GetValueOrDefault("Content-Type");
+        if (contentType is not null && !contentType.Contains("json", StringComparison.OrdinalIgnoreCase)
+            && response.Body is JsonValue text && text.GetValueKind() == JsonValueKind.String)
+        {
+            await context.Response.WriteAsync(text.GetValue<string>(), context.RequestAborted);
+            return;
+        }
+
+        context.Response.ContentType = contentType ?? "application/json; charset=utf-8";
+        await context.Response.WriteAsync(response.Body.ToJsonString(ResponseJson), context.RequestAborted);
     }
 }

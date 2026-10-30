@@ -53,6 +53,11 @@ else
                     </MudSelect>
                     break;
 
+                case PipeFieldKind.Workflow:
+                    <PipeWorkflowSelect Label="@(field.Required ? field.Label + " *" : field.Label)" HelperText="@field.Description"
+                                        Value="@PipeJsonText.ToText(value)" ValueChanged="v => SetAsync(field, v is null ? null : JsonValue.Create(v))" />
+                    break;
+
                 case PipeFieldKind.Dictionary:
                     <PipeKeyValueField Field="field" Value="@(value as JsonObject)" ValueChanged="v => SetAsync(field, v)" OnExpressionFieldFocused="OnExpressionFieldFocused" />
                     break;

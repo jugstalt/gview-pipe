@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "error-alerts",
+  "name": "Error Alerts",
+  "description": "Sample error workflow: logs failed triggered runs of workflows that name it as their error workflow.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "error",
+      "name": "On Error",
+      "type": "c102a313-b62c-4465-bf28-139c6b1ebbb0",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "log",
+      "name": "Log Failure",
+      "type": "6f7a8b9c-0d1e-4f2a-b3c4-d5e6f7a8b910",
+      "typeVersion": 1,
+      "parameters": {
+        "message": "Workflow {{ $json.workflow?.name }} failed in node {{ $json.node?.name }}: {{ $json.execution?.error }}",
+        "level": "error"
+      },
+      "position": { "x": 240, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "error", "sourcePort": "main", "targetNodeId": "log", "targetPort": "main" }
+  ]
+}

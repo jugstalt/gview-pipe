@@ -4,6 +4,7 @@ using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Extensions.DependencyInjection;
 using gView.Pipe.Abstraction.Serialization;
+using gView.Pipe.Abstraction.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.Loader;
 
@@ -73,13 +74,36 @@ public sealed class PluginLoadingTests : IDisposable
     [InlineData("code-transform.json")]
     [InlineData("webhook-demo.json")]
     [InlineData("item-tools.json")]
+    [InlineData("sub-workflow-demo.json")]
+    [InlineData("price-calculator.json")]
+    [InlineData("error-alerts.json")]
+    [InlineData("api-demo.json")]
     public async Task Every_sample_workflow_runs_manually(string file)
     {
-        var workflow = PipeJson.Deserialize<PipeWorkflow>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Samples", file)))!;
+        // all samples are stored, so samples calling others (sub-workflows) find them
+        using var services = PluginTestHost.Create();
+        var store = services.GetRequiredService<IPipeWorkflowStore>();
+        foreach (var path in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Samples"), "*.json"))
+        {
+            await store.SaveAsync(PipeJson.Deserialize<PipeWorkflow>(File.ReadAllText(path))!);
+        }
 
-        var execution = await PluginTestHost.RunAsync(workflow);
+        var execution = await services.GetRequiredService<IPipeWorkflowRunner>().RunAsync(Path.GetFileNameWithoutExtension(file));
 
+        Assert.Equal(PipeExecutionStatus.Success, execution!.Status);
         Assert.All(execution.NodeRuns.Values, run => Assert.NotEqual(PipeNodeRunStatus.Error, run.Status));
+    }
+
+    [Fact]
+    public void Sample_list_covers_every_sample_file()
+    {
+        var tested = typeof(PluginLoadingTests).GetMethod(nameof(Every_sample_workflow_runs_manually))!
+            .GetCustomAttributes(typeof(InlineDataAttribute), false).Cast<InlineDataAttribute>()
+            .Select(a => (string)a.Data[0]!);
+
+        Assert.Equal(
+            Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Samples"), "*.json").Select(Path.GetFileName).Order(),
+            tested.Order());
     }
 
     [Fact]

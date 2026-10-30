@@ -105,6 +105,64 @@ public sealed class WebhookTriggerTests : IAsyncLifetime
         Assert.False(headers.ContainsKey("cookie"));
     }
 
+    static private PipeWorkflow RespondingWorkflow(string path, object respondParameters, bool withRespondNode = true)
+    {
+        var builder = new PipeWorkflowBuilder("Api")
+            .Node("hook", PipeBuiltInNodes.WebhookTrigger, new { path, responseMode = "usingRespondNode", timeoutSeconds = 5 })
+            .Node("respond", withRespondNode ? PipeBuiltInNodes.RespondToWebhook : PipeBuiltInNodes.NoOp, respondParameters)
+            // the workflow goes on after responding
+            .Node("after", PipeBuiltInNodes.Wait, new { amount = 0.2 })
+            .Connect("hook", "respond")
+            .Connect("respond", "after");
+        return builder.Configure(w => w.Active = true).Build();
+    }
+
+    [Fact]
+    public async Task Respond_node_sets_status_body_and_headers_before_the_run_ends()
+    {
+        await ActivateAsync(RespondingWorkflow("api/orders", new
+        {
+            respondWith = "customBody",
+            body = "{{ { accepted: $json.body.name } }}",
+            statusCode = 201,
+            headers = new Dictionary<string, string> { ["X-Order"] = "{{ $json.body.name }}" }
+        }));
+
+        var response = await _client.PostAsJsonAsync("/webhook/api/orders", new { name = "Ada" });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal("Ada", response.Headers.GetValues("X-Order").Single());
+        Assert.Equal("""{"accepted":"Ada"}""", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Respond_node_can_send_text_with_its_own_content_type()
+    {
+        await ActivateAsync(RespondingWorkflow("page", new
+        {
+            respondWith = "customBody",
+            body = "<h1>Hello {{ $json.body.name }}</h1>",
+            headers = new Dictionary<string, string> { ["Content-Type"] = "text/html; charset=utf-8" }
+        }));
+
+        var response = await _client.PostAsJsonAsync("/webhook/page", new { name = "Ada" });
+
+        Assert.Equal("text/html", response.Content.Headers.ContentType!.MediaType);
+        Assert.Equal("<h1>Hello Ada</h1>", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Run_without_respond_node_answers_500()
+    {
+        await ActivateAsync(RespondingWorkflow("silent", new { }, withRespondNode: false));
+
+        var response = await _client.PostAsJsonAsync("/webhook/silent", new { name = "Ada" });
+        var body = JsonNode.Parse(await response.Content.ReadAsStringAsync())!;
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Contains("without reaching a Respond to Webhook node", body["error"]!.GetValue<string>());
+    }
+
     [Fact]
     public async Task Immediate_webhook_answers_202_and_runs_in_the_background()
     {

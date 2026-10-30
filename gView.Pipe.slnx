@@ -10,6 +10,10 @@
     <File Path="samples/workflows/code-transform.json" />
     <File Path="samples/workflows/webhook-demo.json" />
     <File Path="samples/workflows/item-tools.json" />
+    <File Path="samples/workflows/sub-workflow-demo.json" />
+    <File Path="samples/workflows/price-calculator.json" />
+    <File Path="samples/workflows/error-alerts.json" />
+    <File Path="samples/workflows/api-demo.json" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/gView.Pipe.Abstraction/gView.Pipe.Abstraction.csproj" />

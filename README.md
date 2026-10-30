@@ -35,6 +35,8 @@ Open the URL printed in the console (http://localhost:5240 with the `http` profi
 - **Hello Pipe**: a manual trigger, Set and Log.
 - **Code Transform**: generates orders with JavaScript, routes them by country with Switch, adds VAT and merges them again.
 - **Item Tools**: splits order lines into items, removes duplicate SKUs, sorts by price, keeps the top 3 and collects them.
+- **Sub-workflow Demo** and **Price Calculator**: a workflow calling another one per batch of two items; failures go to **Error Alerts**, an error workflow.
+- **API Demo**: `POST /webhook/api/greet` answers 200 with a greeting, or 400 without a name, through Respond to Webhook nodes.
 - **Webhook Demo**: answers `POST /webhook/demo` with a greeting. It is inactive until you switch it on.
 
 To run the Shell with the Aspire dashboard (logs, traces, metrics):
@@ -85,13 +87,18 @@ The host must reference the MudBlazor and Z.Blazor.Diagrams CSS/JS plus `_conten
 
 | Category | Nodes |
 |---|---|
-| Triggers | Manual Trigger, Cron Trigger, Webhook Trigger |
-| Flow | If, Switch, Filter, Merge, Wait |
+| Triggers | Manual Trigger, Cron Trigger, Webhook Trigger, Execute Workflow Trigger, Error Trigger |
+| Flow | If, Switch, Filter, Merge, Wait, Execute Workflow |
 | Transform | Set, Code, Sort, Limit, Aggregate, Split Out, Remove Duplicates |
-| Network | HTTP Request |
+| Network | HTTP Request, Respond to Webhook |
 | Utility | Log, No Operation |
 
 Credential types: Basic Auth, Bearer Token, API Key Header and Connection String.
+
+## Sub-workflows and error workflows
+
+- **Execute Workflow** runs another workflow that starts with an **Execute Workflow Trigger**: once for all items, per item, or per batch of N items. It outputs what the sub-workflow's last node returned. Calling per item or batch is how loops are built; the engine itself only runs graphs without cycles. Sub-workflows share the caller's binaries and may be nested up to 10 levels.
+- An **error workflow** is chosen in the workflow panel. It starts with an **Error Trigger** and runs when a triggered run (cron, webhook, sub-workflow call) fails, with `{ workflow, execution, node }` of the failed run, e.g. to send a notification.
 
 ## Expressions
 
@@ -127,7 +134,7 @@ Scripts run with no access to .NET, the file system or the network, and are limi
 
 A Webhook Trigger listens on `/webhook/{path}`. The path is unique across all workflows, and the webhook is armed only while its workflow is active. The request becomes an item with `method`, `path`, `query`, `headers` and `body`; uploaded files become binaries. The `Authorization` and `Cookie` headers are stripped. Optionally the trigger checks a credential.
 
-With response mode **When finished**, the caller gets the output of the last node. With **Immediately**, the caller gets `202 Accepted` and the execution id.
+With response mode **When finished**, the caller gets the output of the last node. With **Immediately**, the caller gets `202 Accepted` and the execution id. With **Using respond node**, a **Respond to Webhook** node decides status code, headers and body, so a workflow can act as a small API (see the API Demo sample).
 
 With the Webhook Demo workflow active:
 
