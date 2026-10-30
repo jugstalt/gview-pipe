@@ -152,6 +152,27 @@
     z-index: 5;
 }
 
+.gview-pipe-canvas-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    padding: 6px 12px;
+    border-radius: 16px;
+    background: var(--mud-palette-surface);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+    font-size: .8rem;
+    pointer-events: none;
+}
+
+    .gview-pipe-canvas-hint kbd {
+        padding: 0 5px;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 4px;
+        font-family: inherit;
+    }
+
 .gview-pipe-editor-panel {
     width: var(--gview-pipe-panel-width, 380px);
     flex-shrink: 0;

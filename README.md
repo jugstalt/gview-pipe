@@ -9,7 +9,7 @@ A workflow automation app in the style of n8n, built on Blazor and .NET 10. Work
 - **Visual editor.** Build workflows on a canvas (Z.Blazor.Diagrams) with a node palette and parameter forms generated from the node's parameter class (MudBlazor).
 - **Execution engine.** Runs the graph as a DAG. Parallel branches, Switch/If/Merge, retry, timeout and error handling per node (stop, continue or route to an error output).
 - **Inspect every node.** Each node shows the input it received, the output it produced and the log entries it wrote, for the latest run and for any execution in the history. Click a property of the input to insert it as an expression into the parameter you edited last.
-- **Fast iteration.** Pin a node's output so manual runs reuse it instead of calling the API again, run only up to a node ("run to here"), duplicate nodes and copy/paste them (Ctrl+C / Ctrl+V on the canvas) within or between workflows. Drop an unconnected node onto a connection to insert it there. Undo and redo every change to the workflow (Ctrl+Z / Ctrl+Y on the canvas, or the toolbar). The palette and the side panel can be resized; a wide palette shows its nodes in columns.
+- **Fast iteration.** Pin a node's output so manual runs reuse it instead of calling the API again, run only up to a node ("run to here"), duplicate nodes and copy/paste them (Ctrl+C / Ctrl+V on the canvas) within or between workflows. Hold Shift while dragging a node onto a connection to insert it there; the connection lights up before you drop. Undo and redo every change to the workflow (Ctrl+Z / Ctrl+Y on the canvas, or the toolbar). The palette and the side panel can be resized; a wide palette shows its nodes in columns.
 - **JavaScript expressions.** `{{ $json.total * 1.2 }}` in any parameter, plus a Code node for larger transformations. Both run in a sandboxed Jint engine.
 - **Triggers.** Manual, Cron and Webhook.
 - **Credentials.** Stored encrypted with ASP.NET Data Protection. Nodes reference them by id and never see them in the workflow JSON.
@@ -54,9 +54,9 @@ dotnet run --project src/Aspire/gView.Pipe.AppHost
 |---|---|---|
 | `Pipe:DataPath` | `data` | Folder for `workflows/`, `executions/`, `credentials/` and the Data Protection `keys/`. |
 | `Pipe:PluginPath` | `plugins` | Folder with external plugins, one sub folder per plugin: `plugins/<Name>/<Name>.dll`. |
-| `Pipe:FileRoots` | `files` â†’ `files` | Folders Read File and Write File may use, by name. Nothing outside them is reachable. |
+| `Pipe:FileRoots` | `files` ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ `files` | Folders Read File and Write File may use, by name. Nothing outside them is reachable. |
 
-The Wait node waits at most one hour; change it with `services.Configure<PipeWaitOptions>(o => o.MaxWait = â€¦)`. Further options (execution retention, script limits, binary thresholds) are on `PipeCoreOptions` and `PipeFileStoreOptions` and can be set in `Program.cs`.
+The Wait node waits at most one hour; change it with `services.Configure<PipeWaitOptions>(o => o.MaxWait = ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦)`. Further options (execution retention, script limits, binary thresholds) are on `PipeCoreOptions` and `PipeFileStoreOptions` and can be set in `Program.cs`.
 
 ## Projects
 
@@ -111,7 +111,7 @@ Credential types: Basic Auth, Bearer Token, API Key Header, Connection String an
 
 ## Expressions
 
-Every string parameter can contain `{{ â€¦ }}` blocks with JavaScript. A parameter that consists of a single block keeps the type of the result (number, object, array); otherwise the results are inserted into the text.
+Every string parameter can contain `{{ ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ }}` blocks with JavaScript. A parameter that consists of a single block keeps the type of the result (number, object, array); otherwise the results are inserted into the text.
 
 ```text
 Hello {{ $json.customer }}!

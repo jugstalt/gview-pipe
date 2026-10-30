@@ -78,6 +78,10 @@
                 <CascadingValue Value="_diagram" IsFixed="true">
                     <DiagramCanvas Class="gview-pipe-canvas" />
                 </CascadingValue>
+                @if (_showDropHint)
+                {
+                    <div class="gview-pipe-canvas-hint">Hold <kbd>Shift</kbd> to drop the node into a connection</div>
+                }
                 @if (_execution is not null)
                 {
                     <div class="gview-pipe-canvas-status">
@@ -271,6 +275,9 @@
         _diagram.Links.Removed += _ => InvokeAsync(MarkDirty);
         _diagram.ContainerChanged += () => InvokeAsync(ContainerChanged);
         _diagram.KeyDown += e => InvokeAsync(() => KeyDownAsync(e));
+        _diagram.PointerDown += (model, _) => InvokeAsync(() => DragStart(model));
+        _diagram.PointerMove += (_, e) => InvokeAsync(() => DragMove(e));
+        _diagram.PointerUp += (_, e) => InvokeAsync(() => DragEnd(e));
     }
 
     static private Task Run(Action action)
@@ -652,59 +659,158 @@
         MarkDirty();
     }
 
-    private void NodeMoved(PipeNodeModel model)
+    private void NodeMoved(PipeNodeModel model) => MarkDirty();
+
+    // ---- drop a node onto a link ----
+    // Only with Shift held while dragging: the link closest to the mouse pointer is highlighted, and dropping
+    // puts the node in between (source → node → target). Without Shift a hint says so, and nothing is computed,
+    // so plain moving stays smooth and never rewires anything.
+
+    private const double LinkHitPixels = 30;
+    private const string DropLinkColor = "#e0902b";
+
+    private PipeNodeModel? _dragged;
+    private Point? _dragStart;
+    private LinkModel? _dropLink;
+    private bool _showDropHint;
+
+    /// <summary>Sampled points of the links' paths, taken once per drag (the other links don't move meanwhile).</summary>
+    private Dictionary<LinkModel, Point[]>? _linkSamples;
+
+    private void DragStart(Model? model)
     {
-        TryInsertIntoLink(model);
-        MarkDirty();
+        _dragged = model as PipeNodeModel;
+        _dragStart = _dragged?.Position;
+        _linkSamples = null;
     }
 
-    /// <summary>
-    /// A node without connections dropped onto a link is put in between: source → node → target.
-    /// Only unconnected nodes, so moving a node of the flow never rewires it by accident.
-    /// </summary>
-    private void TryInsertIntoLink(PipeNodeModel model)
+    private void DragMove(Blazor.Diagrams.Core.Events.PointerEventArgs e)
     {
-        if (model.Links.Count > 0
-            || model.InputPorts.FirstOrDefault() is not { } input
-            || (model.FindPort(PipePorts.Main, isInput: false) ?? model.OutputPorts.FirstOrDefault()) is not { } output)
+        if (_dragged is null || e.Buttons == 0 || !HasMoved(_dragged))
         {
             return;
         }
 
-        var bounds = new Blazor.Diagrams.Core.Geometry.Rectangle(model.Position.X, model.Position.Y,
-            model.Position.X + PipeNodeModel.Width, model.Position.Y + model.Height);
-        var hit = _diagram.Links.FirstOrDefault(link => ToConnection(link) is not null && Crosses(link, bounds));
-        if (hit is null)
-        {
-            return;
-        }
-
-        var a = (PipePortModel)hit.Source.Model!;
-        var b = (PipePortModel)hit.Target.Model!;
-        var (source, target) = a.IsInput ? (b, a) : (a, b);
-
-        _diagram.Links.Remove(hit);
-        _diagram.Links.Add(new LinkModel(source, input));
-        _diagram.Links.Add(new LinkModel(output, target));
+        HighlightDropLink(e.ShiftKey ? FindDropLink(_dragged, e) : null);
+        ShowDropHint(!e.ShiftKey && CanBeInserted(_dragged) && _diagram.Links.Count > 0);
     }
 
-    /// <summary>Whether the drawn path of the link runs through the rectangle (sampled every few pixels).</summary>
-    static private bool Crosses(BaseLinkModel link, Blazor.Diagrams.Core.Geometry.Rectangle bounds)
+    private void DragEnd(Blazor.Diagrams.Core.Events.PointerEventArgs e)
+    {
+        var model = _dragged;
+        var link = model is not null && e.ShiftKey && HasMoved(model) ? FindDropLink(model, e) : null;
+
+        HighlightDropLink(null);
+        ShowDropHint(false);
+        _dragged = null;
+        _dragStart = null;
+        _linkSamples = null;
+
+        if (model is not null && link is not null)
+        {
+            InsertIntoLink(model, link);
+        }
+    }
+
+    private bool HasMoved(PipeNodeModel model)
+        => _dragStart is { } start && (start.X != model.Position.X || start.Y != model.Position.Y);
+
+    static private bool CanBeInserted(PipeNodeModel model)
+        => model.InputPorts.Any() && OutputFor(model) is not null;
+
+    private void ShowDropHint(bool show)
+    {
+        if (_showDropHint != show)
+        {
+            _showDropHint = show;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>The link nearest to the mouse pointer the node could be inserted into, or null.</summary>
+    private LinkModel? FindDropLink(PipeNodeModel model, Blazor.Diagrams.Core.Events.PointerEventArgs e)
+    {
+        if (!CanBeInserted(model))
+        {
+            return null;
+        }
+
+        _linkSamples ??= _diagram.Links.OfType<LinkModel>()
+            .Where(link => ToConnection(link) is not null
+                           && (link.Source.Model as PipePortModel)?.Parent != model
+                           && (link.Target.Model as PipePortModel)?.Parent != model)
+            .ToDictionary(link => link, SamplePath);
+
+        var pointer = _diagram.GetRelativeMousePoint(e.ClientX, e.ClientY);
+        var maxDistance = LinkHitPixels / _diagram.Zoom;
+
+        LinkModel? nearest = null;
+        foreach (var (link, points) in _linkSamples)
+        {
+            foreach (var p in points)
+            {
+                var distance = Math.Sqrt((p.X - pointer.X) * (p.X - pointer.X) + (p.Y - pointer.Y) * (p.Y - pointer.Y));
+                if (distance <= maxDistance)
+                {
+                    maxDistance = distance;
+                    nearest = link;
+                }
+            }
+        }
+        return nearest;
+    }
+
+    static private PipePortModel? OutputFor(PipeNodeModel model)
+        => model.FindPort(PipePorts.Main, isInput: false) ?? model.OutputPorts.FirstOrDefault();
+
+    /// <summary>Points along the drawn path of the link, every few units.</summary>
+    static private Point[] SamplePath(LinkModel link)
     {
         if (link.PathGeneratorResult?.FullPath is not { } path || path.Length <= 0)
         {
-            return false;
+            return [];
         }
 
-        for (double at = 0; at <= path.Length; at += 8)
+        var points = new List<Point>();
+        for (double at = 0; at <= path.Length; at += 6)
         {
-            var point = path.GetPointAtLength(at);
-            if (point.X >= bounds.Left && point.X <= bounds.Right && point.Y >= bounds.Top && point.Y <= bounds.Bottom)
-            {
-                return true;
-            }
+            var p = path.GetPointAtLength(at);
+            points.Add(new Point(p.X, p.Y));
         }
-        return false;
+        return points.ToArray();
+    }
+
+    private void HighlightDropLink(LinkModel? link)
+    {
+        if (link == _dropLink)
+        {
+            return;
+        }
+
+        if (_dropLink is not null)
+        {
+            _dropLink.Color = null;
+            _dropLink.Width = 2;
+            _dropLink.Refresh();
+        }
+        if (link is not null)
+        {
+            link.Color = DropLinkColor;
+            link.Width = 4;
+            link.Refresh();
+        }
+        _dropLink = link;
+    }
+
+    private void InsertIntoLink(PipeNodeModel model, LinkModel link)
+    {
+        var a = (PipePortModel)link.Source.Model!;
+        var b = (PipePortModel)link.Target.Model!;
+        var (source, target) = a.IsInput ? (b, a) : (a, b);
+
+        _diagram.Links.Remove(link);
+        _diagram.Links.Add(new LinkModel(source, model.InputPorts.First()));
+        _diagram.Links.Add(new LinkModel(OutputFor(model)!, target));
     }
 
     private void DeleteSelected()
