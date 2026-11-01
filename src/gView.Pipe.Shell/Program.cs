@@ -3,11 +3,25 @@ using gView.Pipe.Core.Extensions.DependencyInjection;
 using gView.Pipe.Razor.Extensions.DependencyInjection;
 using gView.Pipe.Shell;
 using gView.Pipe.Shell.Components;
+using Microsoft.Extensions.Hosting.WindowsServices;
 using MudBlazor.Services;
+
+if (WindowsServiceHelpers.IsWindowsService())
+{
+    // a service starts in System32; _config and relative paths belong to the app folder
+    Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+}
 
 PipeConfigSetup.TrySetup();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseWindowsService(options => options.ServiceName = "gView.Pipe");
+if (OperatingSystem.IsWindows())
+{
+    // event source registered by gview-pipe-service.bat; the service account can't create it
+    builder.Services.Configure<Microsoft.Extensions.Logging.EventLog.EventLogSettings>(settings => settings.SourceName = "gView.Pipe");
+}
 
 builder.Configuration.AddPipeConfig();
 

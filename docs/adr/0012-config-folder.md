@@ -18,4 +18,10 @@ The settings of the Shell (`Pipe:*`) were in `appsettings.json` and `appsettings
 ## Consequences
 
 - Embedding hosts are not affected; they configure `PipeCoreOptions` themselves.
-- In the ZIP the working directory is the version folder, so `_config` belongs to a version; the start scripts keep setting the folders as environment variables.
+- In the ZIP the working directory is the version folder, so `_config` would belong to a version; the start scripts keep setting the folders as environment variables.
+
+## Addendum: `PIPE_CONFIG_PATH` (2026-11-01)
+
+- The variable `PIPE_CONFIG_PATH` replaces the folder `_config`; the prototype is still read from the app folder. The start scripts and the Windows service set it to `<root>/_config`, next to the version folders.
+- Copying a `<root>/_config/pipe.config` into the version on every start was dropped: edits of the copy were overwritten, and a file created from the prototype in the version folder was lost with the next update.
+- The address moves out of the start scripts: they set the default with `ASPNETCORE_URLS`, which ranks below `pipe.config`, so a `urls` there (one port per instance) survives updates. The prototype has `urls` only as a comment, so development, Aspire and Docker keep their own addresses.

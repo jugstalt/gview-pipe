@@ -4,6 +4,10 @@ The settings are in `_config/pipe.config` in the working directory of the app (i
 
 In the Docker image `/app/_config` is a volume, so the file survives updates.
 
+## Keeping the configuration over updates
+
+The variable `PIPE_CONFIG_PATH` moves the `_config` folder. The start scripts and `gview-pipe-service.bat install` set it to `<root>\_config`, next to the version folders, so every installation (root folder) has its own `pipe.config` and keeps it over updates. On the first start the app creates it there from the prototype. Edit `<root>\_config\pipe.config`; the version folder has no `_config` of its own.
+
 ## Settings
 
 | Key | Default | Meaning |
@@ -49,7 +53,16 @@ Pipe__Scripts__GitServers__company__Url=https://git.example.com
 
 ## Listening address
 
-Set the address with `--urls` or the `ASPNETCORE_URLS` variable, for example `http://*:5100`. The Docker image uses `http://*:8080`.
+The start scripts listen on `http://localhost:5100` by default. To change it, for example for a second instance on the same machine, set `urls` at the top of `pipe.config` (next to `Pipe`, not inside it):
+
+```json
+{
+  "urls": "http://localhost:5101",
+  "Pipe": { ... }
+}
+```
+
+`urls` in `pipe.config` wins over `ASPNETCORE_URLS`; `--urls` on the command line wins over both. The Windows service passes its port with `--urls` (`gview-pipe-service.bat install <name> <port>`). The Docker image uses `http://*:8080`.
 
 ## Limits that are not in the configuration
 

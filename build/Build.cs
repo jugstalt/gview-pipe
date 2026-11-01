@@ -153,7 +153,7 @@ class Build : NukeBuild
                 var artifacts = Artifacts(platform);
 
                 // never deploy runtime state or developer settings
-                foreach (var directory in new[] { "data", "files", "scripts" })
+                foreach (var directory in new[] { "data", "files", "scripts", "_config" })
                 {
                     (artifacts / directory).DeleteDirectory();
                 }

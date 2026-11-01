@@ -16,7 +16,7 @@ namespace gView.Pipe.Plugins.Scripts.Tests;
 
 /// <summary>
 /// Run Scripts Repo against a fake Gitea API (repositories, branches, files) whose clone URL is a local repository,
-/// and, if one runs on localhost:3000, against a real Gitea.
+/// and, with PIPE_TEST_DEV_GITEA=1, against the real dev Gitea on localhost:3000.
 /// </summary>
 public sealed class RunScriptsRepoNodeTests : IDisposable
 {
@@ -156,6 +156,8 @@ public sealed class RunScriptsRepoNodeTests : IDisposable
     [Fact]
     public async Task Local_gitea_dev_scripts_can_be_listed_cloned_and_run()
     {
+        // opt-in: the dev repository is edited by hand, so normal test runs (and the deploy build) never depend on it
+        Assert.SkipUnless(Environment.GetEnvironmentVariable("PIPE_TEST_DEV_GITEA") == "1", "set PIPE_TEST_DEV_GITEA=1 to test against the dev Gitea");
         Assert.SkipUnless(OperatingSystem.IsWindows() && CanRun("git") && GiteaReachable(), "needs the dev Gitea on localhost:3000 with dev/scripts");
         using var services = Create("http://localhost:3000", fakeApi: false);
         var registry = services.GetRequiredService<IPipeNodeRegistry>();

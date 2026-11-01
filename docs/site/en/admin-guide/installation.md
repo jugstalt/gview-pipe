@@ -21,7 +21,7 @@ gview-pipe\
 Start the app with the start script. It listens on `http://localhost:5100`. Open that address in a browser.
 
 !!! note
-    The start script binds to `localhost` only. To reach the app from other machines, put a reverse proxy in front of it (see [Operations](operations.md#running-behind-a-reverse-proxy)) or change `--urls` in the script. There is **no login** yet: don't expose the app directly to a network you don't trust (see [Security](security.md)).
+    The start script binds to `localhost` only. To reach the app from other machines, put a reverse proxy in front of it (see [Operations](operations.md#running-behind-a-reverse-proxy)) or set `urls` in `<root>\_config\pipe.config` (see [Configuration](configuration.md#listening-address)). There is **no login** yet: don't expose the app directly to a network you don't trust (see [Security](security.md)).
 
 On the first start with an empty `data` folder, gView.Pipe copies the sample workflows into the group **Samples**.
 
@@ -42,9 +42,54 @@ Settings are passed as environment variables, see [Configuration](configuration.
 
 ## Starting automatically
 
-gView.Pipe is a normal ASP.NET Core app (`dotnet gView.Pipe.Shell.dll`). To keep it running, use what your platform offers: a Windows service (for example with NSSM or `sc.exe`), a systemd unit, or a Docker restart policy (`--restart unless-stopped`). Run it under an account with **restricted rights**, because scripts run with the rights of that account (see [Security](security.md)).
+The start script runs the app only as long as you are logged on. To keep it running on a server, run it as a Windows service, in IIS, as a systemd unit or in Docker. In every case, run it under an account with **restricted rights**, because scripts run with the rights of that account (see [Security](security.md)).
 
 Active workflows with a Cron or Webhook trigger are armed again when the app starts.
+
+### Windows service
+
+The version folder contains `gview-pipe-service.bat`. Run it in a command prompt **as administrator**:
+
+```
+gview-pipe-service.bat install [name] [port]
+gview-pipe-service.bat uninstall [name]
+```
+
+`install` creates the service and starts it:
+
+- Service name `gview-pipe`, or `gview-pipe-<name>` with a name. It starts automatically (delayed) and is restarted after a crash.
+- It listens on `http://localhost:<port>` (default `5100`), like the start script.
+- It runs as the virtual account `NT SERVICE\gview-pipe[-<name>]`, which may write only to `data`, `files`, `scripts` and `_config`.
+- `data`, `files`, `scripts` and `_config` next to the version folders are set as environment variables of the service, like in the start script.
+
+**Several instances** on one server, for example production and test: unpack the ZIP into one root folder per instance and give each a name and a port.
+
+```
+D:\gview-pipe-prod\0.1.0\gview-pipe-service.bat install prod 5100
+D:\gview-pipe-test\0.1.0\gview-pipe-service.bat install test 5200
+```
+
+`install` refuses a name whose service belongs to another root folder.
+
+**Update:** unpack the new version into the same root folder and run its `gview-pipe-service.bat install` with the same name and port. The script stops the service, points it to the new version and starts it again. To go back, run `install` of the old version.
+
+**Own account:** for network shares or Git with Windows authentication, the virtual account is not enough. Enter a domain or local account in the service properties (tab **Log On**) and give it write access to the same folders.
+
+The log goes to the Windows event log (application log, source `gView.Pipe`, warnings and errors).
+
+### IIS
+
+gView.Pipe runs in IIS like any ASP.NET Core app:
+
+- Install the **ASP.NET Core Hosting Bundle** for .NET 10.
+- Create a site or application whose physical path is the `pipe` folder of the version.
+- Set the application pool to **No Managed Code** and give its identity write access to `data`, `files`, `scripts` and `_config`.
+
+The start script does not run in IIS. Set `PIPE_CONFIG_PATH=<root>\_config` as an environment variable of the application pool (not in the `web.config` of the version, which an update replaces), and set the folders as absolute paths in `<root>\_config\pipe.config` (see [Configuration](configuration.md#keeping-the-configuration-over-updates)).
+
+### Linux and Docker
+
+Use a systemd unit that runs `gview-pipe.sh` or `dotnet gView.Pipe.Shell.dll` with the same environment variables, or a Docker restart policy (`--restart unless-stopped`).
 
 ## Documentation
 
