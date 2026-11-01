@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "src/Aspire/gView.Pipe.AppHost/gView.Pipe.AppHost.csproj"
+  }
+}
