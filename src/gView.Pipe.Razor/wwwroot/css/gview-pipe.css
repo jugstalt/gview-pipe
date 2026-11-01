@@ -781,3 +781,28 @@ div.gview-pipe-json-tree {
     white-space: nowrap;
     max-width: 290px;
 }
+
+.gview-pipe-code-field-header {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 2px;
+}
+
+.gview-pipe-code-field-editor {
+    border: 1px solid var(--mud-palette-lines-inputs);
+    border-radius: var(--mud-default-borderradius);
+    overflow: hidden;
+}
+
+    .gview-pipe-code-field-editor:focus-within {
+        border-color: var(--mud-palette-primary);
+    }
+
+    .gview-pipe-code-field-editor > div {
+        height: 100%;
+    }
+
+.gview-pipe-code-field-error .gview-pipe-code-field-editor {
+    border-color: var(--mud-palette-error);
+}

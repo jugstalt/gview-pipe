@@ -27,6 +27,7 @@ internal sealed class DocsScreenshots
         await GroupPageAsync();
         await EditorRunAsync();
         await NodePanelsAsync();
+        await CodeFieldAsync();
         await WebhookTriggerAsync();
         await ErrorOutputAsync();
         await CredentialsAsync();
@@ -68,6 +69,17 @@ internal sealed class DocsScreenshots
 
         await SelectTabAsync("Run");
         await ShotAsync("node-run");
+    }
+
+    /// <summary>The Monaco code field of the Code node.</summary>
+    private async Task CodeFieldAsync()
+    {
+        await HighAsync();
+        await OpenEditorAsync("code-transform");
+        await SelectNodeAsync("Generate Orders");
+        await _page.Locator(".gview-pipe-code-field .view-line").First.WaitForAsync();
+        await _page.WaitForTimeoutAsync(300);
+        await ShotAsync("node-code");
     }
 
     private async Task WebhookTriggerAsync()

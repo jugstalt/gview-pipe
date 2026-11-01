@@ -17,6 +17,10 @@
 
 <body>
     <Routes @rendermode="InteractiveServerNoPrerender" />
+    @* Monaco for code fields; must come before the Blazor script *@
+    <script src="@Assets["_content/BlazorMonaco/jsInterop.js"]"></script>
+    <script src="@Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"]"></script>
+    <script src="@Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"]"></script>
     <script src="_framework/blazor.web.js"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
     <script src="@Assets["_content/Z.Blazor.Diagrams/script.min.js"]"></script>

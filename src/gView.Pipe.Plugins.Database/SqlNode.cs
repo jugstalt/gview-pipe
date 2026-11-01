@@ -47,7 +47,7 @@ public sealed class SqlNodeParameters
     [PipeParameter(Label = "Operation", Order = 3, Expressions = false)]
     public SqlOperation Operation { get; set; } = SqlOperation.Query;
 
-    [Required, PipeParameter(Label = "SQL", Order = 4, Code = true,
+    [Required, PipeParameter(Label = "SQL", Order = 4, Code = true, CodeLanguage = "sql",
         Description = "Use @name for values; they are passed as parameters, never inserted into the SQL text")]
     public string Sql { get; set; } = "";
 

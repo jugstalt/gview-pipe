@@ -33,6 +33,7 @@
     <PackageVersion Include="MailKit" Version="4.18.2" />
     <PackageVersion Include="MessagePack" Version="3.1.12" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageVersion Include="BlazorMonaco" Version="3.5.0" />
     <PackageVersion Include="MudBlazor" Version="9.12.0" />
     <PackageVersion Include="Z.Blazor.Diagrams" Version="3.0.4.1" />
   </ItemGroup>

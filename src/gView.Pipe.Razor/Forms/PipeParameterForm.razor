@@ -80,14 +80,19 @@ else
                     <PipeRawJsonField Label="@field.Label" HelperText="@field.Description" Value="value" ValueChanged="v => SetAsync(field, v)" />
                     break;
 
+                case PipeFieldKind.Text when field.Code:
+                    <PipeCodeField Label="@(field.Required ? field.Label + " *" : field.Label)" HelperText="@field.Description" Language="@field.CodeLanguage"
+                                   Value="@PipeJsonText.ToText(value)" ValueChanged="v => SetAsync(field, Convert(field, v))" />
+                    break;
+
                 default:
                     <div @onfocusin="() => FieldFocusedAsync(field)">
                     <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  Lines="@(field.Code ? 14 : field.Multiline ? 4 : 1)"
+                                  Lines="@(field.Multiline ? 4 : 1)"
                                   InputType="@(field.Secret ? InputType.Password : InputType.Text)"
                                   Placeholder="@(field.Secret && SecretsArePlaceholders ? "(unchanged)" : field.Placeholder)"
                                   HelperText="@HelperText(field)"
-                                  Class="@(field.Code ? "gview-pipe-code" : field.Expressions ? "gview-pipe-expression-field" : null)"
+                                  Class="@(field.Expressions ? "gview-pipe-expression-field" : null)"
                                   Value="@PipeJsonText.ToText(value)"
                                   ValueChanged="v => SetAsync(field, Convert(field, v))" />
                     </div>

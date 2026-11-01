@@ -40,6 +40,12 @@ Der erste Node eines Workflows ist ein **Trigger** (siehe [Trigger und Webhooks]
 
 Das Formular wird aus dem Node erzeugt. Die meisten Textfelder akzeptieren **Ausdrücke**: `{{ $json.total * 1.2 }}` wird für jedes Item ausgewertet (siehe [Items und Ausdrücke](expressions.md)). Im Tab **Run** kannst du ein Feld der Eingabe anklicken, um es als Ausdruck in den zuletzt bearbeiteten Parameter einzufügen.
 
+Änderungen gelten schon während du tippst; du musst ein Feld nicht verlassen, bevor du einen anderen Node wählst oder speicherst.
+
+![Das JavaScript eines Code-Nodes im Code-Editor](../../images/node-code.png)
+
+**Code-Felder** (das JavaScript des Code-Nodes, das SQL des SQL-Nodes, rohes JSON) öffnen sich in einem Code-Editor mit Syntaxhervorhebung, Zeilennummern und den üblichen Editor-Tasten (Tab zum Einrücken, Strg+F zum Suchen, Alt+Hoch/Runter zum Verschieben von Zeilen). Das Feld wächst mit seinem Inhalt; das Symbol darüber öffnet einen großen Editor, und **Apply** übernimmt dessen Text.
+
 Manche Nodes zeigen über ihren Parametern **Hinweise**, zum Beispiel die URL eines Webhooks oder die Warnung, dass er kein Credential hat.
 
 ### Settings

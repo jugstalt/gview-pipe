@@ -40,6 +40,12 @@ The first node of a workflow is a **trigger** (see [Triggers and webhooks](trigg
 
 The form is generated from the node. Most text fields accept **expressions**: `{{ $json.total * 1.2 }}` is evaluated for each item (see [Items and expressions](expressions.md)). In the **Run** tab you can click a field of the input to insert it as an expression into the parameter you edited last.
 
+Changes take effect while you type; you don't have to leave a field before you select another node or save.
+
+![The JavaScript of a Code node in the code editor](../../images/node-code.png)
+
+**Code fields** (the JavaScript of the Code node, the SQL of the SQL node, raw JSON) open in a code editor with syntax highlighting, line numbers and the usual editor keys (Tab to indent, Ctrl+F to find, Alt+Up/Down to move lines). The field grows with its content; the icon above it opens a large editor, and **Apply** takes its text over.
+
 Some nodes show **hints** above their parameters, for example the URL of a webhook or a warning that it has no credential.
 
 ### Settings

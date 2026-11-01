@@ -1,0 +1,25 @@
+@* A large code editor; returns the edited text when applied. *@
+
+<MudDialog>
+    <DialogContent>
+        <PipeCodeField Value="@_text" ValueChanged="v => _text = v ?? string.Empty" Language="@Language"
+                       MinLines="30" MaxLines="30" ShowFullscreen="false" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Apply">Apply</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public string? Language { get; set; }
+
+    private string _text = "";
+
+    protected override void OnInitialized() => _text = Value ?? "";
+
+    private void Apply() => Dialog.Close(DialogResult.Ok(_text));
+}
