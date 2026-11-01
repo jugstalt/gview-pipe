@@ -49,6 +49,17 @@ plugins:
             Triggers and webhooks: Trigger und Webhooks
             Error handling: Fehlerbehandlung
             Node reference: Node-Referenz
+            Installation: Installation
+            Configuration: Konfiguration
+            Plugins: Plugins
+            Running scripts: Skripte ausführen
+            Operations: Betrieb
+            Security: Sicherheit
+            Troubleshooting: Fehlersuche
+
+validation:
+  links:
+    anchors: warn
 
 nav:
   - Home: index.md
@@ -59,7 +70,15 @@ nav:
       - Error handling: user-guide/error-handling.md
       # generated (src/gView.Pipe.Docs), not committed; the category pages are linked from the index
       - Node reference: user-guide/nodes/index.md
-  - Admin Guide: admin-guide/index.md
+  - Admin Guide:
+      - admin-guide/index.md
+      - Installation: admin-guide/installation.md
+      - Configuration: admin-guide/configuration.md
+      - Plugins: admin-guide/plugins.md
+      - Running scripts: admin-guide/scripts.md
+      - Operations: admin-guide/operations.md
+      - Security: admin-guide/security.md
+      - Troubleshooting: admin-guide/troubleshooting.md
   - Developer Guide: developer-guide/index.md
 
 markdown_extensions:

@@ -2,5 +2,10 @@
 
 This guide is for people who install and operate gView.Pipe.
 
-!!! note "Work in progress"
-    The chapters are written step by step. Planned: installation (ZIP and Docker), configuration and the data folder, plugins, running scripts, webhooks in production, backup and updates, security and troubleshooting.
+- [Installation](installation.md): ZIP and Docker, first start.
+- [Configuration](configuration.md): settings, folders, environment variables.
+- [Plugins](plugins.md): which plugins exist and how to install them.
+- [Running scripts](scripts.md): release script folders and Git servers.
+- [Operations](operations.md): reverse proxy, webhooks, backup, updates, logs.
+- [Security](security.md): what the app protects and what you must protect.
+- [Troubleshooting](troubleshooting.md): typical problems and their causes.
