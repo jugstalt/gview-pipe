@@ -10,6 +10,7 @@
     --gview-pipe-node-border: #d9dde4;
     --gview-pipe-link: #9aa3b2;
     --gview-pipe-code-bg: rgba(0, 0, 0, .04);
+    --gview-pipe-expression-bg: rgba(61, 111, 214, .18);
 }
 
 .mud-theme-dark, [data-mud-theme="dark"] {
@@ -19,6 +20,7 @@
     --gview-pipe-node-border: #363a43;
     --gview-pipe-link: #5d6575;
     --gview-pipe-code-bg: rgba(255, 255, 255, .05);
+    --gview-pipe-expression-bg: rgba(108, 149, 236, .3);
 }
 
 .gview-pipe-credential-id {
@@ -331,6 +333,13 @@
         background: var(--mud-palette-primary);
     }
 
+.gview-pipe-hide-palette > .gview-pipe-palette,
+.gview-pipe-hide-palette > [data-gview-pipe-splitter="palette"],
+.gview-pipe-hide-panel > .gview-pipe-editor-panel,
+.gview-pipe-hide-panel > [data-gview-pipe-splitter="panel"] {
+    display: none;
+}
+
 .gview-pipe-resizing {
     cursor: col-resize;
     user-select: none;
@@ -388,7 +397,14 @@
     display: flex;
     align-items: center;
     z-index: 5;
+    /* lies over the canvas: clicks reach the nodes below, only its buttons take them */
+    pointer-events: none;
 }
+
+    .gview-pipe-canvas-status button,
+    .gview-pipe-canvas-status .mud-tooltip-root {
+        pointer-events: auto;
+    }
 
 .gview-pipe-canvas-hint {
     position: absolute;
@@ -512,7 +528,7 @@
 
 .gview-pipe-node-type {
     color: var(--mud-palette-text-secondary);
-    font-size: .7rem;
+    font-size: .75rem;
 }
 
 .gview-pipe-port {
@@ -805,4 +821,40 @@ div.gview-pipe-json-tree {
 
 .gview-pipe-code-field-error .gview-pipe-code-field-editor {
     border-color: var(--mud-palette-error);
+}
+
+/* behind an expression field (gview-pipe-editor.js): only the marks show, the text is the input's own */
+.gview-pipe-expression-field .mud-input-slot {
+    position: relative;
+    z-index: 1;
+    background: transparent;
+}
+
+.gview-pipe-expression-mirror {
+    position: absolute;
+    z-index: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    border-style: solid;
+    border-color: transparent;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    color: transparent;
+    pointer-events: none;
+}
+
+    .gview-pipe-expression-mirror mark {
+        color: transparent;
+        background: var(--gview-pipe-expression-bg);
+        border-radius: 3px;
+    }
+
+.gview-pipe-expression-preview {
+    margin: 2px 2px 0;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: .75rem;
+    color: var(--mud-palette-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

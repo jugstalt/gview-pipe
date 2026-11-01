@@ -28,6 +28,9 @@
     The canvas owns topology and positions; node parameters and settings live on the PipeWorkflowNode objects.
 *@
 
+@* asks before unsaved changes are left behind: in-app navigation (also the back button) and closing the tab *@
+<Microsoft.AspNetCore.Components.Routing.NavigationLock ConfirmExternalNavigation="_dirty" OnBeforeInternalNavigation="ConfirmLeaveAsync" />
+
 <div class="gview-pipe-editor">
     @if (_loading)
     {
@@ -65,6 +68,14 @@
             <MudTooltip Text="Paste nodes (Ctrl+V on the canvas)">
                 <MudIconButton Icon="@Icons.Material.Filled.ContentPaste" aria-label="Paste nodes" OnClick="PasteAsync" Class="mr-2" />
             </MudTooltip>
+            <MudTooltip Text="@(_paletteHidden ? "Show the node palette" : "Hide the node palette")">
+                <MudIconButton Icon="@Icons.Material.Filled.MenuOpen" aria-label="Toggle the node palette" OnClick="() => ToggleSideAsync(ResizeSide.Palette)"
+                               Color="@(_paletteHidden ? Color.Default : Color.Primary)" />
+            </MudTooltip>
+            <MudTooltip Text="@(_panelHidden ? "Show the side panel" : "Hide the side panel")">
+                <MudIconButton Icon="@Icons.Material.Filled.ViewSidebar" aria-label="Toggle the side panel" OnClick="() => ToggleSideAsync(ResizeSide.Panel)"
+                               Color="@(_panelHidden ? Color.Default : Color.Primary)" Class="mr-2" />
+            </MudTooltip>
             <MudTooltip Text="Active workflows have their triggers (e.g. cron) armed after saving">
                 <MudSwitch T="bool" Value="_workflow.Active" ValueChanged="SetActive" Color="Color.Success" Label="Active" Class="mr-2" />
             </MudTooltip>
@@ -99,8 +110,8 @@
             </MudAlert>
         }
 
-        @* the splitters are dragged in the browser (gview-pipe-resize.js) *@
-        <div class="gview-pipe-editor-body" @ref="_body" style="--gview-pipe-palette-width:@(_paletteWidth)px;--gview-pipe-panel-width:@(_panelWidth)px">
+        @* the splitters are dragged in the browser (gview-pipe-editor.js) *@
+        <div class="gview-pipe-editor-body @(_paletteHidden ? "gview-pipe-hide-palette" : null) @(_panelHidden ? "gview-pipe-hide-panel" : null)" @ref="_body" style="--gview-pipe-palette-width:@(_paletteWidth)px;--gview-pipe-panel-width:@(_panelWidth)px">
             <PipeNodePalette OnAdd="AddNode" />
             <div class="gview-pipe-splitter" data-gview-pipe-splitter="palette" title="Drag to resize, double-click to reset"
                  @ondblclick="() => ResetWidth(ResizeSide.Palette)"></div>
@@ -146,7 +157,7 @@
             <div class="gview-pipe-editor-panel">
                 @if (_selected is not null)
                 {
-                    <PipeNodePanel @key="_selected" Model="_selected"
+                    <PipeNodePanel @key="_selected" Model="_selected" Workflow="_workflow"
                                    IsNameTaken="IsNameTaken"
                                    Running="_running"
                                    PinnedOutputs="@_workflow.PinData?.GetValueOrDefault(_selected.Node.Id)"
@@ -168,7 +179,7 @@
                     }
                     <PipeWorkflowPanel Workflow="_workflow" HistoryVersion="_historyVersion"
                                        SelectedExecutionId="@_execution?.Id"
-                                       OnChanged="MarkDirty"
+                                       OnChanged="@(() => MarkDirty("workflow"))"
                                        OnSelectExecution="ShowExecution" />
                 }
             </div>
@@ -189,22 +200,33 @@
     private double _paletteWidth = DefaultPaletteWidth;
     private double _panelWidth = DefaultPanelWidth;
     private ElementReference _body;
-    private IJSObjectReference? _resizeModule, _resizer;
+    private IJSObjectReference? _editorModule, _editorScript;
     private DotNetObjectReference<PipeEditor>? _self;
+    private bool _editorScriptStarted;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // the body appears once the workflow is loaded
-        if (_resizeModule is not null || string.IsNullOrEmpty(_body.Id))
+        // renders can follow each other while the module loads: start it only once
+        if (_editorScriptStarted || string.IsNullOrEmpty(_body.Id))
         {
             return;
         }
+        _editorScriptStarted = true;
 
         try
         {
-            _resizeModule = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/gView.Pipe.Razor/js/gview-pipe-resize.js");
+            _editorModule = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/gView.Pipe.Razor/js/gview-pipe-editor.js");
             _self ??= DotNetObjectReference.Create(this);
-            _resizer = await _resizeModule.InvokeAsync<IJSObjectReference>("init", _body, _self);
+            _editorScript = await _editorModule.InvokeAsync<IJSObjectReference>("init", _body, _self);
+
+            // side bars the user hid last time
+            if (await JS.InvokeAsync<string?>("localStorage.getItem", HiddenKey) is { } hidden)
+            {
+                _paletteHidden = hidden.Contains("palette");
+                _panelHidden = hidden.Contains("panel");
+                StateHasChanged();
+            }
 
             // widths the user chose last time, kept in the browser
             var stored = await JS.InvokeAsync<string?>("localStorage.getItem", WidthsKey);
@@ -221,7 +243,55 @@
         catch (JSDisconnectedException) { }
     }
 
-    /// <summary>Called by gview-pipe-resize.js when a splitter is released.</summary>
+    // hidden side bars stay rendered (CSS only), so the panel keeps its state
+    private bool _paletteHidden, _panelHidden;
+    private const string HiddenKey = "gview-pipe.editor.hidden";
+
+    private async Task ToggleSideAsync(ResizeSide side)
+    {
+        if (side == ResizeSide.Palette)
+        {
+            _paletteHidden = !_paletteHidden;
+        }
+        else
+        {
+            _panelHidden = !_panelHidden;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", HiddenKey, $"{(_paletteHidden ? "palette" : "")};{(_panelHidden ? "panel" : "")}");
+        }
+        catch (JSException) { }
+    }
+
+    /// <summary>Called by gview-pipe-editor.js on Ctrl+S.</summary>
+    [JSInvokable]
+    public async Task SaveShortcut()
+    {
+        if (!_running && _workflow is not null)
+        {
+            await InvokeAsync(SaveAsync);
+        }
+    }
+
+    private async Task ConfirmLeaveAsync(Microsoft.AspNetCore.Components.Routing.LocationChangingContext context)
+    {
+        if (!_dirty)
+        {
+            return;
+        }
+
+        var leave = await DialogService.ShowMessageBoxAsync("Unsaved changes",
+            "This workflow has changes that are not saved. Leave the editor and discard them?",
+            yesText: "Discard", cancelText: "Stay");
+        if (leave != true)
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    /// <summary>Called by gview-pipe-editor.js when a splitter is released.</summary>
     [JSInvokable]
     public async Task WidthChanged(string side, double width)
     {
@@ -252,7 +322,7 @@
 
     // the limits depend on the window, so the script knows them
     private async Task<double> ClampWidthAsync(ResizeSide side, double width)
-        => await _resizeModule!.InvokeAsync<double>("clamp", side == ResizeSide.Palette ? "palette" : "panel", width);
+        => await _editorModule!.InvokeAsync<double>("clamp", side == ResizeSide.Palette ? "palette" : "panel", width);
 
     private async Task SaveWidthsAsync()
     {
@@ -471,7 +541,10 @@
         }
     }
 
-    /// <summary>Shows the whole workflow: zooms out (never in beyond 100 %) and pans it to the top left corner.</summary>
+    /// <summary>
+    /// Shows the whole workflow: zooms out (never in beyond 100 %) and pans it to the top left corner.
+    /// Below 70 % the node names get unreadable, so a large workflow keeps that zoom and is scrolled instead.
+    /// </summary>
     private void FitToNodes()
     {
         var models = _diagram.Nodes.OfType<PipeNodeModel>().ToList();
@@ -480,12 +553,12 @@
             return;
         }
 
-        const double margin = 60;
+        const double margin = 60, MinFitZoom = 0.7;
         var minX = models.Min(m => m.Position.X);
         var minY = models.Min(m => m.Position.Y);
         var width = models.Max(m => m.Position.X + PipeNodeModel.Width) - minX;
         var height = models.Max(m => m.Position.Y + m.Height) - minY;
-        var zoom = Math.Clamp(Math.Min((container.Width - 2 * margin) / width, (container.Height - 2 * margin) / height), 0.4, 1);
+        var zoom = Math.Clamp(Math.Min((container.Width - 2 * margin) / width, (container.Height - 2 * margin) / height), MinFitZoom, 1);
 
         _fitPending = false;
         _diagram.SetZoom(zoom);
@@ -575,8 +648,16 @@
         _current = _workflow is null ? null : Snapshot();
     }
 
-    /// <summary>Records the state after a change; no entry if nothing in the workflow changed (e.g. a click).</summary>
-    private void RecordHistory()
+    // typing raises a change every few hundred milliseconds; changes with the same key in a row become one step
+    private static readonly TimeSpan MergeWindow = TimeSpan.FromSeconds(2);
+    private string? _lastMergeKey;
+    private DateTime _lastRecordAt;
+
+    /// <summary>
+    /// Records the state after a change; no entry if nothing in the workflow changed (e.g. a click).
+    /// A change with the same <paramref name="mergeKey"/> as the one just before updates that step instead.
+    /// </summary>
+    private void RecordHistory(string? mergeKey = null)
     {
         if (_restoring || _workflow is null)
         {
@@ -589,7 +670,12 @@
             return;
         }
 
-        if (_current is not null)
+        var now = DateTime.UtcNow;
+        var merge = mergeKey is not null && mergeKey == _lastMergeKey && now - _lastRecordAt < MergeWindow && _undo.Count > 0;
+        _lastMergeKey = mergeKey;
+        _lastRecordAt = now;
+
+        if (_current is not null && !merge)
         {
             _undo.AddLast(_current);
             if (_undo.Count > MaxHistory)
@@ -649,6 +735,7 @@
         }
 
         _current = snapshot;
+        _lastMergeKey = null;
         _dirty = true;
         StateHasChanged();
     }
@@ -812,7 +899,7 @@
             _selected.Title = _selected.Node.Name;
             _selected.Refresh();
         }
-        MarkDirty();
+        MarkDirty(portsMayHaveChanged ? null : $"node:{_selected?.Node.Id}");
     }
 
     private void NodeMoved(PipeNodeModel model) => MarkDirty();
@@ -977,35 +1064,45 @@
         }
     }
 
-    private void MarkDirty()
+    private void MarkDirty() => MarkDirty(null);
+
+    /// <param name="mergeKey">Changes of the same thing in a row (typing into a node's fields) merge into one undo step.</param>
+    private void MarkDirty(string? mergeKey)
     {
         if (!_loading && !_restoring)
         {
             _dirty = true;
-            ScheduleHistory();
+            ScheduleHistory(mergeKey);
             StateHasChanged();
         }
     }
 
     private bool _historyScheduled;
+    private string? _scheduledMergeKey;
 
     /// <summary>
     /// One user action can raise many changes (deleting a node first removes each of its links);
     /// the snapshot is taken once, after the action is done, so it is one undo step.
     /// </summary>
-    private void ScheduleHistory()
+    private void ScheduleHistory(string? mergeKey)
     {
         if (_historyScheduled)
         {
+            // different things changed in one action: don't merge it
+            if (_scheduledMergeKey != mergeKey)
+            {
+                _scheduledMergeKey = null;
+            }
             return;
         }
         _historyScheduled = true;
+        _scheduledMergeKey = mergeKey;
 
         _ = InvokeAsync(async () =>
         {
             await Task.Yield();
             _historyScheduled = false;
-            RecordHistory();
+            RecordHistory(_scheduledMergeKey);
             StateHasChanged();
         });
     }
@@ -1278,14 +1375,14 @@
 
         try
         {
-            if (_resizer is not null)
+            if (_editorScript is not null)
             {
-                await _resizer.InvokeVoidAsync("dispose");
-                await _resizer.DisposeAsync();
+                await _editorScript.InvokeVoidAsync("dispose");
+                await _editorScript.DisposeAsync();
             }
-            if (_resizeModule is not null)
+            if (_editorModule is not null)
             {
-                await _resizeModule.DisposeAsync();
+                await _editorModule.DisposeAsync();
             }
         }
         catch (JSDisconnectedException) { }

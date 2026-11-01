@@ -101,4 +101,18 @@ public class PipeParameterFormTests : BunitContext
         Assert.Equal("return items;", field.Instance.Value);
         Assert.DoesNotContain(form.FindAll("textarea"), t => t.TextContent.Contains("return items;"));
     }
+
+    [Fact]
+    public void Expression_fields_show_the_preview_of_their_value()
+    {
+        Render<MudPopoverProvider>();
+        var form = Render<PipeParameterForm>(ps => ps
+            .Add(p => p.ParametersType, typeof(HttpRequestNodeParameters))
+            .Add(p => p.Parameters, new JsonObject { ["url"] = "https://x/{{ $json.id }}", ["method"] = "GET" })
+            .Add(p => p.ExpressionPreview, template => template.Replace("{{ $json.id }}", "7")));
+
+        var preview = form.Find(".gview-pipe-expression-preview");
+
+        Assert.Equal("= https://x/7", preview.TextContent.Trim());
+    }
 }

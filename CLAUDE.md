@@ -23,7 +23,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - `Forms/`: forms generated from parameter classes.
   - Embedding hosts need the diagram CSS/JS and must render without prerendering (see ADR 0004).
   - Code fields use Monaco (`PipeCodeField`, BlazorMonaco). Hosts load `_content/BlazorMonaco/jsInterop.js`, `.../lib/monaco-editor/min/vs/loader.js` and `.../vs/editor/editor.main.js` before the Blazor script, as in the Shell's `App.razor`. A dark host cascades `true` named `PipeDarkMode` and sets `data-mud-theme="dark"` around the components for the dark variables of `gview-pipe.css`; the Shell's `MainLayout` does both (system, light or dark, kept in localStorage).
-  - The editor's splitters are dragged in the browser (`wwwroot/js/gview-pipe-resize.js`); .NET only hears the final width.
+  - The editor's splitters are dragged in the browser and Ctrl+S is caught there (`wwwroot/js/gview-pipe-editor.js`); .NET only hears the final width and the save.
   - Navigation is the host's job: components raise events like `OnOpen` and `OnClose`.
 - `gView.Pipe.Docs`: build tool, generates the node reference of the docs from the node attributes. Not shipped.
 - `gView.Pipe.Docs.Screenshots`: build tool, takes the screenshots of the docs with Playwright. Not shipped.

@@ -15,6 +15,10 @@
             <MudTextField T="string" Immediate="true" DebounceInterval="300" Variant="Variant.Outlined" Margin="Margin.Dense"
                           Class="@(Field.Expressions ? "gview-pipe-expression-field" : null)"
                           Value="@_rows[index]" ValueChanged="v => UpdateAsync(index, v)" />
+            @if (Field.Expressions)
+            {
+                <PipeExpressionPreview Text="@_rows[index]" Preview="ExpressionPreview" />
+            }
             </div>
             <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" aria-label="Remove" OnClick="() => RemoveAsync(index)" />
         </MudStack>
@@ -27,6 +31,8 @@
     [Parameter, EditorRequired] public PipeParameterField Field { get; set; } = default!;
     [Parameter] public JsonArray? Value { get; set; }
     [Parameter] public EventCallback<JsonNode?> ValueChanged { get; set; }
+
+    [Parameter] public Func<string, string?>? ExpressionPreview { get; set; }
 
     /// <summary>An entry got the focus (expression fields only).</summary>
     [Parameter] public EventCallback<PipeExpressionTarget> OnExpressionFieldFocused { get; set; }

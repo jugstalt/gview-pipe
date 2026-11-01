@@ -11,9 +11,9 @@ Im Editor baust du einen Workflow: Nodes auf einer Arbeitsfläche, verbunden dur
 | **Palette** (links) | Alle Node-Typen nach Kategorien, mit Suchfeld. Fahre über einen Node, um seine Beschreibung zu sehen. |
 | **Arbeitsfläche** (Mitte) | Der Workflow. Nodes zeigen Name und Typ; Ports sind die Punkte an ihren Rändern. |
 | **Seitenpanel** (rechts) | Ohne gewählten Node: die Einstellungen des Workflows. Mit gewähltem Node: seine Parameter, Einstellungen und das Laufergebnis. |
-| **Werkzeugleiste** (oben) | Zurück, Rückgängig und Wiederholen, Einfügen, der Schalter **Active**, **Save** und **Run**. |
+| **Werkzeugleiste** (oben) | Zurück, Rückgängig und Wiederholen, Einfügen, Palette und Seitenpanel ein- und ausblenden, der Schalter **Active**, **Save** und **Run**. |
 
-Palette und Seitenpanel änderst du in der Breite, indem du den schmalen Balken neben ihnen ziehst. Ein Doppelklick setzt die Breite zurück.
+Palette und Seitenpanel änderst du in der Breite, indem du den schmalen Balken neben ihnen ziehst. Ein Doppelklick setzt die Breite zurück. Zwei Schaltflächen der Werkzeugleiste blenden sie aus und wieder ein, damit die Arbeitsfläche mehr Platz hat; der Browser merkt sich das. Ein großer Workflow wird mit mindestens 70 % angezeigt, damit die Namen lesbar bleiben; den Rest erreichst du durch Verschieben der Arbeitsfläche.
 
 Das Symbol rechts in der oberen Leiste wechselt die Farben: wie das System, hell oder dunkel. Der Browser merkt sich deine Wahl.
 
@@ -23,7 +23,7 @@ Das Symbol rechts in der oberen Leiste wechselt die Farben: wie das System, hell
 2. **Nodes verbinden:** Ziehe von einem Ausgangsport (rechter Rand) zu einem Eingangsport (linker Rand) eines anderen Nodes. Items fließen entlang der Linie. Ein Node mit mehreren Ausgängen (If, Switch) hat je Ausgang einen Port.
 3. **Node bearbeiten:** Klicke ihn an. Das Seitenpanel zeigt die Tabs **Parameters**, **Settings** und **Run**.
 4. **Löschen:** Wähle einen Node oder eine Linie und drücke **Entf**, oder nimm das Papierkorb-Symbol im Seitenpanel.
-5. **Speichern:** **Save** speichert den Workflow. Schließt du den Editor ohne Speichern, gehen deine Änderungen verloren. Trigger eines aktiven Workflows (Cron, Webhook) werden beim Speichern scharf geschaltet.
+5. **Speichern:** **Save** oder **Strg+S** speichert den Workflow. Verlässt du den Editor oder schließt den Tab mit ungespeicherten Änderungen, fragt er vorher nach. Trigger eines aktiven Workflows (Cron, Webhook) werden beim Speichern scharf geschaltet.
 
 !!! tip
     Halte **Umschalt** (Shift) gedrückt, während du einen Node auf eine bestehende Linie ziehst, um ihn dort einzufügen. Die Linie leuchtet auf, bevor du loslässt.
@@ -34,7 +34,7 @@ Der erste Node eines Workflows ist ein **Trigger** (siehe [Trigger und Webhooks]
 
 - **Kopiere** eine Auswahl mit Strg+C auf der Arbeitsfläche, **füge** sie mit Strg+V **ein**. Das funktioniert auch in einem anderen Workflow, du kannst also Teile zwischen Workflows verschieben. Die Werkzeugleiste hat dafür auch eine Einfügen-Schaltfläche.
 - **Dupliziere** einen Node mit dem Symbol im Seitenpanel.
-- **Rückgängig** und **Wiederholen** (Strg+Z, Strg+Y oder Strg+Umschalt+Z auf der Arbeitsfläche, oder die Werkzeugleiste) gelten für jede Änderung am Workflow.
+- **Rückgängig** und **Wiederholen** (Strg+Z, Strg+Y oder Strg+Umschalt+Z auf der Arbeitsfläche, oder die Werkzeugleiste) gelten für jede Änderung am Workflow. Tippen in die Felder eines Nodes zählt als ein Schritt.
 
 ## Die Tabs eines Nodes
 
@@ -43,6 +43,8 @@ Der erste Node eines Workflows ist ein **Trigger** (siehe [Trigger und Webhooks]
 Das Formular wird aus dem Node erzeugt. Die meisten Textfelder akzeptieren **Ausdrücke**: `{{ $json.total * 1.2 }}` wird für jedes Item ausgewertet (siehe [Items und Ausdrücke](expressions.md)). Im Tab **Run** kannst du ein Feld der Eingabe anklicken, um es als Ausdruck in den zuletzt bearbeiteten Parameter einzufügen.
 
 Änderungen gelten schon während du tippst; du musst ein Feld nicht verlassen, bevor du einen anderen Node wählst oder speicherst.
+
+Ausdrücke sind in ihrem Feld farbig hinterlegt. Nach einem Lauf zeigt eine Zeile unter dem Feld ihren Wert für das erste Eingangs-Item des Nodes, zum Beispiel `= Hello Hello Pipe!`. `$node["Name"]` lässt sich dort nicht auflösen und zeigt eine Warnung; der Lauf selbst ist davon nicht betroffen.
 
 ![Das JavaScript eines Code-Nodes im Code-Editor](../../images/node-code.png)
 

@@ -1,7 +1,9 @@
 @using System.Text.Json.Nodes
 @using gView.Pipe.Abstraction.Data
 @using gView.Pipe.Abstraction.Nodes
+@using gView.Pipe.Abstraction.Expressions
 @inject IPipeNodeRegistry Registry
+@inject IPipeExpressionEvaluator Evaluator
 @inject PipeEditorClipboard Clipboard
 @inject ISnackbar Snackbar
 
@@ -45,6 +47,7 @@
                            Parameters="Model.Node.Parameters"
                            ShowRawWithoutType="@(Model.Descriptor is null)"
                            OnExpressionFieldFocused="f => _activeField = f"
+                           ExpressionPreview="PreviewExpression"
                            OptionsProvider="@(Model.Descriptor?.HasParameterOptions == true ? LoadOptionsAsync : null)"
                            OnChanged="ParametersChangedAsync" />
     </MudTabPanel>
@@ -108,6 +111,9 @@
 
 @code {
     [Parameter, EditorRequired] public PipeNodeModel Model { get; set; } = default!;
+
+    /// <summary>The workflow of the node, for $workflow in expression previews.</summary>
+    [Parameter] public PipeWorkflow? Workflow { get; set; }
 
     /// <summary>Called after a change; the argument tells whether the ports may have changed.</summary>
     [Parameter] public EventCallback<bool> OnChanged { get; set; }
@@ -248,6 +254,39 @@
     }
 
     private PipeNodeSettings Settings => Model.Node.Settings;
+
+    /// <summary>
+    /// The value of an expression for the first input item of the last run; null without a run.
+    /// <c>$node[…]</c> can't be resolved here and shows as an error.
+    /// </summary>
+    private string? PreviewExpression(string template)
+    {
+        if (Model.Run?.Inputs?.GetValueOrDefault(PipePorts.Main) is not { Count: > 0 } items)
+        {
+            return null;
+        }
+
+        try
+        {
+            var scope = new PipeExpressionScope
+            {
+                Json = items[0].Json,
+                Input = items.Select(i => i.Json).ToList(),
+                WorkflowId = Workflow?.Id ?? "",
+                WorkflowName = Workflow?.Name ?? ""
+            };
+            return Evaluator.Evaluate(template, scope) switch
+            {
+                null => "null",
+                JsonValue value when value.TryGetValue<string>(out var text) => text,
+                var node => node.ToJsonString()
+            };
+        }
+        catch (Exception ex)  // any failure of a preview is shown, never thrown
+        {
+            return $"⚠ {ex.Message}";
+        }
+    }
 
     private async Task<IReadOnlyList<PipeParameterOption>> LoadOptionsAsync(string parameter, bool refresh)
     {
