@@ -1,6 +1,7 @@
 using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Storage;
+using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Core.Extensions.DependencyInjection;
 using gView.Pipe.Core.Workflows;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,33 @@ public sealed class PipeFileStoreTests : IDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
+    }
+
+    [Fact]
+    public async Task Secret_variable_values_are_encrypted_at_rest()
+    {
+        var store = _services.GetRequiredService<IPipeWorkflowStore>();
+        var workflow = new PipeWorkflowBuilder("Secrets", "secrets").Build();
+        workflow.Variables =
+        [
+            new PipeVariable { Name = "DB_PASSWORD", Secret = true, Values = new() { ["DEFAULT"] = "pw-default", ["PROD"] = "pw-prod" } },
+            new PipeVariable { Name = "DB_SERVER", Values = new() { ["DEFAULT"] = "db-plain" } }
+        ];
+        await store.SaveAsync(workflow);
+
+        var json = await File.ReadAllTextAsync(Path.Combine(_root, "workflows", "secrets.json"));
+        Assert.DoesNotContain("pw-prod", json);
+        Assert.Contains("db-plain", json);
+        // the caller's object is not changed
+        Assert.Equal("pw-prod", workflow.Variables[0].Values["PROD"]);
+
+        var loaded = (await store.GetAsync("secrets"))!;
+        Assert.Equal("pw-prod", loaded.Variables![0].Values["PROD"]);
+
+        var variables = _services.GetRequiredService<IPipeVariableStore>();
+        await variables.SaveAsync([new PipeVariable { Name = "TOKEN", Secret = true, Values = new() { ["DEFAULT"] = "tok-instance" } }]);
+        Assert.DoesNotContain("tok-instance", await File.ReadAllTextAsync(Path.Combine(_root, "variables.json")));
+        Assert.Equal("tok-instance", (await variables.ListAsync()).Single().Values["DEFAULT"]);
     }
 
     [Fact]

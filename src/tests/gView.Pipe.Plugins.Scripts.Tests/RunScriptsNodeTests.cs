@@ -30,6 +30,10 @@ public sealed class RunScriptsNodeTests : IDisposable
             options.PluginPath = null;
             options.PluginAssemblies.Add(typeof(NoOpNode).Assembly);
             options.PluginAssemblies.Add(typeof(RunScriptsFolderNode).Assembly);
+            // instance variables reach every script; JOB_NAME is overridden by the node in some tests
+            options.Variables["JOB_NAME"] = new() { ["DEFAULT"] = "from-instance" };
+            options.Variables["JOB_TOKEN"] = new() { ["DEFAULT"] = "tok-12345" };
+            options.SecretVariables.Add("JOB_TOKEN");
         });
         services.Configure<PipeScriptsOptions>(o =>
         {
@@ -116,6 +120,19 @@ public sealed class RunScriptsNodeTests : IDisposable
         Assert.Equal("Jobs", results[1]["stdout"]!.GetValue<string>().Trim());
         Assert.Equal("warning", results[1]["stderr"]!.GetValue<string>().Trim());
         Assert.Contains(execution.NodeRuns["run"].Logs, l => l.Message.Contains("2-second.cmd: warning"));
+    }
+
+    [Fact]
+    public async Task Variables_reach_the_script_and_secret_ones_are_masked()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "cmd scripts need Windows");
+        Script("vars.bat", "@echo off\r\necho %JOB_NAME% %PIPE_ENVIRONMENT% %JOB_TOKEN%\r\n");
+
+        var execution = await RunAsync(new { root = "jobs", scripts = Scripts("vars.bat") });
+
+        Assert.True(execution.Status == PipeExecutionStatus.Success, execution.Error);
+        Assert.Equal("from-instance DEFAULT ***", Results(execution)[0]["stdout"]!.GetValue<string>().Trim());
+        Assert.DoesNotContain(execution.NodeRuns["run"].Logs, l => l.Message.Contains("tok-12345"));
     }
 
     [Fact]

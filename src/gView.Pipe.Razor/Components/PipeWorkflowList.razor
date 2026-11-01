@@ -5,6 +5,7 @@
 @inject IPipeWorkflowRunner Runner
 @inject IPipeTriggerManager TriggerManager
 @inject IPipeNodeRegistry Registry
+@inject IPipeEnvironments Environments
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -95,6 +96,7 @@
                     {
                         <MudTh>Group</MudTh>
                     }
+                    <MudTh>Environment</MudTh>
                     <MudTh>Nodes</MudTh>
                     <MudTh>Active</MudTh>
                     <MudTh>Last run</MudTh>
@@ -127,6 +129,7 @@
                             }
                         </MudTd>
                     }
+                    <MudTd DataLabel="Environment">@PipeEnvironmentBadge.For(Environments.Resolve(context, GroupOf(context)))</MudTd>
                     <MudTd DataLabel="Nodes">@context.Nodes.Count</MudTd>
                     <MudTd DataLabel="Active">
                         @if (context.Active)
@@ -313,7 +316,7 @@
     {
         var parameters = new DialogParameters<PipeWorkflowGroupDialog> { { d => d.Group, group } };
         var dialog = await DialogService.ShowAsync<PipeWorkflowGroupDialog>(group is null ? "New group" : "Edit group", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
 
         if (await dialog.Result is { Canceled: false })
         {
@@ -367,9 +370,24 @@
             return;
         }
 
+        // an inherited environment may change with the group: e.g. a test workflow would run against production
+        var before = Environments.Resolve(workflow, GroupOf(workflow)).Name;
+        var target = groupId is null ? null : _groups.FirstOrDefault(g => g.Id == groupId);
+        var after = Environments.Resolve(new PipeWorkflow { Environment = workflow.Environment, GroupId = groupId }, target).Name;
+        if (before != after)
+        {
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                "Environment changes",
+                $"'{workflow.Name}' inherits its environment; after the move it runs in {after} instead of {before}.",
+                yesText: "Move", cancelText: "Cancel");
+            if (confirmed != true)
+            {
+                return;
+            }
+        }
+
         await SetGroupAsync(workflow, groupId);
-        var target = groupId is null ? "no group" : $"'{_groups.FirstOrDefault(g => g.Id == groupId)?.Name}'";
-        Snackbar.Add($"Moved '{workflow.Name}' to {target}", Severity.Success);
+        Snackbar.Add($"Moved '{workflow.Name}' to {(target is null ? "no group" : $"'{target.Name}'")}", Severity.Success);
         await LoadAsync();
     }
 

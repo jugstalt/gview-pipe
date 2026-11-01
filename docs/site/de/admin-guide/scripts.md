@@ -69,7 +69,7 @@ Die **git-Kommandozeile muss auf dem Server installiert sein** (im Docker-Image 
 ## Wie ein Skript läuft
 
 - Ein Prozess je Skript, mit dem Ordner des Skripts (bei Run Scripts Repo das Repository-Wurzelverzeichnis) als Arbeitsordner.
-- Die Umgebung enthält die Umgebung der App plus `PIPE_ITEM`, `PIPE_WORKFLOW`, `PIPE_EXECUTION`, die Variablen des Nodes und, wenn der Node ein Credential hat, `PIPE_CREDENTIAL_<FELD>`. Credential-Werte werden in der Ausgabe und in Logs maskiert.
+- Die Umgebung enthält die Umgebung der App plus `PIPE_ITEM`, `PIPE_WORKFLOW`, `PIPE_EXECUTION`, `PIPE_ENVIRONMENT`, die [Variablen](../user-guide/variables.md) von Workflow, Gruppe und Instanz, die Variablen des Nodes (die sie überschreiben) und, wenn der Node ein Credential hat, `PIPE_CREDENTIAL_<FELD>`. Credential-Werte und geheime Variablen werden in der Ausgabe und in Logs maskiert.
 - Das Timeout beträgt standardmäßig 10 Minuten je Skript. Ein Timeout oder ein Abbruch beendet den ganzen Prozessbaum.
 - Die Ausgabe ist auf 1 MB je Stream begrenzt und wird zusätzlich ins Log des Nodes geschrieben.
 - Ein Skript **schlägt fehl**, wenn sein Exit-Code nicht 0 ist oder eine Zeile seiner Ausgabe zum Fehlermuster des Nodes passt (ein regulärer Ausdruck).

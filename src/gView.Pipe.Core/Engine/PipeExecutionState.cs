@@ -2,6 +2,7 @@ using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Expressions;
 using gView.Pipe.Abstraction.Nodes;
+using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
@@ -18,8 +19,10 @@ internal sealed class PipeExecutionState
         PipeExecution execution,
         PipeWorkflowGraph graph,
         IPipeBinaryStore binaryStore,
-        IPipeExpressionEvaluator evaluator)
+        IPipeExpressionEvaluator evaluator,
+        PipeResolvedVariables variables)
     {
+        Variables = variables;
         Workflow = workflow;
         Execution = execution;
         Graph = graph;
@@ -33,6 +36,7 @@ internal sealed class PipeExecutionState
     public PipeWorkflowGraph Graph { get; }
     public IPipeBinaryStore BinaryStore { get; }
     public IPipeExpressionEvaluator Evaluator { get; }
+    public PipeResolvedVariables Variables { get; }
 
     /// <summary>Outputs of finished nodes: node id → port → items. Read concurrently by expressions.</summary>
     public ConcurrentDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<PipeItem>>> Outputs { get; } = new();
@@ -44,6 +48,8 @@ internal sealed class PipeExecutionState
         WorkflowId = Workflow.Id,
         WorkflowName = Workflow.Name,
         ExecutionId = Execution.Id,
+        Environment = Execution.Environment,
+        Variables = Variables.Values,
         Input = input?.Select(i => i.Json).ToList(),
         NodeItems = MainOutput
     };

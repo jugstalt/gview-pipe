@@ -51,6 +51,13 @@ internal sealed class ShellProcess : IAsyncDisposable
         start.Environment["Pipe__FileRoots__files"] = Path.Combine(workFolder, "files");
         start.Environment["Pipe__Scripts__ScriptRoots__scripts"] = Path.Combine(workFolder, "scripts");
         start.Environment["Pipe__Scripts__RepositoriesPath"] = Path.Combine(workFolder, "data", "script-repos");
+        // a production instance with test environments and a variable, for the pictures of variables and environments
+        start.Environment["Pipe__Environment"] = "PROD";
+        start.Environment["Pipe__Environments__0"] = "TEST";
+        start.Environment["Pipe__Environments__1"] = "STAGE";
+        start.Environment["Pipe__Environments__2"] = "PROD";
+        start.Environment["Pipe__Variables__DATABASE_SERVER__DEFAULT"] = "db-test";
+        start.Environment["Pipe__Variables__DATABASE_SERVER__PROD"] = "db-prod";
 
         var process = Process.Start(start) ?? throw new InvalidOperationException("Can't start the Shell");
         var log = new StreamWriter(logFile) { AutoFlush = true };

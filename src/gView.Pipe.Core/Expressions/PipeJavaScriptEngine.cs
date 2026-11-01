@@ -35,6 +35,18 @@ public sealed class PipeJavaScriptEngine : IPipeExpressionEvaluator, IPipeScript
                 return items === undefined ? undefined : { json: items.length > 0 ? items[0] : null, all: items };
             }
         });
+        // reading an undefined variable fails (in __var) instead of passing "undefined" on to a script or database
+        var $vars = new Proxy({}, {
+            get: function (target, name) {
+                if (typeof name !== 'string' || name === 'toJSON' || name === 'then') return undefined;
+                return __var(name);
+            },
+            has: function (target, name) { return typeof name === 'string' && __hasVar(name); },
+            ownKeys: function () { return __varNames; },
+            getOwnPropertyDescriptor: function (target, name) {
+                return typeof name === 'string' && __hasVar(name) ? { value: __var(name), enumerable: true, configurable: true } : undefined;
+            }
+        });
         var $input = {
             all: function () { return __input; },
             first: function () { return __input.length > 0 ? __input[0] : undefined; }
@@ -129,6 +141,14 @@ public sealed class PipeJavaScriptEngine : IPipeExpressionEvaluator, IPipeScript
         engine.SetValue("$now", DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
         engine.SetValue("$workflow", ToJs(engine, new JsonObject { ["id"] = scope.WorkflowId, ["name"] = scope.WorkflowName }));
         engine.SetValue("$execution", ToJs(engine, new JsonObject { ["id"] = scope.ExecutionId }));
+        engine.SetValue("$environment", scope.Environment);
+        var variables = scope.Variables ?? new Dictionary<string, string>();
+        engine.SetValue("__var", new Func<string, string>(name =>
+            variables.TryGetValue(name, out var value)
+                ? value
+                : throw new PipeExpressionException($"Variable '{name}' is not defined in environment {scope.Environment}")));
+        engine.SetValue("__hasVar", new Func<string, bool>(variables.ContainsKey));
+        engine.SetValue("__varNames", ToJs(engine, new JsonArray(variables.Keys.Order(StringComparer.Ordinal).Select(k => (JsonNode)JsonValue.Create(k)!).ToArray())));
         engine.SetValue("__input", ToJs(engine, ToArray(scope.Input ?? [])));
         engine.SetValue("__nodeItems", new Func<string, JsValue>(name =>
             scope.NodeItems?.Invoke(name) is { } items ? ToJs(engine, ToArray(items)) : JsValue.Undefined));

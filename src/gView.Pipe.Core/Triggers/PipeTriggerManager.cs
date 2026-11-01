@@ -6,6 +6,7 @@ using gView.Pipe.Abstraction.Expressions;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Triggers;
+using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Expressions;
 using gView.Pipe.Core.Options;
@@ -156,6 +157,9 @@ internal sealed class PipeTriggerManager : IPipeTriggerManager, IHostedService
         public string NodeId => _node.Id;
         public string NodeName => _node.Name;
         public IPipeTriggerHost Host => _manager._host;
+
+        public IReadOnlyCollection<string> SelectableEnvironments
+            => (_workflow.Settings.WebhookEnvironments ?? []).Select(PipeEnvironments.Normalize).ToList();
         public ILogger Logger { get; }
 
         public TParameters GetParameters<TParameters>() where TParameters : class, new()
@@ -176,6 +180,7 @@ internal sealed class PipeTriggerManager : IPipeTriggerManager, IHostedService
                 StartNodeId = _node.Id,
                 InputItems = items,
                 ExecutionId = options?.ExecutionId,
+                Environment = options?.Environment,
                 BinaryContent = options?.BinaryContent
             };
 

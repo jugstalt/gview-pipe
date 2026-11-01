@@ -6,6 +6,7 @@ using gView.Pipe.Abstraction.Triggers;
 using gView.Pipe.Abstraction.Expressions;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Abstraction.Storage;
+using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Expressions;
 using gView.Pipe.Core.Options;
@@ -43,6 +44,8 @@ internal sealed class PipeNodeContext : IPipeNodeContext
     public string WorkflowId => _state.Workflow.Id;
     public string WorkflowName => _state.Workflow.Name;
     public string ExecutionId => _state.Execution.Id;
+    public string Environment => _state.Execution.Environment;
+    public PipeResolvedVariables Variables => _state.Variables;
     public string NodeId { get; }
     public string NodeName { get; }
     public JsonObject RawParameters { get; }
@@ -95,6 +98,8 @@ internal sealed class PipeNodeContext : IPipeNodeContext
         var request = new PipeExecutionRequest
         {
             Mode = PipeExecutionMode.SubWorkflow,
+            // a test run must not reach production data through a sub-workflow
+            Environment = execution.Environment,
             StartNodeId = entry.Id,
             InputItems = items,
             ParentExecutionId = execution.Id,

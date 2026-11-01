@@ -1,0 +1,80 @@
+@inject IPipeEnvironments Environments
+@inject IPipeVariableStore VariableStore
+@inject ISnackbar Snackbar
+
+@* The environment of the instance (read-only, set in the configuration) and the variables of the instance level. *@
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h6">Variables</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync"
+                   Disabled="@(!_dirty || HasErrors)">Save</MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudText Typo="Typo.body2">This instance runs in</MudText>
+        <PipeEnvironmentBadge Name="@Environments.Instance" Title="Set by the administrator (Pipe:Environment)" />
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">· environments:</MudText>
+        @foreach (var environment in Environments.All)
+        {
+            <PipeEnvironmentBadge Name="@environment" />
+        }
+    </MudStack>
+
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+        Groups and workflows inherit the environment unless they set their own. Variables are read as <code>$vars.NAME</code> in expressions
+        and passed to scripts as environment variables. A value for the active environment wins over a DEFAULT value; groups and workflows
+        override the instance.
+    </MudText>
+
+    @if (_configured.Count > 0)
+    {
+        <MudText Typo="Typo.subtitle2" Class="mt-4">From the configuration</MudText>
+        <PipeVariablesEditor Variables="_configured" ReadOnly="true"
+                             Description="Set in pipe.config or environment variables (Pipe:Variables); values below override them per environment." />
+    }
+
+    <MudText Typo="Typo.subtitle2" Class="mt-4">Instance variables</MudText>
+    @if (_variables is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <PipeVariablesEditor Variables="_variables" VariablesChanged="v => { _variables = v ?? []; _dirty = true; }" />
+    }
+</MudPaper>
+
+@code {
+    private List<PipeVariable>? _variables;
+    private List<PipeVariable> _configured = [];
+    private bool _dirty;
+
+    private bool HasErrors => _variables?.Any(v => PipeVariableNames.Validate(v.Name) is not null) == true
+                              || _variables?.GroupBy(v => PipeVariableNames.Normalize(v.Name)).Any(g => g.Count() > 1) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _variables = (await VariableStore.ListAsync()).ToList();
+        // what the configuration alone gives: the merged list minus the store's values
+        var stored = _variables.ToDictionary(v => PipeVariableNames.Normalize(v.Name));
+        _configured = (await Environments.GetInstanceVariablesAsync())
+            .Select(v => new PipeVariable
+            {
+                Name = v.Name,
+                Secret = v.Secret && !(stored.GetValueOrDefault(v.Name)?.Secret ?? false),
+                Values = v.Values.Where(e => stored.GetValueOrDefault(v.Name)?.Values.ContainsKey(e.Key) != true)
+                    .ToDictionary(e => e.Key, e => e.Value, StringComparer.OrdinalIgnoreCase)
+            })
+            .Where(v => v.Values.Count > 0)
+            .ToList();
+    }
+
+    private async Task SaveAsync()
+    {
+        await VariableStore.SaveAsync(_variables ?? []);
+        _dirty = false;
+        Snackbar.Add("Variables saved", Severity.Success);
+    }
+}

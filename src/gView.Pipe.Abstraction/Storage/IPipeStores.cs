@@ -1,5 +1,6 @@
 using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Execution;
+using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
 
 namespace gView.Pipe.Abstraction.Storage;
@@ -42,6 +43,15 @@ public interface IPipeExecutionStore
 
     /// <summary>Deletes all but the <paramref name="keep"/> most recent executions.</summary>
     Task PruneAsync(string workflowId, int keep, CancellationToken cancellationToken = default);
+}
+
+/// <summary>The variables of the instance level edited in the UI; they override those of the configuration.</summary>
+public interface IPipeVariableStore
+{
+    Task<IReadOnlyList<PipeVariable>> ListAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Replaces all variables.</summary>
+    Task SaveAsync(IReadOnlyList<PipeVariable> variables, CancellationToken cancellationToken = default);
 }
 
 public interface IPipeCredentialStore

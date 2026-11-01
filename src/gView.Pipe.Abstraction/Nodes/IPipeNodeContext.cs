@@ -2,6 +2,7 @@ using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Expressions;
+using gView.Pipe.Abstraction.Variables;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Nodes;
 
@@ -14,6 +15,15 @@ public interface IPipeNodeContext
     string ExecutionId { get; }
     string NodeId { get; }
     string NodeName { get; }
+
+    /// <summary>The environment of the execution.</summary>
+    string Environment { get; }
+
+    /// <summary>
+    /// The variables of workflow, group and instance for <see cref="Environment"/>. Script nodes pass them to the
+    /// process; mask <see cref="PipeResolvedVariables.SecretValues"/> in anything they output.
+    /// </summary>
+    PipeResolvedVariables Variables { get; }
 
     /// <summary>Ports that received data (connected input ports).</summary>
     IReadOnlyCollection<string> InputPorts { get; }

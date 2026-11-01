@@ -72,7 +72,7 @@ After a run, this tab shows the **Input** the node received, the **Output** it p
 
 ## Running and testing
 
-- **Run** starts the workflow from the editor. Nodes show their state: green for success, red for an error, gray when they got no items and were skipped. A badge on each output shows how many items it produced.
+- **Run** starts the workflow from the editor, in the environment chosen next to the button (see [Variables and environments](variables.md#running-in-another-environment)). Nodes show their state: green for success, red for an error, gray when they got no items and were skipped. A badge on each output shows how many items it produced.
 - **Run to here** (play icon in the side panel) runs only the selected node and the nodes it depends on.
 - **Pin output** (in the **Run** tab) keeps a node's output. Manual runs then use the pinned items instead of running the node again, which is useful for nodes that call a slow or costly API. Pinned nodes show a pin. Runs started by a trigger ignore pinned data, so production runs never use test data.
 - Closing the green or red result chip above the canvas clears the display of the last run.
@@ -95,5 +95,8 @@ Select no node (click the empty canvas) to see the settings of the workflow:
 | Max concurrent runs | How many runs of this workflow may be active at the same time (default 1). More are skipped; a webhook caller gets `429`. |
 | Save item data of executions | Switch off to store only statuses, counts and logs in the history (sensitive data). |
 | Group | The group on the start page. |
+| Environment | The environment of triggered runs, or *Inherit* from the group or the instance. See [Variables and environments](variables.md). |
+| Webhook callers may choose | Environments a webhook caller can pick with `X-Pipe-Environment`. |
+| Variables | Variables of this workflow, one value per environment. |
 | Error workflow | Started when a triggered run fails, see [Error handling](error-handling.md#error-workflows). |
 | Executions | The history of this workflow, see [Executions](executions.md). |

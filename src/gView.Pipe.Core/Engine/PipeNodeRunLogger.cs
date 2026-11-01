@@ -14,14 +14,17 @@ internal sealed class PipeNodeRunLogger : ILogger
 
     private readonly ILogger _inner;
     private readonly Action<PipeLogEntry>? _live;
+    private readonly Func<string, string>? _mask;
     private readonly List<PipeLogEntry> _entries = new();
     private bool _truncated;
 
     /// <param name="live">Gets every recorded entry right away (live output in the editor).</param>
-    public PipeNodeRunLogger(ILogger inner, Action<PipeLogEntry>? live = null)
+    /// <param name="mask">Hides secret values in the recorded messages.</param>
+    public PipeNodeRunLogger(ILogger inner, Action<PipeLogEntry>? live = null, Func<string, string>? mask = null)
     {
         _inner = inner;
         _live = live;
+        _mask = mask;
     }
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => _inner.BeginScope(state);
@@ -45,6 +48,10 @@ internal sealed class PipeNodeRunLogger : ILogger
         if (exception is not null)
         {
             message = $"{message} ({exception.GetType().Name}: {exception.Message})";
+        }
+        if (_mask is not null)
+        {
+            message = _mask(message);
         }
         if (message.Length > MaxMessageLength)
         {

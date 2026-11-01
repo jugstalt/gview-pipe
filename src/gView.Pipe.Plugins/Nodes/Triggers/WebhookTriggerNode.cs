@@ -65,6 +65,9 @@ public sealed class WebhookTriggerNodeParameters
 public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTriggerNodeParameters>, IPipeNodeHints
 {
     // never copied into the item (and so never into the execution history)
+    /// <summary>Chooses the environment of the run, if the workflow allows it (see ADR 0013).</summary>
+    public const string EnvironmentHeader = "x-pipe-environment";
+
     static private readonly HashSet<string> HiddenHeaders = new(StringComparer.OrdinalIgnoreCase) { "authorization", "proxy-authorization", "cookie" };
 
     public Task<IAsyncDisposable?> ActivateAsync(IPipeTriggerContext context, CancellationToken cancellationToken)
@@ -141,6 +144,17 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
             }
         }
 
+        // after authorization, so an unknown caller learns nothing about the environments
+        string? environment = null;
+        if (request.Headers.TryGetValue(EnvironmentHeader, out var requested) && requested.Trim().Length > 0)
+        {
+            environment = requested.Trim().ToUpperInvariant();
+            if (!context.SelectableEnvironments.Contains(environment, StringComparer.OrdinalIgnoreCase))
+            {
+                return PipeWebhookResponse.Error(400, $"The environment '{environment}' can't be chosen for this workflow");
+            }
+        }
+
         var (item, binaryContent) = ToItem(request, hiddenHeaders);
         var executionId = Guid.NewGuid().ToString("N");
 
@@ -148,7 +162,7 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
         using var waiting = parameters.ResponseMode == WebhookResponseMode.UsingRespondNode ? PipeWebhookResponses.Wait(executionId) : null;
 
         // the run must not stop when the caller disconnects
-        var run = context.FireAsync([item], CancellationToken.None, new PipeTriggerFireOptions { ExecutionId = executionId, BinaryContent = binaryContent });
+        var run = context.FireAsync([item], CancellationToken.None, new PipeTriggerFireOptions { ExecutionId = executionId, BinaryContent = binaryContent, Environment = environment });
 
         if (parameters.ResponseMode == WebhookResponseMode.Immediately)
         {

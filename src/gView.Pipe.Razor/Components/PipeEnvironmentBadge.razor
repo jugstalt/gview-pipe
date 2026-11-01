@@ -1,0 +1,24 @@
+@* An environment as a colored label; an inherited one is shown subdued, with its source in the tooltip. *@
+
+<span class="gview-pipe-env-badge @(Inherited ? "inherited" : null) @Class" style="--gview-pipe-accent:@PipeEnvironmentVisuals.Accent(Name)"
+      title="@Title">@Name</span>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+
+    [Parameter] public bool Inherited { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Badge of a workflow's effective environment.</summary>
+    static public RenderFragment For(PipeEffectiveEnvironment environment) => builder =>
+    {
+        builder.OpenComponent<PipeEnvironmentBadge>(0);
+        builder.AddAttribute(1, nameof(Name), environment.Name);
+        builder.AddAttribute(2, nameof(Inherited), environment.Source != PipeEnvironmentSource.Workflow);
+        builder.AddAttribute(3, nameof(Title), PipeEnvironmentVisuals.Describe(environment));
+        builder.CloseComponent();
+    };
+}

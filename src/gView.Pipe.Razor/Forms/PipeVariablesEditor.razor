@@ -1,0 +1,95 @@
+@inject IPipeEnvironments Environments
+
+@*
+    Edits the variables of one level: per variable a name, the secret flag and one value per environment.
+    An empty value means "not set here", so the DEFAULT value or a higher level applies.
+*@
+
+<div class="gview-pipe-variables">
+    @if (!string.IsNullOrEmpty(Description))
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Description</MudText>
+    }
+
+    @foreach (var variable in Variables ?? [])
+    {
+        var current = variable;
+        var error = current.Name.Length == 0 ? "Name required" : PipeVariableNames.Validate(current.Name)
+            ?? (Variables!.Count(v => PipeVariableNames.Normalize(v.Name) == PipeVariableNames.Normalize(current.Name)) > 1 ? "Defined twice" : null);
+        <div class="gview-pipe-variable">
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <MudTextField T="string" Immediate="true" DebounceInterval="300" Placeholder="NAME" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Class="gview-pipe-variable-name" Error="error is not null" ErrorText="@error" ReadOnly="ReadOnly"
+                              Value="@current.Name" ValueChanged="v => ChangeAsync(() => current.Name = PipeVariableNames.Normalize(v ?? string.Empty))" />
+                <MudTooltip Text="Secret: stored encrypted, masked in logs and script output">
+                    <MudToggleIconButton Toggled="current.Secret" ToggledChanged="v => ChangeAsync(() => current.Secret = v)" Disabled="ReadOnly"
+                                         Icon="@Icons.Material.Filled.LockOpen" ToggledIcon="@Icons.Material.Filled.Lock" ToggledColor="Color.Warning"
+                                         Size="Size.Small" aria-label="Secret" />
+                </MudTooltip>
+                @if (!ReadOnly)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" aria-label="Remove variable"
+                                   OnClick="() => ChangeAsync(() => Variables!.Remove(current))" />
+                }
+            </MudStack>
+            <div class="gview-pipe-variable-values">
+                @foreach (var environment in EnvironmentsOf(current))
+                {
+                    var name = environment;
+                    <MudTextField T="string" Immediate="true" DebounceInterval="300" Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="ReadOnly"
+                                  Label="@name" InputType="@(current.Secret ? InputType.Password : InputType.Text)"
+                                  Placeholder="@(name == PipeEnvironments.Default ? "not set" : "DEFAULT")"
+                                  Value="@ValueOf(current, name)" ValueChanged="v => ChangeAsync(() => SetValue(current, name, v))" />
+                }
+            </div>
+        </div>
+    }
+
+    @if (!ReadOnly)
+    {
+        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">Add variable</MudButton>
+    }
+</div>
+
+@code {
+    /// <summary>Edited in place; null until the first variable is added.</summary>
+    [Parameter] public List<PipeVariable>? Variables { get; set; }
+    [Parameter] public EventCallback<List<PipeVariable>?> VariablesChanged { get; set; }
+
+    [Parameter] public string? Description { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>The configured environments, plus any a variable has a value for (e.g. one removed from the configuration).</summary>
+    private IEnumerable<string> EnvironmentsOf(PipeVariable variable)
+        => Environments.All.Concat(variable.Values.Keys.Select(PipeEnvironments.Normalize)).Distinct();
+
+    static private string? ValueOf(PipeVariable variable, string environment)
+        => variable.Values.FirstOrDefault(v => PipeEnvironments.Normalize(v.Key) == environment) is { Key: not null } entry ? entry.Value : null;
+
+    static private void SetValue(PipeVariable variable, string environment, string? value)
+    {
+        foreach (var key in variable.Values.Keys.Where(k => PipeEnvironments.Normalize(k) == environment).ToList())
+        {
+            variable.Values.Remove(key);
+        }
+        if (!string.IsNullOrEmpty(value))
+        {
+            variable.Values[environment] = value;
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        var variables = Variables ?? new List<PipeVariable>();
+        variables.Add(new PipeVariable());
+        Variables = variables;
+        await VariablesChanged.InvokeAsync(variables);
+    }
+
+    private async Task ChangeAsync(Action change)
+    {
+        change();
+        await VariablesChanged.InvokeAsync(Variables is { Count: > 0 } ? Variables : null);
+    }
+}

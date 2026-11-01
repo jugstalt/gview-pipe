@@ -18,12 +18,14 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
     private readonly string? _seedFolder;
     private readonly string? _seedGroups;
     private readonly string _groupsFile;
+    private readonly PipeSecretValues _secrets;
     private readonly ILogger<PipeFileWorkflowStore> _logger;
     private readonly Lock _seedLock = new();
     private bool _seeded;
 
-    public PipeFileWorkflowStore(IOptions<PipeFileStoreOptions> options, ILogger<PipeFileWorkflowStore> logger)
+    public PipeFileWorkflowStore(IOptions<PipeFileStoreOptions> options, PipeSecretValues secrets, ILogger<PipeFileWorkflowStore> logger)
     {
+        _secrets = secrets;
         _folder = Path.Combine(Path.GetFullPath(options.Value.RootPath), "workflows");
         _seedFolder = options.Value.SeedWorkflowsPath is { } seed ? Path.GetFullPath(seed) : null;
         _seedGroups = options.Value.SeedGroupsPath is { } groups ? Path.GetFullPath(groups) : null;
@@ -46,6 +48,7 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
             {
                 if (PipeJson.Deserialize<PipeWorkflow>(await File.ReadAllTextAsync(file, cancellationToken)) is { } workflow)
                 {
+                    _secrets.Unprotect(workflow.Variables);
                     workflows.Add(workflow);
                 }
             }
@@ -62,16 +65,24 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
     {
         EnsureSeeded();
         var path = PathOf(id);
-        return File.Exists(path)
+        var workflow = File.Exists(path)
             ? PipeJson.Deserialize<PipeWorkflow>(await File.ReadAllTextAsync(path, cancellationToken))
             : null;
+        _secrets.Unprotect(workflow?.Variables);
+        return workflow;
     }
 
     public Task SaveAsync(PipeWorkflow workflow, CancellationToken cancellationToken = default)
     {
         EnsureSeeded();
         PipeStoreIds.Prepare(workflow);
-        return PipeFiles.WriteAtomicAsync(PathOf(workflow.Id), PipeJson.Serialize(workflow), cancellationToken);
+        var stored = workflow;
+        if (workflow.Variables?.Any(v => v.Secret) == true)
+        {
+            stored = PipeJson.Clone(workflow);
+            stored.Variables = _secrets.Protected(workflow.Variables);
+        }
+        return PipeFiles.WriteAtomicAsync(PathOf(workflow.Id), PipeJson.Serialize(stored), cancellationToken);
     }
 
     public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
@@ -121,11 +132,13 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
 internal sealed class PipeFileWorkflowGroupStore : IPipeWorkflowGroupStore
 {
     private readonly string _file;
+    private readonly PipeSecretValues _secrets;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
-    public PipeFileWorkflowGroupStore(IOptions<PipeFileStoreOptions> options)
+    public PipeFileWorkflowGroupStore(IOptions<PipeFileStoreOptions> options, PipeSecretValues secrets)
     {
         _file = FileOf(options.Value);
+        _secrets = secrets;
     }
 
     static public string FileOf(PipeFileStoreOptions options) => Path.Combine(Path.GetFullPath(options.RootPath), "groups.json");
@@ -145,7 +158,7 @@ internal sealed class PipeFileWorkflowGroupStore : IPipeWorkflowGroupStore
             PipeStoreIds.Prepare(group, groups);
             groups.RemoveAll(g => g.Id == group.Id);
             groups.Add(group);
-            await PipeFiles.WriteAtomicAsync(_file, PipeJson.Serialize(groups), cancellationToken);
+            await WriteAsync(groups, cancellationToken);
         }
         finally
         {
@@ -161,7 +174,7 @@ internal sealed class PipeFileWorkflowGroupStore : IPipeWorkflowGroupStore
             var groups = await ReadAsync(cancellationToken);
             if (groups.RemoveAll(g => g.Id == id) > 0)
             {
-                await PipeFiles.WriteAtomicAsync(_file, PipeJson.Serialize(groups), cancellationToken);
+                await WriteAsync(groups, cancellationToken);
             }
         }
         finally
@@ -171,9 +184,31 @@ internal sealed class PipeFileWorkflowGroupStore : IPipeWorkflowGroupStore
     }
 
     private async Task<List<PipeWorkflowGroup>> ReadAsync(CancellationToken cancellationToken)
-        => File.Exists(_file)
+    {
+        var groups = File.Exists(_file)
             ? PipeJson.Deserialize<List<PipeWorkflowGroup>>(await File.ReadAllTextAsync(_file, cancellationToken)) ?? []
             : [];
+        foreach (var group in groups)
+        {
+            _secrets.Unprotect(group.Variables);
+        }
+        return groups;
+    }
+
+    private Task WriteAsync(List<PipeWorkflowGroup> groups, CancellationToken cancellationToken)
+    {
+        var stored = groups.Select(g =>
+        {
+            if (g.Variables?.Any(v => v.Secret) != true)
+            {
+                return g;
+            }
+            var copy = PipeJson.Clone(g);
+            copy.Variables = _secrets.Protected(g.Variables);
+            return copy;
+        }).ToList();
+        return PipeFiles.WriteAtomicAsync(_file, PipeJson.Serialize(stored), cancellationToken);
+    }
 }
 
 /// <summary>

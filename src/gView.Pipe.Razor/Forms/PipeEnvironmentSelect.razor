@@ -1,0 +1,29 @@
+@inject IPipeEnvironments Environments
+
+@* Picks an environment of a group or workflow; empty (null) inherits it. *@
+
+<MudSelect T="string" Label="@Label" Dense="true" Variant="Variant.Outlined" HelperText="@HelperText"
+           Value="@(Value ?? "")" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
+    <MudSelectItem Value="@("")">@InheritText</MudSelectItem>
+    @foreach (var environment in Environments.All)
+    {
+        <MudSelectItem Value="@environment">
+            <PipeEnvironmentBadge Name="@environment" />
+        </MudSelectItem>
+    }
+    @if (!string.IsNullOrEmpty(Value) && !Environments.All.Contains(Value, StringComparer.OrdinalIgnoreCase))
+    {
+        <MudSelectItem Value="@Value">Unknown environment '@Value'</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public string? Label { get; set; } = "Environment";
+    [Parameter] public string? HelperText { get; set; }
+
+    /// <summary>Text of the empty choice, e.g. "Inherit (PROD from the instance)".</summary>
+    [Parameter] public string InheritText { get; set; } = "Inherit";
+
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+}

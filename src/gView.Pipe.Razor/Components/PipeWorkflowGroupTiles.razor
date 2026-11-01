@@ -1,3 +1,5 @@
+@inject IPipeEnvironments Environments
+
 @* Workflow groups as tiles. Workflow rows can be dropped onto a tile to move them into the group. *@
 
 <div class="gview-pipe-group-tiles">
@@ -15,6 +17,14 @@
                 <MudIcon Icon="@Icons.Material.Filled.Folder" Class="gview-pipe-group-tile-icon" />
                 <MudText Typo="Typo.subtitle1" Class="gview-pipe-group-tile-name">@group.Name</MudText>
                 <MudSpacer />
+                @if (string.IsNullOrEmpty(group.Environment))
+                {
+                    <PipeEnvironmentBadge Name="@Environments.Instance" Inherited="true" Title="@($"Environment {Environments.Instance}, inherited from the instance")" />
+                }
+                else
+                {
+                    <PipeEnvironmentBadge Name="@PipeEnvironments.Normalize(group.Environment)" Title="@($"Environment {group.Environment}, set on the group")" />
+                }
                 <div @onclick:stopPropagation>
                     <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AriaLabel="Group actions">
                         <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => OnEdit.InvokeAsync(group)">Edit</MudMenuItem>

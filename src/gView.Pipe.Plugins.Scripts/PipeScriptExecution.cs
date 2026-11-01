@@ -15,7 +15,8 @@ public abstract class PipeScriptCommonParameters
     [PipeParameter(Label = "Arguments", Order = 50, Placeholder = "--date {{ $json.date }}")]
     public string? Arguments { get; set; }
 
-    [PipeParameter(Label = "Environment variables", Order = 51, Description = "Name → value; next to PIPE_ITEM, PIPE_WORKFLOW and PIPE_EXECUTION")]
+    [PipeParameter(Label = "Environment variables", Order = 51,
+        Description = "Name → value; next to PIPE_ITEM, PIPE_WORKFLOW, PIPE_EXECUTION, PIPE_ENVIRONMENT and the variables of workflow, group and instance, which these override")]
     public Dictionary<string, string> Environment { get; set; } = new();
 
     [PipeCredential]
@@ -34,7 +35,7 @@ public abstract class PipeScriptCommonParameters
 }
 
 /// <summary>
-/// Runs scripts for one input item: environment (PIPE_* variables, own variables, credential fields), one process per
+/// Runs scripts for one input item: environment (PIPE_* variables, variables of the execution, own variables, credential fields), one process per
 /// script, live output into the node log, credential values masked, failure by exit code or error pattern.
 /// </summary>
 internal sealed class PipeScriptExecution
@@ -52,7 +53,12 @@ internal sealed class PipeScriptExecution
         _parameters = parameters;
         _options = options;
         _environment = environment;
-        _secrets = environment.Where(e => e.Key.StartsWith("PIPE_CREDENTIAL_", StringComparison.Ordinal) && e.Value.Length >= 3).Select(e => e.Value).ToList();
+        _secrets = environment.Where(e => e.Key.StartsWith("PIPE_CREDENTIAL_", StringComparison.Ordinal)).Select(e => e.Value)
+            .Concat(context.Variables.SecretValues)
+            .Where(v => v.Length >= 3)
+            .Distinct()
+            .OrderByDescending(v => v.Length)
+            .ToList();
         _errorPattern = string.IsNullOrWhiteSpace(parameters.ErrorPattern)
             ? null
             : new Regex(parameters.ErrorPattern, RegexOptions.Multiline | (parameters.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None), TimeSpan.FromSeconds(2));
@@ -67,10 +73,16 @@ internal sealed class PipeScriptExecution
             ["PIPE_ITEM"] = item.Json.ToJsonString(PipeJson.Options),
             ["PIPE_WORKFLOW"] = context.WorkflowName,
             ["PIPE_EXECUTION"] = context.ExecutionId,
+            ["PIPE_ENVIRONMENT"] = context.Environment,
             // Python prints UTF-8, like the output is read
             ["PYTHONIOENCODING"] = "utf-8",
             ["PYTHONUTF8"] = "1"
         };
+        // variables of workflow, group and instance; the node's own variables override them
+        foreach (var (key, value) in context.Variables.Values)
+        {
+            environment[key] = value;
+        }
         foreach (var (key, value) in extraEnvironment ?? new Dictionary<string, string>())
         {
             environment[key] = value;

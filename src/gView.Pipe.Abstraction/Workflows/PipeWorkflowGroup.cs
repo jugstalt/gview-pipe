@@ -1,3 +1,5 @@
+using gView.Pipe.Abstraction.Variables;
+
 namespace gView.Pipe.Abstraction.Workflows;
 
 /// <summary>
@@ -15,6 +17,12 @@ public sealed class PipeWorkflowGroup
 
     /// <summary>One of <see cref="PipeWorkflowGroupColors.All"/>.</summary>
     public string Color { get; set; } = PipeWorkflowGroupColors.Blue;
+
+    /// <summary>Environment of the workflows in the group that don't set one; null inherits the instance's.</summary>
+    public string? Environment { get; set; }
+
+    /// <summary>Variables of the group level (see <see cref="PipeVariable"/>).</summary>
+    public List<PipeVariable>? Variables { get; set; }
 
     public DateTimeOffset? CreatedAt { get; set; }
 }

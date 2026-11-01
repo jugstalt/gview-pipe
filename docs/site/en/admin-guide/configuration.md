@@ -21,6 +21,10 @@ The variable `PIPE_CONFIG_PATH` moves the `_config` folder. The start scripts an
 | `Pipe:Scripts:RepositoriesPath` | `data/script-repos` | Where repositories are cloned for a run. |
 | `Pipe:Scripts:Interpreters` | none | Interpreter per file extension, for example `.py` → `C:\Python313\python.exe`. |
 | `Pipe:Scripts:GitPath` | `git` | The git command line. |
+| `Pipe:Environment` | `DEFAULT` | The environment this instance runs in. |
+| `Pipe:Environments` | `TEST`, `STAGE`, `PROD` | Environments groups and workflows can choose, besides `DEFAULT`. |
+| `Pipe:Variables` | none | Instance variables per environment. |
+| `Pipe:SecretVariables` | none | Names of instance variables that are masked in logs and script output. |
 
 Relative paths are resolved against the working directory of the app.
 
@@ -40,6 +44,26 @@ Example (`_config/pipe.config`):
 
 A workflow names the folder (`import`) and a path inside it. It can't leave the folder.
 
+## Environments and variables
+
+Each instance runs in one **environment**: a test server in `TEST`, the production server in `PROD`. Groups and workflows inherit it unless they set their own, see [Variables and environments](../user-guide/variables.md). Users can't change the environment of the instance in the app.
+
+```json
+{
+  "Pipe": {
+    "Environment": "PROD",
+    "Environments": [ "TEST", "STAGE", "PROD" ],
+    "Variables": {
+      "DATABASE_SERVER": { "DEFAULT": "db-test", "PROD": "db-prod" },
+      "DATABASE_PASSWORD": { "PROD": "..." }
+    },
+    "SecretVariables": [ "DATABASE_PASSWORD" ]
+  }
+}
+```
+
+Variables of the configuration are the lowest level. Values entered on the **Variables** page of the app win over them, per environment. The app stores those in `variables.json` in the data folder; secret values are encrypted with the keys in `keys/`. Secret values of groups and workflows are encrypted the same way, so a workflow file copied to another installation loses them.
+
 ## Environment variables
 
 Use two underscores for the nesting:
@@ -49,6 +73,8 @@ Pipe__DataPath=/var/lib/gview-pipe/data
 Pipe__FileRoots__import=/srv/import
 Pipe__Scripts__ScriptRoots__scripts=/srv/scripts
 Pipe__Scripts__GitServers__company__Url=https://git.example.com
+Pipe__Environment=PROD
+Pipe__Variables__DATABASE_SERVER__PROD=db-prod
 ```
 
 ## Listening address

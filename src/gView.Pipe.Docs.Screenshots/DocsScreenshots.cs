@@ -31,6 +31,8 @@ internal sealed class DocsScreenshots
         await WebhookTriggerAsync();
         await ErrorOutputAsync();
         await CredentialsAsync();
+        await VariablesAsync();
+        await EditorEnvironmentAsync();
     }
 
     private async Task StartPageAsync()
@@ -135,6 +137,62 @@ internal sealed class DocsScreenshots
         await _page.GetByText("Credentials").First.WaitForAsync();
         await ShotAsync("credentials");
     }
+
+    /// <summary>The instance's environment and variables; one from the configuration, one entered on the page.</summary>
+    private async Task VariablesAsync()
+    {
+        await HighAsync();
+        await OpenAsync("/variables");
+        await _page.Locator(".gview-pipe-variable").First.WaitForAsync();
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Add variable" }).ClickAsync();
+        var name = _page.GetByPlaceholder("NAME").Last;
+        await name.FillAsync("REPORT_SHARE");
+        await name.PressAsync("Tab");
+        await _page.GetByLabel("DEFAULT").Last.FillAsync(@"\\files-test\reports");
+        await _page.GetByLabel("PROD").Last.FillAsync(@"\\files\reports");
+        await _page.Mouse.MoveAsync(1300, 850);
+        await _page.WaitForTimeoutAsync(600);
+        await _page.SetViewportSizeAsync(1440, 640);
+        await ShotAsync("variables");
+    }
+
+    /// <summary>A workflow with its own variable, about to run in TEST from the editor although it is saved for PROD.</summary>
+    private async Task EditorEnvironmentAsync()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_workflowsFolder, "environment-demo.json"), EnvironmentWorkflow);
+
+        await HighAsync();
+        await OpenEditorAsync("environment-demo");
+        await _page.GetByRole(AriaRole.Combobox, new() { Name = "Environment of the run" }).ClickAsync();
+        await _page.Locator(".mud-list-item", new PageLocatorOptions { HasText = "TEST" }).First.ClickAsync();
+        await _page.Locator(".gview-pipe-variables").First.ScrollIntoViewIfNeededAsync();
+        await _page.Mouse.MoveAsync(700, 600);
+        await _page.WaitForTimeoutAsync(600);
+        await ShotAsync("editor-environment");
+    }
+
+    private const string EnvironmentWorkflow = """
+        {
+          "schemaVersion": 1,
+          "id": "environment-demo",
+          "name": "Nightly Import",
+          "description": "Imports the orders of the day into the database of the environment.",
+          "groupId": "samples",
+          "active": false,
+          "variables": [
+            { "name": "DATABASE_NAME", "secret": false, "values": { "DEFAULT": "orders_test", "PROD": "orders" } }
+          ],
+          "nodes": [
+            { "id": "start", "name": "Start", "type": "3f6c1a52-9d0e-4b7a-8c11-0a5e2f7d9b01", "typeVersion": 1, "parameters": {}, "position": { "x": 0, "y": 80 } },
+            { "id": "target", "name": "Target", "type": "5a9b3c7d-2e4f-4a6b-8c1d-9e0f1a2b3c04", "typeVersion": 1,
+              "parameters": { "fields": { "server": "{{ $vars.DATABASE_SERVER }}", "database": "{{ $vars.DATABASE_NAME }}", "environment": "{{ $environment }}" } },
+              "position": { "x": 260, "y": 80 } }
+          ],
+          "connections": [
+            { "sourceNodeId": "start", "sourcePort": "main", "targetNodeId": "target", "targetPort": "main" }
+          ]
+        }
+        """;
 
     private async Task OpenAsync(string path)
     {

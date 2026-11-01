@@ -21,6 +21,10 @@ Die Variable `PIPE_CONFIG_PATH` verlegt den Ordner `_config`. Die Startskripte u
 | `Pipe:Scripts:RepositoriesPath` | `data/script-repos` | Wohin Repositories für einen Lauf geklont werden. |
 | `Pipe:Scripts:Interpreters` | keine | Interpreter je Dateiendung, zum Beispiel `.py` → `C:\Python313\python.exe`. |
 | `Pipe:Scripts:GitPath` | `git` | Die git-Kommandozeile. |
+| `Pipe:Environment` | `DEFAULT` | Das Environment, in dem diese Instanz läuft. |
+| `Pipe:Environments` | `TEST`, `STAGE`, `PROD` | Environments, die Gruppen und Workflows neben `DEFAULT` wählen können. |
+| `Pipe:Variables` | keine | Instanz-Variablen je Environment. |
+| `Pipe:SecretVariables` | keine | Namen von Instanz-Variablen, die in Logs und Skriptausgaben maskiert werden. |
 
 Relative Pfade gelten relativ zum Arbeitsordner der App.
 
@@ -40,6 +44,26 @@ Beispiel (`_config/pipe.config`):
 
 Ein Workflow nennt den Ordner (`import`) und einen Pfad darin. Er kann den Ordner nicht verlassen.
 
+## Environments und Variablen
+
+Jede Instanz läuft in einem **Environment**: ein Testserver in `TEST`, der Produktionsserver in `PROD`. Gruppen und Workflows erben es, wenn sie kein eigenes setzen, siehe [Variablen und Environments](../user-guide/variables.md). Anwender können das Environment der Instanz in der App nicht ändern.
+
+```json
+{
+  "Pipe": {
+    "Environment": "PROD",
+    "Environments": [ "TEST", "STAGE", "PROD" ],
+    "Variables": {
+      "DATABASE_SERVER": { "DEFAULT": "db-test", "PROD": "db-prod" },
+      "DATABASE_PASSWORD": { "PROD": "..." }
+    },
+    "SecretVariables": [ "DATABASE_PASSWORD" ]
+  }
+}
+```
+
+Variablen der Konfiguration sind die unterste Ebene. Werte, die auf der Seite **Variables** der App eingetragen werden, gewinnen je Environment gegen sie. Die App speichert sie in `variables.json` im Datenordner; geheime Werte werden mit den Schlüsseln in `keys/` verschlüsselt. Geheime Werte von Gruppen und Workflows werden genauso verschlüsselt, eine Workflow-Datei, die in eine andere Installation kopiert wird, verliert sie also.
+
 ## Umgebungsvariablen
 
 Für die Verschachtelung nimmst du zwei Unterstriche:
@@ -49,6 +73,8 @@ Pipe__DataPath=/var/lib/gview-pipe/data
 Pipe__FileRoots__import=/srv/import
 Pipe__Scripts__ScriptRoots__scripts=/srv/scripts
 Pipe__Scripts__GitServers__company__Url=https://git.example.com
+Pipe__Environment=PROD
+Pipe__Variables__DATABASE_SERVER__PROD=db-prod
 ```
 
 ## Lauschadresse

@@ -35,8 +35,10 @@ Hallo {{ $json.customer }}, deine Summe ist {{ $json.total * 1.2 }} EUR
 | `$workflow` | Id und Name des Workflows. |
 | `$execution` | Id des aktuellen Laufs. |
 | `$now` | Die aktuelle Zeit als ISO-Text. |
+| `$vars.NAME` | Eine Variable des Workflows, seiner Gruppe oder der Instanz, siehe [Variablen und Environments](variables.md). |
+| `$environment` | Das Environment des Laufs, zum Beispiel `PROD`. |
 
-Es gibt kein `$env`: Umgebungsvariablen enthalten oft Geheimnisse. Für Geheimnisse nimmst du [Credentials](credentials.md).
+Es gibt kein `$env`: Die Umgebungsvariablen des Servers enthalten oft Geheimnisse. Für gemeinsame Werte nimmst du [Variablen](variables.md), für Geheimnisse [Credentials](credentials.md).
 
 ### Beispiele
 

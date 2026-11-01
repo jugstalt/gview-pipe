@@ -3,8 +3,10 @@ using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Expressions;
 using gView.Pipe.Abstraction.Nodes;
+using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Options;
+using gView.Pipe.Core.Variables;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,6 +29,7 @@ internal sealed class PipeEngine : IPipeEngine
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IPipeExpressionEvaluator _evaluator;
     private readonly IEnumerable<IPipeExecutionObserver> _observers;
+    private readonly IPipeEnvironments _environments;
     private readonly ILoggerFactory _loggerFactory;
     private readonly PipeCoreOptions _options;
     private readonly ILogger _logger;
@@ -36,6 +39,7 @@ internal sealed class PipeEngine : IPipeEngine
         IServiceScopeFactory scopeFactory,
         IPipeExpressionEvaluator evaluator,
         IEnumerable<IPipeExecutionObserver> observers,
+        IPipeEnvironments environments,
         ILoggerFactory loggerFactory,
         IOptions<PipeCoreOptions> options)
     {
@@ -43,6 +47,7 @@ internal sealed class PipeEngine : IPipeEngine
         _scopeFactory = scopeFactory;
         _evaluator = evaluator;
         _observers = observers;
+        _environments = environments;
         _loggerFactory = loggerFactory;
         _options = options.Value;
         _logger = loggerFactory.CreateLogger<PipeEngine>();
@@ -51,6 +56,9 @@ internal sealed class PipeEngine : IPipeEngine
     public async Task<PipeExecution> ExecuteAsync(PipeWorkflow workflow, PipeExecutionRequest? request = null, CancellationToken cancellationToken = default)
     {
         request ??= new PipeExecutionRequest();
+        var environment = request.Environment is { Length: > 0 } requested
+            ? PipeEnvironments.Normalize(requested)
+            : (await _environments.ResolveAsync(workflow, cancellationToken)).Name;
 
         var execution = new PipeExecution
         {
@@ -58,6 +66,7 @@ internal sealed class PipeEngine : IPipeEngine
             WorkflowId = workflow.Id,
             WorkflowName = workflow.Name,
             Mode = request.Mode,
+            Environment = environment,
             ParentExecutionId = request.ParentExecutionId,
             ParentWorkflowId = request.ParentWorkflowId,
             Depth = request.Depth,
@@ -67,9 +76,11 @@ internal sealed class PipeEngine : IPipeEngine
         var observer = new PipeCompositeExecutionObserver(_observers, request.Observer, _logger);
 
         await observer.OnExecutionStartedAsync(execution);
+        var variables = PipeResolvedVariables.Empty;
 
         try
         {
+            variables = await _environments.ResolveVariablesAsync(workflow, environment, cancellationToken);
             var graph = PipeWorkflowGraph.Build(workflow);
             var startNodeIds = ResolveStartNodes(graph, request);
 
@@ -86,7 +97,7 @@ internal sealed class PipeEngine : IPipeEngine
             }
             await using var scope = _scopeFactory.CreateAsyncScope();
 
-            var state = new PipeExecutionState(workflow, execution, graph, binaryStore, _evaluator);
+            var state = new PipeExecutionState(workflow, execution, graph, binaryStore, _evaluator, variables);
             await RunGraphAsync(state, startNodeIds, request, scope.ServiceProvider, observer, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -102,6 +113,7 @@ internal sealed class PipeEngine : IPipeEngine
         finally
         {
             execution.FinishedAt = DateTimeOffset.UtcNow;
+            execution.Error = PipeSecretMask.Apply(execution.Error, variables);
         }
 
         await observer.OnExecutionFinishedAsync(execution);
@@ -284,7 +296,8 @@ internal sealed class PipeEngine : IPipeEngine
         var settings = node.Settings;
         var descriptor = _registry.Find(node.Type);
         var runLogger = new PipeNodeRunLogger(descriptor is null ? _logger : _loggerFactory.CreateLogger(descriptor.NodeType),
-            entry => _ = observer.OnNodeLogAsync(state.Execution, run, entry));
+            entry => _ = observer.OnNodeLogAsync(state.Execution, run, entry),
+            message => PipeSecretMask.Apply(message, state.Variables));
         Exception? lastError;
 
         try
@@ -399,7 +412,7 @@ internal sealed class PipeEngine : IPipeEngine
         PipeNodeRunLogger runLogger)
     {
         runLogger.LogError("Node {NodeName} failed: {Error}", node.Name, error.Message);
-        run.Error = error.Message;
+        run.Error = PipeSecretMask.Apply(error.Message, state.Variables);
 
         // a node may hand over result items for the failure paths; otherwise its input items go on
         var inputItems = error is PipeNodeException { Items: var results }

@@ -22,6 +22,7 @@
 @inject IJSRuntime JS
 @inject IPipeRunningExecutions RunningExecutions
 @inject IPipeExecutionStore ExecutionStore
+@inject IPipeEnvironments Environments
 
 @*
     Workflow editor: node palette, canvas and a side panel for the selected node (or the workflow).
@@ -90,6 +91,22 @@
             }
             else
             {
+                var effective = EffectiveEnvironment;
+                @* a title, not a MudTooltip: that would cover the open list *@
+                <div title="@(_runEnvironment is null ? $"Runs as {effective.Name} ({PipeEnvironmentVisuals.Describe(effective)})" : $"Runs as {_runEnvironment}, saved: {effective.Name}. Only for runs from here; not saved.")">
+                    <MudSelect T="string" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" aria-label="Environment of the run"
+                               Class="@($"gview-pipe-run-environment mr-1 {(_runEnvironment is null ? null : "deviating")}")"
+                               Style="@($"--gview-pipe-accent:{PipeEnvironmentVisuals.Accent(_runEnvironment ?? effective.Name)}")"
+                               Value="@(_runEnvironment ?? effective.Name)"
+                               ValueChanged="v => _runEnvironment = v == effective.Name ? null : v">
+                        @foreach (var environment in Environments.All.Append(effective.Name).Distinct())
+                        {
+                            <MudSelectItem Value="@environment">
+                                @environment@if (environment == effective.Name) {<span class="gview-pipe-saved-marker"> (saved)</span>}
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="() => RunAsync()">Run</MudButton>
             }
         </div>
@@ -346,6 +363,12 @@
 
     private BlazorDiagram _diagram = default!;
     private PipeWorkflow? _workflow;
+
+    /// <summary>Environment chosen for runs from the editor; null for the workflow's own. Never saved.</summary>
+    private string? _runEnvironment;
+
+    private PipeEffectiveEnvironment EffectiveEnvironment
+        => Environments.Resolve(_workflow!, _groups.FirstOrDefault(g => g.Id == _workflow!.GroupId));
     private string? _loadedId;
     private bool _loading = true;
     private bool _dirty;
@@ -588,6 +611,7 @@
         _loading = true;
         _workflow = await WorkflowStore.GetAsync(WorkflowId);
         _groups = await GroupStore.ListAsync();
+        _runEnvironment = null;
         _selected = null;
         _execution = null;
 
@@ -1151,7 +1175,7 @@
 
         try
         {
-            var request = new PipeExecutionRequest { Observer = new EditorObserver(this), TargetNodeId = targetNodeId };
+            var request = new PipeExecutionRequest { Observer = new EditorObserver(this), TargetNodeId = targetNodeId, Environment = _runEnvironment };
             var execution = await Runner.RunAsync(workflow, request, _runCts.Token);
             if (execution is null)
             {

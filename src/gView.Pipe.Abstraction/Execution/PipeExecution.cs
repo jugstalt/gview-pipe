@@ -10,6 +10,9 @@ public sealed class PipeExecution
     public string WorkflowId { get; set; } = "";
     public string WorkflowName { get; set; } = "";
     public PipeExecutionMode Mode { get; set; }
+
+    /// <summary>The environment the variables were resolved for.</summary>
+    public string Environment { get; set; } = gView.Pipe.Abstraction.Variables.PipeEnvironments.Default;
     public PipeExecutionStatus Status { get; set; }
     public DateTimeOffset StartedAt { get; set; }
     public DateTimeOffset? FinishedAt { get; set; }

@@ -51,6 +51,7 @@ plugins:
             Node reference: Node-Referenz
             The editor: Der Editor
             Items and expressions: Items und Ausdrücke
+            Variables and environments: Variablen und Environments
             Credentials: Credentials
             Executions: Executions
             Recipes: Rezepte
@@ -74,6 +75,7 @@ nav:
       - The editor: user-guide/editor.md
       - Items and expressions: user-guide/expressions.md
       - Triggers and webhooks: user-guide/triggers.md
+      - Variables and environments: user-guide/variables.md
       - Credentials: user-guide/credentials.md
       - Error handling: user-guide/error-handling.md
       - Executions: user-guide/executions.md

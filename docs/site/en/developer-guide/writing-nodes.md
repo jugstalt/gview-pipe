@@ -64,6 +64,7 @@ A **new instance** of the class is created for every execution and constructor i
 | `Logger` | Writes to the application log and to the node's **Logs** tab. |
 | `BinaryStore` | Reads and writes the bytes of binary attachments. |
 | `ExecuteWorkflowAsync(id, items)` | Runs another workflow as a sub-workflow. |
+| `Environment`, `Variables` | The environment of the run and its resolved [variables](../user-guide/variables.md). Mask `Variables.SecretValues` in anything the node outputs. |
 | `WorkflowId`, `WorkflowName`, `ExecutionId`, `NodeId`, `NodeName` | Where you are. |
 | `Services` | The services of the current execution scope. |
 

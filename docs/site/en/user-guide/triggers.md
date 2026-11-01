@@ -87,6 +87,7 @@ The items pass through the node, so the workflow can continue after it has answe
 |---|---|
 | 200 | Answer of the workflow (*When finished*) or of a Respond to Webhook node. |
 | 202 | Started (*Immediately*), or the timeout passed while the run goes on. |
+| 400 | The header `X-Pipe-Environment` names an environment the workflow doesn't allow. |
 | 401 | The credential is missing or wrong. |
 | 404 | No active webhook at this path. |
 | 405 | The method does not match the trigger. |
@@ -95,6 +96,16 @@ The items pass through the node, so the workflow can continue after it has answe
 | 500 | The run failed, or ended without reaching a Respond to Webhook node. The body contains the error and the execution id. |
 
 The `500` body looks like `{ "error": "…", "executionId": "…" }`. Look the execution id up in the execution history to see which node failed.
+
+### Choosing the environment
+
+A webhook run uses the effective environment of the workflow (see [Variables and environments](variables.md)). To let callers choose another one, for example to test a system against the test database, list it under **Webhook callers may choose** in the workflow panel. The caller then sends the header:
+
+```
+X-Pipe-Environment: TEST
+```
+
+An environment that isn't listed is rejected with `400`, never silently replaced. The header is checked after the credential, so a caller without access learns nothing about the environments.
 
 ### Try it
 

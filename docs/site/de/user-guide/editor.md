@@ -72,7 +72,7 @@ Nach einem Lauf zeigt dieser Tab die **Input**-Items, die der Node bekommen hat,
 
 ## Ausführen und Testen
 
-- **Run** startet den Workflow aus dem Editor. Die Nodes zeigen ihren Zustand: grün bei Erfolg, rot bei einem Fehler, grau, wenn sie keine Items bekamen und übersprungen wurden. Ein Zähler an jedem Ausgang zeigt, wie viele Items er erzeugt hat.
+- **Run** startet den Workflow aus dem Editor, im Environment, das neben dem Knopf gewählt ist (siehe [Variablen und Environments](variables.md#in-einem-anderen-environment-laufen)). Die Nodes zeigen ihren Zustand: grün bei Erfolg, rot bei einem Fehler, grau, wenn sie keine Items bekamen und übersprungen wurden. Ein Zähler an jedem Ausgang zeigt, wie viele Items er erzeugt hat.
 - **Run to here** (Play-Symbol im Seitenpanel) führt nur den gewählten Node und die Nodes aus, von denen er abhängt.
 - **Pin output** (im Tab **Run**) behält die Ausgabe eines Nodes. Manuelle Läufe nehmen dann die festgehaltenen Items, statt den Node erneut auszuführen. Das ist nützlich bei Nodes, die eine langsame oder kostenpflichtige API aufrufen. Festgehaltene Nodes zeigen ein Pin-Symbol. Läufe, die ein Trigger startet, ignorieren festgehaltene Daten, Produktivläufe arbeiten also nie mit Testdaten.
 - Ein Klick auf das **x** am grünen oder roten Ergebnis über der Arbeitsfläche löscht die Anzeige des letzten Laufs.
@@ -95,5 +95,8 @@ Wähle keinen Node (klicke auf die leere Arbeitsfläche), um die Einstellungen d
 | Max concurrent runs | Wie viele Läufe dieses Workflows gleichzeitig aktiv sein dürfen (Vorgabe 1). Weitere werden übersprungen; ein Webhook-Aufrufer bekommt `429`. |
 | Save item data of executions | Schalte es aus, um nur Status, Zähler und Logs in der Historie zu speichern (sensible Daten). |
 | Group | Die Gruppe auf der Startseite. |
+| Environment | Das Environment für Läufe durch Trigger, oder *Inherit* von der Gruppe oder der Instanz. Siehe [Variablen und Environments](variables.md). |
+| Webhook callers may choose | Environments, die ein Webhook-Aufrufer mit `X-Pipe-Environment` wählen kann. |
+| Variables | Variablen dieses Workflows, ein Wert je Environment. |
 | Error workflow | Wird gestartet, wenn ein durch Trigger gestarteter Lauf fehlschlägt, siehe [Fehlerbehandlung](error-handling.md#fehler-workflows). |
 | Executions | Die Historie dieses Workflows, siehe [Executions](executions.md). |

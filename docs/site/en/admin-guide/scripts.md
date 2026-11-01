@@ -69,7 +69,7 @@ The **git command line must be installed** on the server (it is part of the Dock
 ## How a script runs
 
 - One process per script, with the script's folder (the repository root for Run Scripts Repo) as working directory.
-- The environment contains the environment of the app plus `PIPE_ITEM`, `PIPE_WORKFLOW`, `PIPE_EXECUTION`, the variables of the node and, if the node has a credential, `PIPE_CREDENTIAL_<FIELD>`. Credential values are masked in the output and in logs.
+- The environment contains the environment of the app plus `PIPE_ITEM`, `PIPE_WORKFLOW`, `PIPE_EXECUTION`, `PIPE_ENVIRONMENT`, the [variables](../user-guide/variables.md) of workflow, group and instance, the variables of the node (which override them) and, if the node has a credential, `PIPE_CREDENTIAL_<FIELD>`. Credential values and secret variables are masked in the output and in logs.
 - The default timeout is 10 minutes per script. A timeout or a cancel ends the whole process tree.
 - The output is limited to 1 MB per stream and is also written to the log of the node.
 - A script **fails** when its exit code is not 0, or when a line of its output matches the error pattern of the node (a regular expression).

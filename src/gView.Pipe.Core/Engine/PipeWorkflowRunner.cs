@@ -144,6 +144,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
             await RunAsync(errorWorkflow, new PipeExecutionRequest
             {
                 Mode = PipeExecutionMode.Error,
+                Environment = failed.Environment,
                 StartNodeId = entry.Id,
                 InputItems = [item],
                 ParentExecutionId = failed.Id,

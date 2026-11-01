@@ -9,6 +9,9 @@ public sealed record PipeExecutionRequest
     /// <summary>Node to start at. When null, all nodes without incoming connections are start nodes.</summary>
     public string? StartNodeId { get; init; }
 
+    /// <summary>Environment to run in; null for the workflow's effective environment.</summary>
+    public string? Environment { get; init; }
+
     /// <summary>
     /// "Run to here": execute only this node and the nodes it depends on. Without <see cref="StartNodeId"/>
     /// the start nodes are the roots this node can be reached from.

@@ -41,6 +41,16 @@ builder.Services
         {
             options.FileRoots[root.Key] = root.Value!;
         }
+        // environments and instance variables (ADR 0013); Pipe__Variables__NAME__PROD works in Docker
+        options.Environment = builder.Configuration["Pipe:Environment"] ?? "DEFAULT";
+        options.Environments.AddRange(builder.Configuration.GetSection("Pipe:Environments").Get<string[]>() ?? []);
+        options.SecretVariables.AddRange(builder.Configuration.GetSection("Pipe:SecretVariables").Get<string[]>() ?? []);
+        foreach (var variable in builder.Configuration.GetSection("Pipe:Variables").GetChildren())
+        {
+            options.Variables[variable.Key] = variable.GetChildren()
+                .Where(v => v.Value is not null)
+                .ToDictionary(v => v.Key, v => v.Value!, StringComparer.OrdinalIgnoreCase);
+        }
     })
     .AddPipeFileStore(options =>
     {

@@ -43,6 +43,12 @@ public sealed class PipeExpressionScope
 
     public string ExecutionId { get; init; } = "";
 
+    /// <summary><c>$environment</c>.</summary>
+    public string Environment { get; init; } = gView.Pipe.Abstraction.Variables.PipeEnvironments.Default;
+
+    /// <summary><c>$vars.NAME</c>; reading a variable that isn't defined is an error. Null: no variables.</summary>
+    public IReadOnlyDictionary<string, string>? Variables { get; init; }
+
     /// <summary>Main input items of the current node (<c>$input.all()</c>, <c>$input.first()</c>).</summary>
     public IReadOnlyList<JsonObject>? Input { get; init; }
 

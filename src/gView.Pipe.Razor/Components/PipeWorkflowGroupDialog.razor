@@ -1,4 +1,5 @@
 @inject IPipeWorkflowGroupStore GroupStore
+@inject IPipeEnvironments Environments
 
 @* Creates or edits a workflow group. Closes with the saved group. *@
 
@@ -17,6 +18,14 @@
                                 @onclick="() => _group.Color = color"></button>
                     }
                 </div>
+            </div>
+            <PipeEnvironmentSelect InheritText="@($"Inherit ({Environments.Instance} from the instance)")"
+                                   HelperText="For the workflows of the group that don't set their own"
+                                   @bind-Value="_group.Environment" />
+            <div>
+                <MudText Typo="Typo.subtitle2">Variables</MudText>
+                <PipeVariablesEditor @bind-Variables="_group.Variables"
+                                     Description="For the workflows of the group; they override instance variables of the same name." />
             </div>
             @if (_error is not null)
             {
@@ -47,6 +56,11 @@
 
     private async Task SaveAsync()
     {
+        if (_group.Variables?.Select(v => PipeVariableNames.Validate(v.Name)).FirstOrDefault(e => e is not null) is { } invalid)
+        {
+            _error = $"Variables: {invalid}";
+            return;
+        }
         try
         {
             await GroupStore.SaveAsync(_group);

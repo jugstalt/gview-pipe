@@ -1,4 +1,5 @@
 using gView.Pipe.Abstraction.Data;
+using gView.Pipe.Abstraction.Variables;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -22,6 +23,12 @@ public sealed class PipeWorkflow
     /// (e.g. a file copied from another installation) is kept, and the workflow is shown without group.
     /// </summary>
     public string? GroupId { get; set; }
+
+    /// <summary>Environment the workflow runs in, or null to inherit it from the group and the instance.</summary>
+    public string? Environment { get; set; }
+
+    /// <summary>Variables of the workflow level (see <see cref="PipeVariable"/>).</summary>
+    public List<PipeVariable>? Variables { get; set; }
 
     /// <summary>Active workflows have their triggers (cron, webhook, …) armed.</summary>
     public bool Active { get; set; }
@@ -60,4 +67,9 @@ public sealed class PipeWorkflowSettings
     /// workflow fails. Manual runs don't start it.
     /// </summary>
     public string? ErrorWorkflowId { get; set; }
+
+    /// <summary>
+    /// Environments a webhook caller may choose with the header <c>X-Pipe-Environment</c>. Empty: the caller can't.
+    /// </summary>
+    public List<string>? WebhookEnvironments { get; set; }
 }

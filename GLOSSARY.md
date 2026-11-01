@@ -4,6 +4,9 @@
 |---|---|---|
 | **Workflow** | A stored graph of nodes and connections; one JSON document. Only DAGs (no cycles). | `PipeWorkflow` |
 | **Workflow group** | A folder for workflows, shown as a tile on the start page. A workflow is in at most one group; groups don't nest. Deleting a group keeps its workflows (without group). References between workflows use ids, so moving a workflow between groups breaks nothing. | `PipeWorkflowGroup`, `PipeWorkflow.GroupId`, `IPipeWorkflowGroupStore` |
+| **Environment** | A named scenario such as `DEFAULT`, `TEST`, `STAGE`, `PROD`, listed in the instance configuration. The instance runs in one; groups and workflows set one or `inherit`. Selects which value of a variable applies. See ADR 0013. | `Pipe:Environments`, `Pipe:Environment` |
+| **Effective environment** | The environment a workflow runs in by default: the first one set on workflow → group → instance. Manual runs may choose another; sub-workflows and error workflows take the caller's. | |
+| **Variable** | A named value defined on instance, group or workflow level, with one value per environment; script node parameters override it. Resolved for the active environment first, then `DEFAULT`. Read as `$vars.NAME` in expressions and passed to scripts as process environment. Can be marked secret. | `$vars` |
 | **Node** | An instance of a node type inside a workflow, with its own parameters and settings. Has a unique `id` (for connections) and a unique `name` (for expressions). | `PipeWorkflowNode` |
 | **Node type** | The logic behind nodes, provided by a plugin class with `[PipeNode("guid", …)]`. Workflows reference it by that GUID. | `IPipeNode`, `PipeNodeDescriptor` |
 | **Type version** | Parameter version of a node type. Older workflow nodes are migrated before execution. | `PipeNodeAttribute.Version`, `IPipeNodeMigration` |

@@ -858,3 +858,72 @@ div.gview-pipe-json-tree {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ---- environments and variables (ADR 0013) ---- */
+
+.gview-pipe-env-badge {
+    display: inline-block;
+    padding: 0 7px;
+    border-radius: 10px;
+    border: 1px solid var(--gview-pipe-accent);
+    background: var(--gview-pipe-accent);
+    color: #fff;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+    /* inherited: only outlined, so values set on purpose stand out */
+    .gview-pipe-env-badge.inherited {
+        background: transparent;
+        color: var(--gview-pipe-accent);
+        border-style: dashed;
+    }
+
+.gview-pipe-run-environment {
+    width: 130px;
+    flex: 0 0 auto;
+}
+
+    .gview-pipe-run-environment.deviating .mud-input-outlined-border {
+        border: 2px solid var(--gview-pipe-accent);
+    }
+
+    .gview-pipe-run-environment.deviating .mud-select-input {
+        color: var(--gview-pipe-accent);
+        font-weight: 600;
+    }
+
+.gview-pipe-history-filter {
+    max-width: 150px;
+}
+
+.gview-pipe-variable {
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-top: 6px;
+}
+
+.gview-pipe-variable-name {
+    font-family: monospace;
+}
+
+.gview-pipe-variable-values {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+    margin-top: 4px;
+}
+
+    /* the list marks the saved environment; the field itself shows only the name */
+    .gview-pipe-run-environment .gview-pipe-saved-marker {
+        display: none;
+    }
+
+.gview-pipe-saved-marker {
+    color: var(--mud-palette-text-secondary);
+}

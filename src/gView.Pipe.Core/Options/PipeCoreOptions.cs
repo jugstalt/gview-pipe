@@ -51,6 +51,20 @@ public class PipeCoreOptions
     /// <summary>Limits for JavaScript in expressions and Code nodes.</summary>
     public PipeScriptOptions Scripts { get; } = new();
 
+    /// <summary>
+    /// Environments besides <c>DEFAULT</c>, which always exists (e.g. TEST, STAGE, PROD). Names are upper case.
+    /// </summary>
+    public List<string> Environments { get; } = new();
+
+    /// <summary>The environment the instance runs in; one of <see cref="Environments"/> or <c>DEFAULT</c>.</summary>
+    public string Environment { get; set; } = "DEFAULT";
+
+    /// <summary>Instance variables from the configuration: name → environment → value.</summary>
+    public Dictionary<string, Dictionary<string, string>> Variables { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Names of <see cref="Variables"/> to treat as secret (masked in logs and script output).</summary>
+    public List<string> SecretVariables { get; } = new();
+
     /// <summary>Arm the triggers of all active workflows when the host starts.</summary>
     public bool ActivateTriggersOnStartup { get; set; } = true;
 }

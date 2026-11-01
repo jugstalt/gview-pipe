@@ -2,6 +2,7 @@ using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Nodes;
+using gView.Pipe.Abstraction.Workflows;
 using Microsoft.Extensions.Logging;
 
 namespace gView.Pipe.Abstraction.Triggers;
@@ -32,6 +33,11 @@ public interface IPipeTriggerContext
 
     IPipeTriggerHost Host { get; }
 
+    /// <summary>
+    /// Environments a caller may choose for a run (<see cref="PipeWorkflowSettings.WebhookEnvironments"/>); empty when none.
+    /// </summary>
+    IReadOnlyCollection<string> SelectableEnvironments { get; }
+
     ILogger Logger { get; }
 
     /// <summary>
@@ -45,6 +51,9 @@ public sealed class PipeTriggerFireOptions
 {
     /// <summary>Id for the execution, e.g. to report it before the execution has finished.</summary>
     public string? ExecutionId { get; init; }
+
+    /// <summary>Environment to run in, one of <see cref="IPipeTriggerContext.SelectableEnvironments"/>; null for the workflow's.</summary>
+    public string? Environment { get; init; }
 
     /// <summary>
     /// Content for the binary references of the fired items (key: <see cref="PipeBinaryRef.Id"/>).
