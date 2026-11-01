@@ -242,6 +242,11 @@ class Build : NukeBuild
                 return;
             }
 
+            // the node reference comes from the node attributes
+            DotNetTasks.DotNetRun(s => s
+                .SetProjectFile(RootDirectory / "src" / "gView.Pipe.Docs" / "gView.Pipe.Docs.csproj")
+                .SetConfiguration(Configuration));
+
             // strict: broken links fail the build; a missing German page only warns (fallback to English)
             ProcessTasks.StartProcess("python", "-m mkdocs build --strict --clean",
                     workingDirectory: RootDirectory,

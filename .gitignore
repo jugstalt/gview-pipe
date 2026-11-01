@@ -22,3 +22,6 @@ src/gView.Pipe.Shell/scripts/
 ## nuke deploy build
 .nuke/temp/
 artifacts/
+
+## generated node reference (src/gView.Pipe.Docs)
+docs/site/en/user-guide/nodes/

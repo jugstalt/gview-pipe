@@ -23,6 +23,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - `Forms/`: forms generated from parameter classes.
   - Embedding hosts need the diagram CSS/JS and must render without prerendering (see ADR 0004).
   - Navigation is the host's job: components raise events like `OnOpen` and `OnClose`.
+- `gView.Pipe.Docs`: build tool, generates the node reference of the docs from the node attributes. Not shipped.
 - `gView.Pipe.Shell`: the app itself. It contains only layout, routing and service composition (`AddPipeCore().AddPipeFileStore().AddPipeRazor()`).
 - `Aspire/`: AppHost and ServiceDefaults.
 - `tests/`: xUnit v3 test projects, run through Microsoft.Testing.Platform (see `global.json`). `gView.Pipe.Razor.Tests` uses bUnit with MudBlazor services.
@@ -56,6 +57,7 @@ dotnet test --solution gView.Pipe.slnx
 dotnet run --project src/gView.Pipe.Shell
 dotnet run --project src/Aspire/gView.Pipe.AppHost
 pip install -r docs/requirements.txt   # once, for the docs
+dotnet run --project src/gView.Pipe.Docs   # generate the node reference once
 python -m mkdocs serve                 # live preview of the docs
 ./build.cmd Docs                       # static site in artifacts/docs/site
 ```
@@ -68,7 +70,7 @@ The user and admin documentation is a MkDocs Material site in `docs/site/` (`en/
 
 - A change to a node, a parameter, the configuration or the behavior of the app updates the matching pages in both languages in the same change. A missing German page falls back to English with a warning; don't leave it that way on purpose.
 - Links inside the site are relative, so the same site runs at `/docs` in the Shell and at the root of a docs host.
-- `docs/site/en/nodes/` is generated from the node attributes, never edited or committed.
+- `docs/site/en/user-guide/nodes/` (the node reference) is generated from `[PipeNode]` and `[PipeParameter]` by `src/gView.Pipe.Docs`, never edited or committed. Write the `Description` of nodes and parameters for readers of the docs; run `dotnet run --project src/gView.Pipe.Docs` before `mkdocs serve`. The German site falls back to the English pages.
 - Python is needed for the docs only. `dotnet build` and `dotnet test` don't use it.
 - Images in `docs/site/images/` are English only; the UI has no other language.
 
