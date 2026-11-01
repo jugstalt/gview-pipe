@@ -62,7 +62,7 @@
     private bool _pending;
     private Timer? _debounce;
 
-    private int Height => Math.Clamp(_text.Count(c => c == '\n') + 1, MinLines, MaxLines) * LineHeight + 12;
+    private int Height => Math.Clamp(_text.Count(c => c == '\n') + 1, MinLines, MaxLines) * LineHeight + 24;  // padding and the horizontal scrollbar
 
     protected override async Task OnParametersSetAsync()
     {
