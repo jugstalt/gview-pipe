@@ -22,6 +22,8 @@ Open a node and switch to the **Settings** tab.
 | **Continue with the input items** | The error is recorded on the node, and the node passes its input items on its normal output (a script node passes its results, for example the exit code). The workflow goes on. | Success |
 | **Route items to an error output** | The node gets a second output port, `error`. The items go there instead of the normal output, each with an `error` field `{ "message": …, "type": … }`. The normal output stays empty. | Success |
 
+![Call API failed and routed its items to the error output: only the branch behind it ran, and the run is a success](../../images/error-output.png)
+
 A node whose inputs are all empty is skipped, and so are the nodes after it. That is what makes the error output useful: connect one branch to the normal output and another to the `error` output. Only the branch that receives items runs.
 
 !!! note
@@ -32,7 +34,15 @@ A node whose inputs are all empty is skipped, and so are the nodes after it. Tha
 An error workflow is a normal workflow that starts with an **Error Trigger**. Choose it in the workflow panel of the failing workflow (**Error workflow**).
 
 - It runs when a run of the workflow fails and was started by a trigger (cron, webhook) or as a sub-workflow. Runs you start by hand in the editor don't start it.
-- It receives one item `{ workflow, execution, node }` that describes the failed run, for example to send a mail with the name of the workflow and the failed node.
+- It receives one item that describes the failed run, for example to send a mail with the name of the workflow and the failed node:
+
+    ```json
+    { "workflow": { "id": "…", "name": "…" },
+      "execution": { "id": "…", "mode": "…", "startedAt": "…", "error": "…" },
+      "node": { "id": "…", "name": "…" } }
+    ```
+
+    Use it in expressions, for example `{{ $json.workflow.name }}` and `{{ $json.execution.error }}`.
 - A failure of the error workflow itself is only written to the application log. A workflow can't be its own error workflow.
 - It does **not** change the result of the failed run. The run stays **Error**.
 

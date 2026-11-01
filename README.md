@@ -2,7 +2,11 @@
 
 A workflow automation app in the style of n8n, built on Blazor and .NET 10. Workflows are graphs of nodes that pass JSON items along. A workflow starts manually, on a schedule or through a webhook. Nodes come from plugins, and the editor is a set of Razor components that other Blazor apps can embed.
 
-![Workflow editor after a run](docs/images/editor-run.png)
+![Workflow editor after a run](docs/site/images/editor-run.png)
+
+## Documentation
+
+User guide, admin guide and developer guide, in English and German, are built from [`docs/site`](docs/site) with MkDocs (`./build.cmd Docs`). The running app serves them under `/docs`. Architecture decisions are recorded in [`docs/adr`](docs/adr).
 
 ## Features
 
@@ -18,11 +22,11 @@ A workflow automation app in the style of n8n, built on Blazor and .NET 10. Work
 - **Groups.** Workflows can be put into groups, shown as tiles on the start page; drag a workflow onto a tile to move it. A search finds workflows in all groups.
 - **Storage.** Workflows, groups, executions and credentials are plain JSON files.
 
-| Code node | Node logs | Webhook request as input |
+| Node parameters | Node result (input, output, logs) | Webhook trigger |
 |---|---|---|
-| ![Code node](docs/images/editor-code.png) | ![Node logs](docs/images/editor-logs.png) | ![Webhook](docs/images/webhook.png) |
+| ![Node parameters](docs/site/images/node-parameters.png) | ![Node result](docs/site/images/node-run.png) | ![Webhook trigger](docs/site/images/webhook-trigger.png) |
 
-![Workflow list](docs/images/workflows.png)
+![Workflow group](docs/site/images/group-page.png)
 
 ## Getting started
 

@@ -22,6 +22,8 @@ Ein Node kann fehlschlagen: Ein Skript endet mit einem Exit-Code ungleich 0, ein
 | **Continue with the input items** | Der Fehler wird am Node vermerkt, und der Node gibt seine Eingangs-Items am normalen Ausgang weiter (ein Skript-Node gibt seine Ergebnisse weiter, zum Beispiel den Exit-Code). Der Workflow läuft weiter. | Success |
 | **Route items to an error output** | Der Node bekommt einen zweiten Ausgang, `error`. Die Items gehen dorthin statt zum normalen Ausgang, jeweils mit einem Feld `error` `{ "message": …, "type": … }`. Der normale Ausgang bleibt leer. | Success |
 
+![Call API ist fehlgeschlagen und hat seine Items an den Fehlerausgang geleitet: Nur der Zweig dahinter lief, und der Lauf ist erfolgreich](../../images/error-output.png)
+
 Ein Node, dessen Eingänge alle leer sind, wird übersprungen, ebenso die Nodes danach. Genau das macht den Fehlerausgang nützlich: Verbinde einen Zweig mit dem normalen Ausgang und einen anderen mit dem Ausgang `error`. Es läuft nur der Zweig, der Items bekommt.
 
 !!! note
@@ -32,7 +34,15 @@ Ein Node, dessen Eingänge alle leer sind, wird übersprungen, ebenso die Nodes 
 Ein Fehler-Workflow ist ein normaler Workflow, der mit einem **Error Trigger** beginnt. Du wählst ihn im Workflow-Panel des fehlschlagenden Workflows (**Error workflow**).
 
 - Er läuft, wenn ein Lauf des Workflows fehlschlägt und von einem Trigger (Cron, Webhook) oder als Sub-Workflow gestartet wurde. Läufe, die du von Hand im Editor startest, starten ihn nicht.
-- Er bekommt ein Item `{ workflow, execution, node }`, das den fehlgeschlagenen Lauf beschreibt, zum Beispiel für eine Mail mit dem Namen des Workflows und des fehlgeschlagenen Nodes.
+- Er bekommt ein Item, das den fehlgeschlagenen Lauf beschreibt, zum Beispiel für eine Mail mit dem Namen des Workflows und des fehlgeschlagenen Nodes:
+
+    ```json
+    { "workflow": { "id": "…", "name": "…" },
+      "execution": { "id": "…", "mode": "…", "startedAt": "…", "error": "…" },
+      "node": { "id": "…", "name": "…" } }
+    ```
+
+    Du nutzt es in Ausdrücken, zum Beispiel `{{ $json.workflow.name }}` und `{{ $json.execution.error }}`.
 - Ein Fehler des Fehler-Workflows selbst wird nur ins Anwendungslog geschrieben. Ein Workflow kann nicht sein eigener Fehler-Workflow sein.
 - Er ändert das Ergebnis des fehlgeschlagenen Laufs **nicht**. Der Lauf bleibt **Error**.
 

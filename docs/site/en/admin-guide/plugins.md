@@ -31,4 +31,4 @@ Copy the plugin folder into `plugins\`. Only install plugins from sources you tr
 
 ## Workflows that use a missing plugin
 
-The run fails at that node with the message `Unknown node type … Is the plugin installed?`.
+The workflow still opens and the node keeps its settings, but running it fails at that node with `Unknown node type … Is the plugin installed?`. Install the plugin and the workflow works again.

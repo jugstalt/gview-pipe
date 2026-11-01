@@ -31,4 +31,4 @@ Kopiere den Plugin-Ordner nach `plugins\`. Installiere nur Plugins aus Quellen, 
 
 ## Workflows, die ein fehlendes Plugin benutzen
 
-Der Lauf schlägt an diesem Node mit der Meldung `Unknown node type … Is the plugin installed?` fehl.
+Der Workflow lässt sich weiter öffnen, und der Node behält seine Einstellungen, aber der Lauf schlägt an diesem Node mit `Unknown node type … Is the plugin installed?` fehl. Installiere das Plugin, dann funktioniert der Workflow wieder.

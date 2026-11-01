@@ -49,6 +49,11 @@ plugins:
             Triggers and webhooks: Trigger und Webhooks
             Error handling: Fehlerbehandlung
             Node reference: Node-Referenz
+            The editor: Der Editor
+            Items and expressions: Items und Ausdrücke
+            Credentials: Credentials
+            Executions: Executions
+            Recipes: Rezepte
             Installation: Installation
             Configuration: Konfiguration
             Plugins: Plugins
@@ -66,8 +71,13 @@ nav:
   - User Guide:
       - user-guide/index.md
       - Getting started: user-guide/getting-started.md
+      - The editor: user-guide/editor.md
+      - Items and expressions: user-guide/expressions.md
       - Triggers and webhooks: user-guide/triggers.md
+      - Credentials: user-guide/credentials.md
       - Error handling: user-guide/error-handling.md
+      - Executions: user-guide/executions.md
+      - Recipes: user-guide/recipes.md
       # generated (src/gView.Pipe.Docs), not committed; the category pages are linked from the index
       - Node reference: user-guide/nodes/index.md
   - Admin Guide:
@@ -79,7 +89,11 @@ nav:
       - Operations: admin-guide/operations.md
       - Security: admin-guide/security.md
       - Troubleshooting: admin-guide/troubleshooting.md
-  - Developer Guide: developer-guide/index.md
+  - Developer Guide:
+      - developer-guide/index.md
+      - Writing a node: developer-guide/writing-nodes.md
+      - Parameters and the editor form: developer-guide/parameters.md
+      - Plugins (developer): developer-guide/plugins.md
 
 markdown_extensions:
   - admonition
