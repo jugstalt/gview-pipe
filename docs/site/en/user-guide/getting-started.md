@@ -10,6 +10,8 @@ Open the URL printed in the console. With the `http` profile that is `http://loc
 
 ## The sample workflows
 
+![The start page with the group Samples](../../images/start-page.png)
+
 On the first start with an empty store, gView.Pipe copies a set of sample workflows into the group **Samples**:
 
 | Workflow | What it shows |
@@ -29,6 +31,12 @@ On the first start with an empty store, gView.Pipe copies a set of sample workfl
 3. Add more nodes and connect an output port of one node to an input port of the next. Items flow along the connections.
 4. Click a node to edit its parameters in the side panel. In any text field, `{{ … }}` is a JavaScript expression that is evaluated against the current item, for example `{{ $json.total * 1.2 }}`.
 5. Run the workflow. Each node shows the items it received, the items it produced and the log lines it wrote.
+
+![Hello Pipe after a run: successful nodes are green, the branch that got no items is gray](../../images/editor-run.png)
+
+Click a node and open its **Run** tab to see what it received (**Input**), what it produced (**Output**) and what it logged (**Logs**):
+
+![The Run tab of the node Set Greeting](../../images/node-run.png)
 
 ## Triggers need an active workflow
 

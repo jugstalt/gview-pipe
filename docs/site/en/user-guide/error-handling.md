@@ -6,6 +6,8 @@ A node can fail: a script exits with a non-zero code, an HTTP call returns an er
 
 Open a node and switch to the **Settings** tab.
 
+![The Settings tab of a node](../../images/node-settings.png)
+
 | Setting | Meaning |
 |---|---|
 | Retries, Retry delay (ms) | The node is run again after a failure, up to this many times. |

@@ -6,6 +6,8 @@ Ein Node kann fehlschlagen: Ein Skript endet mit einem Exit-Code ungleich 0, ein
 
 Öffne einen Node und wechsle auf den Tab **Settings**.
 
+![Der Tab Settings eines Nodes](../../images/node-settings.png)
+
 | Einstellung | Bedeutung |
 |---|---|
 | Retries, Retry delay (ms) | Der Node wird nach einem Fehler bis zu so oft wiederholt. |

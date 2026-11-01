@@ -20,6 +20,8 @@ A Webhook Trigger makes the workflow callable at
 
 The editor shows the exact URL as a hint next to the parameters.
 
+![The parameters of a Webhook Trigger](../../images/webhook-trigger.png)
+
 | Parameter | Meaning |
 |---|---|
 | Path | Letters, digits, `_`, `-` and `/`, lower case. Must be unique across all active workflows. A random path is suggested for a new node. |

@@ -256,6 +256,17 @@ class Build : NukeBuild
             Log.Information("Docs site: {Site}", ArtifactsDirectory / "docs" / "site");
         });
 
+    // Screenshots of the docs (docs/site/images): starts the Shell with an empty data folder and drives it with
+    // Playwright. Run it after a change of the UI, then commit the images. Needs Chromium once:
+    //   dotnet run --project src/gView.Pipe.Docs.Screenshots -- --install
+    Target DocsScreenshots => _ => _
+        .Executes(() =>
+        {
+            DotNetTasks.DotNetRun(s => s
+                .SetProjectFile(RootDirectory / "src" / "gView.Pipe.Docs.Screenshots" / "gView.Pipe.Docs.Screenshots.csproj")
+                .SetConfiguration(Configuration));
+        });
+
     Target Deploy => _ => _
         .DependsOn(Zip, Docker);
 

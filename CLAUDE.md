@@ -24,6 +24,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - Embedding hosts need the diagram CSS/JS and must render without prerendering (see ADR 0004).
   - Navigation is the host's job: components raise events like `OnOpen` and `OnClose`.
 - `gView.Pipe.Docs`: build tool, generates the node reference of the docs from the node attributes. Not shipped.
+- `gView.Pipe.Docs.Screenshots`: build tool, takes the screenshots of the docs with Playwright. Not shipped.
 - `gView.Pipe.Shell`: the app itself. It contains only layout, routing and service composition (`AddPipeCore().AddPipeFileStore().AddPipeRazor()`).
 - `Aspire/`: AppHost and ServiceDefaults.
 - `tests/`: xUnit v3 test projects, run through Microsoft.Testing.Platform (see `global.json`). `gView.Pipe.Razor.Tests` uses bUnit with MudBlazor services.
@@ -72,7 +73,7 @@ The user and admin documentation is a MkDocs Material site in `docs/site/` (`en/
 - Links inside the site are relative, so the same site runs at `/docs` in the Shell and at the root of a docs host.
 - `docs/site/en/user-guide/nodes/` (the node reference) is generated from `[PipeNode]` and `[PipeParameter]` by `src/gView.Pipe.Docs`, never edited or committed. Write the `Description` of nodes and parameters for readers of the docs; run `dotnet run --project src/gView.Pipe.Docs` before `mkdocs serve`. The German site falls back to the English pages.
 - Python is needed for the docs only. `dotnet build` and `dotnet test` don't use it.
-- Images in `docs/site/images/` are English only; the UI has no other language.
+- Images in `docs/site/images/` are English only; the UI has no other language. They are generated: `./build.cmd DocsScreenshots` (`src/gView.Pipe.Docs.Screenshots`) starts the Shell with an empty temporary data folder and takes them with Playwright. Run it after a UI change and commit the images. Chromium is needed once: `dotnet run --project src/gView.Pipe.Docs.Screenshots -- --install`. A new picture is a method in `DocsScreenshots.cs`.
 
 ## Dev containers
 

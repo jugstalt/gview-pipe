@@ -10,6 +10,8 @@ dotnet run --project src/gView.Pipe.Shell
 
 ## Die Beispiel-Workflows
 
+![Die Startseite mit der Gruppe Samples](../../images/start-page.png)
+
 Beim ersten Start mit leerem Speicher kopiert gView.Pipe mehrere Beispiel-Workflows in die Gruppe **Samples**:
 
 | Workflow | Was er zeigt |
@@ -29,6 +31,12 @@ Beim ersten Start mit leerem Speicher kopiert gView.Pipe mehrere Beispiel-Workfl
 3. Füge weitere Nodes hinzu und verbinde den Ausgang eines Nodes mit dem Eingang des nächsten. Items fließen entlang der Verbindungen.
 4. Klicke einen Node an, um seine Parameter im Seitenpanel zu bearbeiten. In jedem Textfeld ist `{{ … }}` ein JavaScript-Ausdruck, der gegen das aktuelle Item ausgewertet wird, zum Beispiel `{{ $json.total * 1.2 }}`.
 5. Führe den Workflow aus. Jeder Node zeigt die Items, die er bekommen hat, die Items, die er erzeugt hat, und die Logzeilen, die er geschrieben hat.
+
+![Hello Pipe nach einem Lauf: erfolgreiche Nodes sind grün, der Zweig ohne Items ist grau](../../images/editor-run.png)
+
+Klicke einen Node an und öffne seinen Tab **Run**, um zu sehen, was er bekommen hat (**Input**), was er erzeugt hat (**Output**) und was er geloggt hat (**Logs**):
+
+![Der Tab Run des Nodes Set Greeting](../../images/node-run.png)
 
 ## Trigger brauchen einen aktiven Workflow
 
