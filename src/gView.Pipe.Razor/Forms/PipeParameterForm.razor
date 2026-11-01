@@ -69,27 +69,38 @@ else
                     break;
 
                 case PipeFieldKind.Dictionary:
-                    <PipeKeyValueField Field="field" Value="@(value as JsonObject)" ValueChanged="v => SetAsync(field, v)" OnExpressionFieldFocused="OnExpressionFieldFocused" />
+                    <PipeKeyValueField Field="field" Value="@(value as JsonObject)" ValueChanged="v => SetAsync(field, v)" OnExpressionFieldFocused="OnExpressionFieldFocused"
+                                       ExpressionPreview="ExpressionPreview" />
                     break;
 
                 case PipeFieldKind.List:
-                    <PipeListField Field="field" Value="@(value as JsonArray)" ValueChanged="v => SetAsync(field, v)" OnExpressionFieldFocused="OnExpressionFieldFocused" />
+                    <PipeListField Field="field" Value="@(value as JsonArray)" ValueChanged="v => SetAsync(field, v)" OnExpressionFieldFocused="OnExpressionFieldFocused"
+                                   ExpressionPreview="ExpressionPreview" />
                     break;
 
                 case PipeFieldKind.RawJson:
                     <PipeRawJsonField Label="@field.Label" HelperText="@field.Description" Value="value" ValueChanged="v => SetAsync(field, v)" />
                     break;
 
+                case PipeFieldKind.Text when field.Code:
+                    <PipeCodeField Label="@(field.Required ? field.Label + " *" : field.Label)" HelperText="@field.Description" Language="@field.CodeLanguage"
+                                   Value="@PipeJsonText.ToText(value)" ValueChanged="v => SetAsync(field, Convert(field, v))" />
+                    break;
+
                 default:
                     <div @onfocusin="() => FieldFocusedAsync(field)">
-                    <MudTextField T="string" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  Lines="@(field.Code ? 14 : field.Multiline ? 4 : 1)"
+                    <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Lines="@(field.Multiline ? 4 : 1)"
                                   InputType="@(field.Secret ? InputType.Password : InputType.Text)"
                                   Placeholder="@(field.Secret && SecretsArePlaceholders ? "(unchanged)" : field.Placeholder)"
                                   HelperText="@HelperText(field)"
-                                  Class="@(field.Code ? "gview-pipe-code" : field.Expressions ? "gview-pipe-expression-field" : null)"
+                                  Class="@(field.Expressions ? "gview-pipe-expression-field" : null)"
                                   Value="@PipeJsonText.ToText(value)"
                                   ValueChanged="v => SetAsync(field, Convert(field, v))" />
+                    @if (field.Expressions)
+                    {
+                        <PipeExpressionPreview Text="@PipeJsonText.ToText(value)" Preview="ExpressionPreview" />
+                    }
                     </div>
                     break;
             }
@@ -118,6 +129,9 @@ else
 
     /// <summary>A text field that supports expressions got the focus (e.g. to insert expressions into it later).</summary>
     [Parameter] public EventCallback<PipeExpressionTarget> OnExpressionFieldFocused { get; set; }
+
+    /// <summary>Value of an expression field for display (e.g. with the last run's input); null for none.</summary>
+    [Parameter] public Func<string, string?>? ExpressionPreview { get; set; }
 
     private IReadOnlyList<PipeCredentialInfo> _credentials = [];
 

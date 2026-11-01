@@ -47,6 +47,9 @@ public sealed class PipeParameterField
     /// <summary>Source code: large monospace editor, no expressions.</summary>
     public bool Code { get; init; }
 
+    /// <summary>Language of a code field (Monaco language id); null for plain text.</summary>
+    public string? CodeLanguage { get; init; }
+
     /// <summary>JSON names of the enum members (Kind = Enum).</summary>
     public IReadOnlyList<string> EnumValues { get; init; } = [];
 
@@ -102,6 +105,7 @@ static public class PipeParameterFields
             Order = parameter?.Order is > 0 ? parameter.Order : 1000 + index,
             Multiline = parameter?.Multiline == true || parameter?.Code == true,
             Code = parameter?.Code ?? false,
+            CodeLanguage = parameter?.CodeLanguage,
             Expressions = (parameter?.Expressions ?? true) && parameter?.Code != true
                           && kind is not (PipeFieldKind.Boolean or PipeFieldKind.Enum or PipeFieldKind.Credential or PipeFieldKind.Workflow
                                          or PipeFieldKind.Option or PipeFieldKind.SelectionList),

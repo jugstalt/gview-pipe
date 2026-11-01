@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Generates the node reference of the documentation from the node and parameter attributes. Build tool, not shipped.</Description>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\gView.Pipe.Core\gView.Pipe.Core.csproj" />
+    <!-- referenced so the dlls land in the output folder; the catalog finds them like the Shell does (gView.Pipe.Plugins*.dll) -->
+    <ProjectReference Include="..\gView.Pipe.Plugins\gView.Pipe.Plugins.csproj" />
+    <!-- InstallPipePlugin=false: don't copy into the Shell's plugins folder, a running Shell locks the files -->
+    <ProjectReference Include="..\gView.Pipe.Plugins.Database\gView.Pipe.Plugins.Database.csproj" AdditionalProperties="InstallPipePlugin=false" />
+    <ProjectReference Include="..\gView.Pipe.Plugins.Scripts\gView.Pipe.Plugins.Scripts.csproj" AdditionalProperties="InstallPipePlugin=false" />
+  </ItemGroup>
+
+</Project>

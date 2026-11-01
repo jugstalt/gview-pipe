@@ -27,10 +27,10 @@ public sealed class HttpRequestNodeParameters
     [Required, PipeParameter(Label = "URL", Placeholder = "https://", Order = 2)]
     public string Url { get; set; } = "";
 
-    [PipeParameter(Label = "Query parameters", Order = 3)]
+    [PipeParameter(Label = "Query parameters", Order = 3, Description = "Added to the URL as ?name=value; values are URL-encoded")]
     public Dictionary<string, string> Query { get; set; } = new();
 
-    [PipeParameter(Label = "Headers", Order = 4)]
+    [PipeParameter(Label = "Headers", Order = 4, Description = "Request headers, e.g. Accept or Content-Type")]
     public Dictionary<string, string> Headers { get; set; } = new();
 
     [PipeParameter(Label = "Body", Description = "JSON, or text if the value is a string", Multiline = true, Order = 5)]
@@ -46,7 +46,7 @@ public sealed class HttpRequestNodeParameters
     public bool FailOnHttpError { get; set; } = true;
 
     [PipeCredential(PipeBuiltInCredentials.BasicAuth, PipeBuiltInCredentials.BearerToken, PipeBuiltInCredentials.ApiKeyHeader)]
-    [PipeParameter(Label = "Credential", Expressions = false, Order = 9)]
+    [PipeParameter(Label = "Credential", Expressions = false, Order = 9, Description = "Authenticates the request: Basic, Bearer token or an API key header")]
     public string? CredentialId { get; set; }
 }
 

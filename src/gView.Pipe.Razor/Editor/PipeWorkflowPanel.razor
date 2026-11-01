@@ -9,11 +9,11 @@
 </div>
 
 <MudStack Spacing="3" Class="pa-4">
-    <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+    <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
                   Value="@Workflow.Name" ValueChanged="v => ChangeAsync(() => Workflow.Name = string.IsNullOrWhiteSpace(v) ? Workflow.Name : v.Trim())" />
-    <MudTextField T="string" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
+    <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
                   Value="@Workflow.Description" ValueChanged="v => ChangeAsync(() => Workflow.Description = v)" />
-    <MudNumericField T="int" Label="Max concurrent runs" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="100"
+    <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Max concurrent runs" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="100"
                      HelperText="Further runs are skipped while this many are running"
                      Value="Workflow.Settings.MaxConcurrentRuns" ValueChanged="v => ChangeAsync(() => Workflow.Settings.MaxConcurrentRuns = v)" />
     <MudSwitch T="bool" Label="Save item data of executions" Color="Color.Primary"

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Takes the screenshots of the documentation: starts the Shell with an empty data folder and drives it with Playwright. Build tool, not shipped.</Description>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- not referenced in code: building this project builds the Shell and the plugins it starts (started without a build of its own) -->
+    <ProjectReference Include="..\gView.Pipe.Shell\gView.Pipe.Shell.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\gView.Pipe.Plugins.Database\gView.Pipe.Plugins.Database.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\gView.Pipe.Plugins.Scripts\gView.Pipe.Plugins.Scripts.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

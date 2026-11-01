@@ -1,0 +1,180 @@
+@using BlazorMonaco
+@using BlazorMonaco.Editor
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+
+@*
+    Source code in a Monaco editor. Changes are passed on while typing (debounced) and on blur.
+    Hosts load Monaco's scripts (see CLAUDE.md); the editor grows with its content.
+*@
+
+<div class="gview-pipe-code-field @(Error ? "gview-pipe-code-field-error" : null)">
+    <div class="gview-pipe-code-field-header">
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Label</MudText>
+        <MudSpacer />
+        @if (ShowFullscreen)
+        {
+            <MudTooltip Text="Open in a large editor">
+                <MudIconButton Icon="@Icons.Material.Filled.OpenInFull" Size="Size.Small" aria-label="Open in a large editor" OnClick="OpenLargeAsync" />
+            </MudTooltip>
+        }
+    </div>
+    <div class="gview-pipe-code-field-editor" style="height:@(Height)px">
+        <StandaloneCodeEditor @ref="_editor" Id="@_id" ConstructionOptions="Options"
+                              OnDidChangeModelContent="ContentChanged" OnDidBlurEditorText="FlushAsync" />
+    </div>
+    @if (Error && !string.IsNullOrEmpty(ErrorText))
+    {
+        <MudText Typo="Typo.caption" Color="Color.Error" Class="px-1">@ErrorText</MudText>
+    }
+    else if (!string.IsNullOrEmpty(HelperText))
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary px-1">@HelperText</MudText>
+    }
+</div>
+
+@code {
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Monaco language id, e.g. javascript, sql or json; plaintext without one.</summary>
+    [Parameter] public string? Language { get; set; }
+
+    [Parameter] public bool Error { get; set; }
+    [Parameter] public string? ErrorText { get; set; }
+
+    [Parameter] public int MinLines { get; set; } = 8;
+    [Parameter] public int MaxLines { get; set; } = 30;
+    [Parameter] public bool ShowFullscreen { get; set; } = true;
+
+    /// <summary>Hosts with a dark MudBlazor theme cascade <c>true</c> under this name.</summary>
+    [CascadingParameter(Name = "PipeDarkMode")] public bool DarkMode { get; set; }
+
+    private const int LineHeight = 19, DebounceMs = 300;
+
+    private readonly string _id = $"gview-pipe-code-{Guid.NewGuid():N}";
+    private StandaloneCodeEditor? _editor;
+    private string _text = "";
+    private bool _pending;
+    private Timer? _debounce;
+
+    private int Height => Math.Clamp(_text.Count(c => c == '\n') + 1, MinLines, MaxLines) * LineHeight + 24;  // padding and the horizontal scrollbar
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // only values from outside (another node, undo) replace the text; the own echo is ignored
+        var value = Value ?? "";
+        if (value != _text && !_pending)
+        {
+            _text = value;
+            if (_editor is not null)
+            {
+                await _editor.SetValue(_text);
+            }
+        }
+
+        // the theme is global in Monaco: switch it when the host's mode changes
+        if (_editor is not null && _dark != DarkMode)
+        {
+            await BlazorMonaco.Editor.Global.SetTheme(JS, Theme);
+        }
+        _dark = DarkMode;
+    }
+
+    private bool _dark;
+
+    private string Theme => DarkMode ? "vs-dark" : "vs";
+
+    private StandaloneEditorConstructionOptions Options(StandaloneCodeEditor editor) => new()
+    {
+        Value = _text,
+        Language = Language ?? "plaintext",
+        Theme = Theme,
+        AutomaticLayout = true,
+        Minimap = new EditorMinimapOptions { Enabled = false },
+        ScrollBeyondLastLine = false,
+        LineNumbersMinChars = 3,
+        FontSize = 13,
+        LineHeight = LineHeight,
+        TabSize = 2,
+        RenderLineHighlight = "none",
+        FixedOverflowWidgets = true,
+    };
+
+    private async Task ContentChanged(ModelContentChangedEvent e)
+    {
+        if (_editor is null)
+        {
+            return;
+        }
+        _text = await _editor.GetValue();
+        if (_text == (Value ?? ""))
+        {
+            // SetValue from outside, or typed back to the same text
+            return;
+        }
+        _pending = true;
+        _debounce?.Dispose();
+        _debounce = new Timer(_ => InvokeAsync(FlushAsync), null, DebounceMs, Timeout.Infinite);
+    }
+
+    private async Task FlushAsync()
+    {
+        _debounce?.Dispose();
+        _debounce = null;
+        if (!_pending)
+        {
+            return;
+        }
+        _pending = false;
+        await ValueChanged.InvokeAsync(_text);
+    }
+
+    private async Task OpenLargeAsync()
+    {
+        await FlushAsync();
+        var parameters = new DialogParameters<PipeCodeDialog>
+        {
+            { d => d.Value, _text },
+            { d => d.Language, Language }
+        };
+        var dialog = await DialogService.ShowAsync<PipeCodeDialog>(Label ?? "Code", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, CloseButton = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false, Data: string text } && text != _text)
+        {
+            _text = text;
+            if (_editor is not null)
+            {
+                await _editor.SetValue(_text);
+            }
+            _pending = false;
+            await ValueChanged.InvokeAsync(_text);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _debounce?.Dispose();
+
+        // BlazorMonaco leaves the editor and its model alive in Monaco
+        try
+        {
+            if (_editor is not null)
+            {
+                if (await _editor.GetModel() is { } model)
+                {
+                    await model.DisposeModel();
+                }
+                await _editor.DisposeEditor();
+            }
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+        catch (ObjectDisposedException) { }
+    }
+}

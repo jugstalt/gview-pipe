@@ -1,21 +1,113 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject gView.Pipe.Shell.PipeDocsSite Docs
 
-<MudThemeProvider Theme="PipeTheme.Default" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+<MudThemeProvider @ref="_themeProvider" Theme="PipeTheme.Default" IsDarkMode="_isDark" />
 
-<MudLayout>
-    <MudAppBar Elevation="0" Dense="true">
-        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Class="mr-2" />
-        <MudText Typo="Typo.h6" Class="mr-6">gView.Pipe</MudText>
-        <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ViewList" Class="gview-pipe-shell-nav">Workflows</MudNavLink>
-        <MudNavLink Href="credentials" Icon="@Icons.Material.Filled.Key" Class="gview-pipe-shell-nav">Credentials</MudNavLink>
-        <MudSpacer />
-        <PipeRunningIndicator OnClick="@(() => Navigation.NavigateTo(""))" />
-    </MudAppBar>
-    <MudMainContent Class="gview-pipe-shell-main">
-        @Body
-    </MudMainContent>
-</MudLayout>
+@* the attribute switches the dark variables of gview-pipe.css; popovers and dialogs render inside it too *@
+<div data-mud-theme="@(_isDark ? "dark" : "light")" class="gview-pipe-shell-theme">
+    <CascadingValue Name="PipeDarkMode" Value="_isDark">
+        <MudPopoverProvider />
+        <MudDialogProvider />
+        <MudSnackbarProvider />
+
+        <MudLayout>
+            <MudAppBar Elevation="0" Dense="true">
+                <MudIcon Icon="@Icons.Material.Filled.AccountTree" Class="mr-2" />
+                <MudText Typo="Typo.h6" Class="mr-6">gView.Pipe</MudText>
+                <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ViewList" Class="gview-pipe-shell-nav">Workflows</MudNavLink>
+                <MudNavLink Href="credentials" Icon="@Icons.Material.Filled.Key" Class="gview-pipe-shell-nav">Credentials</MudNavLink>
+                <MudSpacer />
+                @if (Docs.Available)
+                {
+                    @* a new tab: the docs are static files, not a route of this app *@
+                    <MudNavLink Href="docs" Target="_blank" Icon="@Icons.Material.Filled.HelpOutline" Class="gview-pipe-shell-nav">Docs</MudNavLink>
+                }
+                <MudTooltip Text="@ModeText">
+                    <MudIconButton Icon="@ModeIcon" Color="Color.Inherit" aria-label="@ModeText" OnClick="NextModeAsync" />
+                </MudTooltip>
+                <PipeRunningIndicator OnClick="@(() => Navigation.NavigateTo(""))" />
+            </MudAppBar>
+            <MudMainContent Class="gview-pipe-shell-main">
+                @Body
+            </MudMainContent>
+        </MudLayout>
+    </CascadingValue>
+</div>
+
+@code {
+    private enum ThemeMode { System, Light, Dark }
+
+    private const string ModeKey = "gview-pipe.theme";
+
+    private MudThemeProvider? _themeProvider;
+    private ThemeMode _mode = ThemeMode.System;
+    private bool _systemDark;
+    private bool _isDark;
+
+    private string ModeIcon => _mode switch
+    {
+        ThemeMode.Light => Icons.Material.Filled.LightMode,
+        ThemeMode.Dark => Icons.Material.Filled.DarkMode,
+        _ => Icons.Material.Filled.BrightnessAuto
+    };
+
+    private string ModeText => _mode switch
+    {
+        ThemeMode.Light => "Light theme (click for dark)",
+        ThemeMode.Dark => "Dark theme (click to follow the system)",
+        _ => "Theme follows the system (click for light)"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _themeProvider is null)
+        {
+            return;
+        }
+
+        // the choice is kept per browser
+        try
+        {
+            if (Enum.TryParse<ThemeMode>(await JS.InvokeAsync<string?>("localStorage.getItem", ModeKey), out var stored))
+            {
+                _mode = stored;
+            }
+        }
+        catch (JSException) { }
+
+        _systemDark = await _themeProvider.GetSystemDarkModeAsync();
+        await _themeProvider.WatchSystemDarkModeAsync(SystemChangedAsync);
+        Apply();
+    }
+
+    private Task SystemChangedAsync(bool dark)
+    {
+        _systemDark = dark;
+        Apply();
+        return Task.CompletedTask;
+    }
+
+    private async Task NextModeAsync()
+    {
+        _mode = _mode switch
+        {
+            ThemeMode.System => ThemeMode.Light,
+            ThemeMode.Light => ThemeMode.Dark,
+            _ => ThemeMode.System
+        };
+        Apply();
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", ModeKey, _mode.ToString());
+        }
+        catch (JSException) { }
+    }
+
+    private void Apply()
+    {
+        _isDark = _mode == ThemeMode.Dark || _mode == ThemeMode.System && _systemDark;
+        StateHasChanged();
+    }
+}

@@ -19,6 +19,9 @@ public sealed class PipeParameterAttribute : Attribute
     /// <see cref="IPipeNodeContext.GetParameters{TParameters}"/> evaluates <c>{{ }}</c> in every string.
     /// </summary>
     public bool Code { get; set; }
+
+    /// <summary>Language of a <see cref="Code"/> field for syntax highlighting, e.g. <c>javascript</c> or <c>sql</c>.</summary>
+    public string? CodeLanguage { get; set; }
 }
 
 /// <summary>

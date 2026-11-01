@@ -1,0 +1,11 @@
+@* The value of an expression field, e.g. for the input of the last run; nothing for plain text or without a preview. *@
+
+@if (Preview is not null && Text?.Contains("{{") == true && Preview(Text) is { } value)
+{
+    <div class="gview-pipe-expression-preview" title="Value for the first input item of the last run">= @value</div>
+}
+
+@code {
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public Func<string, string?>? Preview { get; set; }
+}

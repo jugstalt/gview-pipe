@@ -22,7 +22,11 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - `Editor/`: `PipeEditor` on Z.Blazor.Diagrams.
   - `Forms/`: forms generated from parameter classes.
   - Embedding hosts need the diagram CSS/JS and must render without prerendering (see ADR 0004).
+  - Code fields use Monaco (`PipeCodeField`, BlazorMonaco). Hosts load `_content/BlazorMonaco/jsInterop.js`, `.../lib/monaco-editor/min/vs/loader.js` and `.../vs/editor/editor.main.js` before the Blazor script, as in the Shell's `App.razor`. A dark host cascades `true` named `PipeDarkMode` and sets `data-mud-theme="dark"` around the components for the dark variables of `gview-pipe.css`; the Shell's `MainLayout` does both (system, light or dark, kept in localStorage).
+  - The editor's splitters are dragged in the browser and Ctrl+S is caught there (`wwwroot/js/gview-pipe-editor.js`); .NET only hears the final width and the save.
   - Navigation is the host's job: components raise events like `OnOpen` and `OnClose`.
+- `gView.Pipe.Docs`: build tool, generates the node reference of the docs from the node attributes. Not shipped.
+- `gView.Pipe.Docs.Screenshots`: build tool, takes the screenshots of the docs with Playwright. Not shipped.
 - `gView.Pipe.Shell`: the app itself. It contains only layout, routing and service composition (`AddPipeCore().AddPipeFileStore().AddPipeRazor()`).
 - `Aspire/`: AppHost and ServiceDefaults.
 - `tests/`: xUnit v3 test projects, run through Microsoft.Testing.Platform (see `global.json`). `gView.Pipe.Razor.Tests` uses bUnit with MudBlazor services.
@@ -55,9 +59,24 @@ dotnet build gView.Pipe.slnx
 dotnet test --solution gView.Pipe.slnx
 dotnet run --project src/gView.Pipe.Shell
 dotnet run --project src/Aspire/gView.Pipe.AppHost
+pip install -r docs/requirements.txt   # once, for the docs
+dotnet run --project src/gView.Pipe.Docs   # generate the node reference once
+python -m mkdocs serve                 # live preview of the docs
+./build.cmd Docs                       # static site in artifacts/docs/site
 ```
 
 The Shell keeps its runtime state in `src/gView.Pipe.Shell/data/`, which Git ignores; never commit it. It loads external plugins from `plugins/<Name>/<Name>.dll`.
+
+## Documentation
+
+The user and admin documentation is a MkDocs Material site in `docs/site/` (`en/` is the source, `de/` the translation), configured by `mkdocs.yml`. `docs/adr` is internal and not part of the site.
+
+- A change to a node, a parameter, the configuration or the behavior of the app updates the matching pages in both languages in the same change. A missing German page falls back to English with a warning; don't leave it that way on purpose.
+- Links inside the site are relative, so the same site runs at `/docs` in the Shell and at the root of a docs host.
+- `docs/site/downloads/workflows/` (the samples offered on the recipes page) and `docs/site/en/user-guide/nodes/` (the node reference) are generated from `[PipeNode]` and `[PipeParameter]` by `src/gView.Pipe.Docs`, never edited or committed. Write the `Description` of nodes and parameters for readers of the docs; run `dotnet run --project src/gView.Pipe.Docs` before `mkdocs serve`. The German site falls back to the English pages.
+- The Shell serves the built site under `/docs` (`PipeDocsSite`, folder `docs` next to the app or `Pipe:DocsPath`), and the Compile target of the deploy build copies it into the ZIP and the Docker image. The Docs link in `MainLayout.razor` shows only when the folder exists. To try it locally: `Pipe__DocsPath=<repo>/artifacts/docs/site`.
+- Python is needed for the docs only. `dotnet build` and `dotnet test` don't use it.
+- Images in `docs/site/images/` are English only; the UI has no other language. They are generated: `./build.cmd DocsScreenshots` (`src/gView.Pipe.Docs.Screenshots`) starts the Shell with an empty temporary data folder and takes them with Playwright. Run it after a UI change and commit the images. Chromium is needed once: `dotnet run --project src/gView.Pipe.Docs.Screenshots -- --install`. A new picture is a method in `DocsScreenshots.cs`.
 
 ## Dev containers
 

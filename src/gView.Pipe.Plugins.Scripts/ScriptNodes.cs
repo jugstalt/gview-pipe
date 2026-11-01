@@ -28,7 +28,7 @@ public sealed class RunScriptNodeParameters : PipeScriptCommonParameters
     public string? Root { get; set; }
 
     [PipeOptions(Refreshable = true)]
-    [PipeParameter(Label = "Script", Order = 2, Expressions = false)]
+    [PipeParameter(Label = "Script", Order = 2, Expressions = false, Description = "The file to run, from the chosen script folder")]
     public string? Script { get; set; }
 }
 
@@ -204,7 +204,7 @@ public sealed class RunScriptsRepoNodeParameters : PipeScriptCommonParameters
     public string? Server { get; set; }
 
     [PipeOptions(Refreshable = true)]
-    [PipeParameter(Label = "Repository", Order = 2, Expressions = false)]
+    [PipeParameter(Label = "Repository", Order = 2, Expressions = false, Description = "A repository of the chosen Git server")]
     public string? Repository { get; set; }
 
     [PipeOptions(Refreshable = true)]

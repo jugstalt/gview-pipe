@@ -103,7 +103,7 @@ class Build : NukeBuild
         });
 
     Target Compile => _ => _
-        .DependsOn(Test)
+        .DependsOn(Test, Docs)
         .Executes(() =>
         {
             foreach (var platform in Platform)
@@ -121,6 +121,9 @@ class Build : NukeBuild
                     .SetProperty("PublishProfile", platform)
                     .SetProperty("PublishDir", artifacts)
                     .SetVersion(Version));
+
+                // the documentation, served by the Shell under /docs (nothing to copy when the Docs target was skipped)
+                CopyDirectory(ArtifactsDirectory / "docs" / "site", artifacts / "docs", overwrite: true);
 
                 foreach (var pluginProject in PluginProjects)
                 {
@@ -162,7 +165,8 @@ class Build : NukeBuild
                 // third party pdb files and doc xml files
                 foreach (var file in artifacts.GlobFiles("**/*.pdb", "**/*.xml"))
                 {
-                    if (!file.Name.StartsWith("gView.", StringComparison.OrdinalIgnoreCase))
+                    // the docs site keeps its own files (sitemap.xml)
+                    if (!file.Name.StartsWith("gView.", StringComparison.OrdinalIgnoreCase) && !(artifacts / "docs").Contains(file))
                     {
                         file.DeleteFile();
                     }
@@ -227,6 +231,47 @@ class Build : NukeBuild
         {
             RunDocker($"push {DockerRegistry}/{DockerImage}:{Version}");
             RunDocker($"push {DockerRegistry}/{DockerImage}:latest");
+        });
+
+    // Static documentation site (MkDocs Material, see mkdocs.yml) in artifacts/docs/site.
+    // Needs Python and "pip install -r docs/requirements.txt"; without them the target is skipped.
+    Target Docs => _ => _
+        .Executes(() =>
+        {
+            // never deploy the site of an earlier build when this one is skipped or fails
+            (ArtifactsDirectory / "docs").DeleteDirectory();
+
+            var check = ProcessTasks.StartProcess("python", "-m mkdocs --version", workingDirectory: RootDirectory, logger: (_, _) => { }, timeout: 30000);
+            check.WaitForExit();
+            if (check.ExitCode != 0)
+            {
+                Log.Warning("Docs skipped: MkDocs not found. Install Python, then run: pip install -r docs/requirements.txt");
+                return;
+            }
+
+            // the node reference comes from the node attributes
+            DotNetTasks.DotNetRun(s => s
+                .SetProjectFile(RootDirectory / "src" / "gView.Pipe.Docs" / "gView.Pipe.Docs.csproj")
+                .SetConfiguration(Configuration));
+
+            // strict: broken links fail the build; a missing German page only warns (fallback to English)
+            ProcessTasks.StartProcess("python", "-m mkdocs build --strict --clean",
+                    workingDirectory: RootDirectory,
+                    logger: (_, text) => Log.Information(text))
+                .AssertZeroExitCode();
+
+            Log.Information("Docs site: {Site}", ArtifactsDirectory / "docs" / "site");
+        });
+
+    // Screenshots of the docs (docs/site/images): starts the Shell with an empty data folder and drives it with
+    // Playwright. Run it after a change of the UI, then commit the images. Needs Chromium once:
+    //   dotnet run --project src/gView.Pipe.Docs.Screenshots -- --install
+    Target DocsScreenshots => _ => _
+        .Executes(() =>
+        {
+            DotNetTasks.DotNetRun(s => s
+                .SetProjectFile(RootDirectory / "src" / "gView.Pipe.Docs.Screenshots" / "gView.Pipe.Docs.Screenshots.csproj")
+                .SetConfiguration(Configuration));
         });
 
     Target Deploy => _ => _

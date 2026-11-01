@@ -11,12 +11,16 @@
     {
         var index = i;
         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
-            <MudTextField T="string" Placeholder="Key" Variant="Variant.Outlined" Margin="Margin.Dense"
+            <MudTextField T="string" Immediate="true" DebounceInterval="300" Placeholder="Key" Variant="Variant.Outlined" Margin="Margin.Dense"
                           Value="@_rows[index].Key" ValueChanged="v => UpdateAsync(index, v, _rows[index].Value)" />
             <div class="flex-grow-1" @onfocusin="() => FocusedAsync(index)">
-            <MudTextField T="string" Placeholder="Value" Variant="Variant.Outlined" Margin="Margin.Dense"
+            <MudTextField T="string" Immediate="true" DebounceInterval="300" Placeholder="Value" Variant="Variant.Outlined" Margin="Margin.Dense"
                           Class="@(Field.Expressions ? "gview-pipe-expression-field" : null)"
                           Value="@_rows[index].Value" ValueChanged="v => UpdateAsync(index, _rows[index].Key, v)" />
+            @if (Field.Expressions)
+            {
+                <PipeExpressionPreview Text="@_rows[index].Value" Preview="ExpressionPreview" />
+            }
             </div>
             <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" aria-label="Remove" OnClick="() => RemoveAsync(index)" />
         </MudStack>
@@ -32,6 +36,8 @@
 
     /// <summary>The value input of an entry got the focus (expression fields only).</summary>
     [Parameter] public EventCallback<PipeExpressionTarget> OnExpressionFieldFocused { get; set; }
+
+    [Parameter] public Func<string, string?>? ExpressionPreview { get; set; }
 
     private List<(string Key, string Value)> _rows = new();
     private JsonObject? _lastValue;

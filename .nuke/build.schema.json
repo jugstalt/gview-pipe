@@ -29,6 +29,8 @@
         "Deploy",
         "Docker",
         "DockerPush",
+        "Docs",
+        "DocsScreenshots",
         "Test",
         "Zip"
       ]

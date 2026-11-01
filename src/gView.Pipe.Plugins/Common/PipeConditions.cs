@@ -1,3 +1,4 @@
+using gView.Pipe.Abstraction.Nodes;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -23,8 +24,13 @@ public enum PipeConditionOperation
 /// <summary>Parameters of a single comparison (used by If and Filter).</summary>
 public class PipeConditionParameters
 {
+    [PipeParameter(Label = "Value 1", Order = 1, Description = "The value to check, usually an expression such as {{ $json.total }}")]
     public JsonNode? Value1 { get; set; }
+
+    [PipeParameter(Label = "Operation", Order = 2)]
     public PipeConditionOperation Operation { get; set; } = PipeConditionOperation.IsEqual;
+
+    [PipeParameter(Label = "Value 2", Order = 3, Description = "The value to compare with; not used by is empty, is not empty, is true and is false")]
     public JsonNode? Value2 { get; set; }
 }
 

@@ -29,7 +29,7 @@ public sealed class CodeNodeParameters
     [PipeParameter(Label = "Mode", Order = 1, Expressions = false)]
     public CodeNodeMode Mode { get; set; } = CodeNodeMode.AllItems;
 
-    [PipeParameter(Label = "JavaScript", Order = 2, Code = true,
+    [PipeParameter(Label = "JavaScript", Order = 2, Code = true, CodeLanguage = "javascript",
         Description = "Available: items (all items mode), $json, $itemIndex (each item mode), $input, $node, $workflow, $execution, $now")]
     public string Code { get; set; } = DefaultCode;
 }

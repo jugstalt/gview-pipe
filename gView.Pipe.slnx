@@ -32,6 +32,8 @@
     <Project Path="src/gView.Pipe.Plugins.Database/gView.Pipe.Plugins.Database.csproj" />
     <Project Path="src/gView.Pipe.Plugins.Scripts/gView.Pipe.Plugins.Scripts.csproj" />
     <Project Path="src/gView.Pipe.Shell/gView.Pipe.Shell.csproj" />
+    <Project Path="src/gView.Pipe.Docs/gView.Pipe.Docs.csproj" />
+    <Project Path="src/gView.Pipe.Docs.Screenshots/gView.Pipe.Docs.Screenshots.csproj" />
   </Folder>
   <Folder Name="/Aspire/">
     <Project Path="src/Aspire/gView.Pipe.AppHost/gView.Pipe.AppHost.csproj" />

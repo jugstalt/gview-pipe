@@ -6,6 +6,12 @@
       "runtimeExecutable": "dotnet",
       "runtimeArgs": ["run", "--project", "src/gView.Pipe.Shell", "--launch-profile", "http", "--no-build"],
       "port": 5240
+    },
+    {
+      "name": "gview-pipe-docs",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "mkdocs", "serve", "--dev-addr", "127.0.0.1:8100"],
+      "port": 8100
     }
   ]
 }
