@@ -46,6 +46,10 @@ gView.Pipe ist eine normale ASP.NET-Core-App (`dotnet gView.Pipe.Shell.dll`). Da
 
 Aktive Workflows mit einem Cron- oder Webhook-Trigger werden beim Start der App wieder scharf geschaltet.
 
+## Dokumentation
+
+Die App liefert diese Dokumentation selbst unter `/docs` aus (zum Beispiel `http://localhost:5100/docs`), in der Sprache des Browsers (Englisch oder Deutsch). Der Link **Docs** in der oberen Leiste öffnet sie. Sie funktioniert offline und passt immer zur installierten Version.
+
 ## Installation prüfen
 
 - Die Startseite öffnet sich und zeigt die Beispiel-Workflows.

@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
+@inject gView.Pipe.Shell.PipeDocsSite Docs
 
 <MudThemeProvider Theme="PipeTheme.Default" />
 <MudPopoverProvider />
@@ -13,6 +14,11 @@
         <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ViewList" Class="gview-pipe-shell-nav">Workflows</MudNavLink>
         <MudNavLink Href="credentials" Icon="@Icons.Material.Filled.Key" Class="gview-pipe-shell-nav">Credentials</MudNavLink>
         <MudSpacer />
+        @if (Docs.Available)
+        {
+            @* a new tab: the docs are static files, not a route of this app *@
+            <MudNavLink Href="docs" Target="_blank" Icon="@Icons.Material.Filled.HelpOutline" Class="gview-pipe-shell-nav">Docs</MudNavLink>
+        }
         <PipeRunningIndicator OnClick="@(() => Navigation.NavigateTo(""))" />
     </MudAppBar>
     <MudMainContent Class="gview-pipe-shell-main">

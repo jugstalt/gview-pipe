@@ -103,7 +103,7 @@ class Build : NukeBuild
         });
 
     Target Compile => _ => _
-        .DependsOn(Test)
+        .DependsOn(Test, Docs)
         .Executes(() =>
         {
             foreach (var platform in Platform)
@@ -121,6 +121,9 @@ class Build : NukeBuild
                     .SetProperty("PublishProfile", platform)
                     .SetProperty("PublishDir", artifacts)
                     .SetVersion(Version));
+
+                // the documentation, served by the Shell under /docs (nothing to copy when the Docs target was skipped)
+                CopyDirectory(ArtifactsDirectory / "docs" / "site", artifacts / "docs", overwrite: true);
 
                 foreach (var pluginProject in PluginProjects)
                 {
@@ -162,7 +165,8 @@ class Build : NukeBuild
                 // third party pdb files and doc xml files
                 foreach (var file in artifacts.GlobFiles("**/*.pdb", "**/*.xml"))
                 {
-                    if (!file.Name.StartsWith("gView.", StringComparison.OrdinalIgnoreCase))
+                    // the docs site keeps its own files (sitemap.xml)
+                    if (!file.Name.StartsWith("gView.", StringComparison.OrdinalIgnoreCase) && !(artifacts / "docs").Contains(file))
                     {
                         file.DeleteFile();
                     }
@@ -234,6 +238,9 @@ class Build : NukeBuild
     Target Docs => _ => _
         .Executes(() =>
         {
+            // never deploy the site of an earlier build when this one is skipped or fails
+            (ArtifactsDirectory / "docs").DeleteDirectory();
+
             var check = ProcessTasks.StartProcess("python", "-m mkdocs --version", workingDirectory: RootDirectory, logger: (_, _) => { }, timeout: 30000);
             check.WaitForExit();
             if (check.ExitCode != 0)

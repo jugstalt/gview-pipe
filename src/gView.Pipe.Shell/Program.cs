@@ -1,6 +1,7 @@
 using gView.Pipe.AspNetCore.Extensions.Routing;
 using gView.Pipe.Core.Extensions.DependencyInjection;
 using gView.Pipe.Razor.Extensions.DependencyInjection;
+using gView.Pipe.Shell;
 using gView.Pipe.Shell.Components;
 using MudBlazor.Services;
 
@@ -31,6 +32,9 @@ builder.Services
     })
     .AddPipeRazor();
 
+var docs = PipeDocsSite.Find(builder.Configuration["Pipe:DocsPath"]);
+builder.Services.AddSingleton(docs);
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
@@ -45,6 +49,7 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapPipeWebhooks();
+docs.Map(app);
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

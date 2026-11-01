@@ -7,6 +7,7 @@ The settings are in `appsettings.json` next to the app (in the `Pipe` section). 
 | Key | Default | Meaning |
 |---|---|---|
 | `Pipe:DataPath` | `data` | Folder for `workflows/`, `groups.json`, `executions/`, `credentials/` and the Data Protection `keys/`. |
+| `Pipe:DocsPath` | `docs` | Folder with the built documentation, served under `/docs`. The ZIP and the Docker image contain it. Without it there is no `/docs` and no Docs link. |
 | `Pipe:PluginPath` | `plugins` | Folder with external plugins, one sub folder per plugin: `plugins/<Name>/<Name>.dll`. |
 | `Pipe:FileRoots` | `files` → `files` | Folders that Read File and Write File may use, by name. Nothing outside them is reachable. |
 | `Pipe:Scripts:ScriptRoots` | `scripts` → `scripts` | Script folders for the script nodes, by name (see [Running scripts](scripts.md)). |
