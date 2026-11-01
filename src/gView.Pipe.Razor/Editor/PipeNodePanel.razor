@@ -51,11 +51,11 @@
 
     <MudTabPanel Text="Settings">
         <MudStack Spacing="3">
-            <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+            <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
                           HelperText="Unique in the workflow; used by $node[&quot;Name&quot;] expressions"
                           Error="@(_nameError is not null)" ErrorText="@_nameError"
                           Value="@Model.Node.Name" ValueChanged="RenameAsync" />
-            <MudTextField T="string" Label="Notes" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
+            <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="Notes" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
                           Value="@Model.Node.Notes" ValueChanged="v => ChangeAsync(() => Model.Node.Notes = v)" />
             <MudSwitch T="bool" Label="Disabled (passes items through)" Color="Color.Primary"
                        Value="Model.Node.Disabled" ValueChanged="v => ChangeAsync(() => Model.Node.Disabled = v)" />
@@ -68,12 +68,12 @@
                 <MudSelectItem Value="PipeNodeErrorMode.ErrorOutput">Route items to an error output</MudSelectItem>
             </MudSelect>
             <MudStack Row="true" Spacing="2">
-                <MudNumericField T="int" Label="Retries" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="20"
+                <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Retries" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="20"
                                  Value="Settings.RetryCount" ValueChanged="v => ChangeAsync(() => Settings.RetryCount = v)" />
-                <MudNumericField T="int" Label="Retry delay (ms)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Step="500"
+                <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Retry delay (ms)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Step="500"
                                  Value="Settings.RetryDelayMs" ValueChanged="v => ChangeAsync(() => Settings.RetryDelayMs = v)" />
             </MudStack>
-            <MudNumericField T="int" Label="Timeout (seconds, 0 = none)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
+            <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Timeout (seconds, 0 = none)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
                              Value="Settings.TimeoutSeconds" ValueChanged="v => ChangeAsync(() => Settings.TimeoutSeconds = v)" />
         </MudStack>
     </MudTabPanel>

@@ -82,7 +82,7 @@ else
 
                 default:
                     <div @onfocusin="() => FieldFocusedAsync(field)">
-                    <MudTextField T="string" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                    <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
                                   Lines="@(field.Code ? 14 : field.Multiline ? 4 : 1)"
                                   InputType="@(field.Secret ? InputType.Password : InputType.Text)"
                                   Placeholder="@(field.Secret && SecretsArePlaceholders ? "(unchanged)" : field.Placeholder)"

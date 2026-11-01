@@ -1,7 +1,7 @@
 @using System.Text.Json
 @using System.Text.Json.Nodes
 
-<MudTextField T="string" Label="@Label" Variant="Variant.Outlined" Margin="Margin.Dense"
+<MudTextField T="string" Immediate="true" DebounceInterval="300" Label="@Label" Variant="Variant.Outlined" Margin="Margin.Dense"
               Lines="6" Class="gview-pipe-code"
               HelperText="@HelperText" Error="@(_error is not null)" ErrorText="@_error"
               Value="@_text" ValueChanged="ChangedAsync" />

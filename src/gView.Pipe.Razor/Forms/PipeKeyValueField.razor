@@ -11,10 +11,10 @@
     {
         var index = i;
         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
-            <MudTextField T="string" Placeholder="Key" Variant="Variant.Outlined" Margin="Margin.Dense"
+            <MudTextField T="string" Immediate="true" DebounceInterval="300" Placeholder="Key" Variant="Variant.Outlined" Margin="Margin.Dense"
                           Value="@_rows[index].Key" ValueChanged="v => UpdateAsync(index, v, _rows[index].Value)" />
             <div class="flex-grow-1" @onfocusin="() => FocusedAsync(index)">
-            <MudTextField T="string" Placeholder="Value" Variant="Variant.Outlined" Margin="Margin.Dense"
+            <MudTextField T="string" Immediate="true" DebounceInterval="300" Placeholder="Value" Variant="Variant.Outlined" Margin="Margin.Dense"
                           Class="@(Field.Expressions ? "gview-pipe-expression-field" : null)"
                           Value="@_rows[index].Value" ValueChanged="v => UpdateAsync(index, _rows[index].Key, v)" />
             </div>
