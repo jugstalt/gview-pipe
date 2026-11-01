@@ -4,6 +4,7 @@ Dieses Handbuch richtet sich an Personen, die gView.Pipe installieren und betrei
 
 - [Installation](installation.md): ZIP und Docker, erster Start.
 - [Konfiguration](configuration.md): Einstellungen, Ordner, Umgebungsvariablen.
+- [Anmeldung](authentication.md): Anmeldung mit festen Benutzern oder einem Identity Provider (OIDC).
 - [Plugins](plugins.md): welche Plugins es gibt und wie man sie installiert.
 - [Skripte ausführen](scripts.md): Skriptordner und Git-Server freigeben.
 - [Betrieb](operations.md): Reverse Proxy, Webhooks, Backup, Updates, Logs.

@@ -66,6 +66,8 @@ var identityServer = builder.AddIdentityServerNET("is-net-dev", httpsPort: 8443)
                           ])
        )
        .Build()
+       // the image of 7.26.2902 has a certificate that expired on 2026-08-26; drop this once the package catches up
+       .WithImageTag("7.26.4301")
        .WithContainerName("gview-pipe-identityserver-net")
        .WithLifetime(ContainerLifetime.Persistent);
 

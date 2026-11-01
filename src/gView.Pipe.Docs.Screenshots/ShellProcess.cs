@@ -24,7 +24,8 @@ internal sealed class ShellProcess : IAsyncDisposable
     /// <summary>The <c>workflows</c> folder of the temporary data folder: files put here show up in the editor.</summary>
     public string WorkflowsFolder => Path.Combine(_workFolder, "data", "workflows");
 
-    static public async Task<ShellProcess> StartAsync(string repositoryRoot)
+    /// <param name="settings">More environment variables, e.g. <c>Pipe__Auth__Mode</c>; they win over the defaults below.</param>
+    static public async Task<ShellProcess> StartAsync(string repositoryRoot, IReadOnlyDictionary<string, string>? settings = null)
     {
         var workFolder = Path.Combine(Path.GetTempPath(), "gview-pipe-docs-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(workFolder);
@@ -58,6 +59,14 @@ internal sealed class ShellProcess : IAsyncDisposable
         start.Environment["Pipe__Environments__2"] = "PROD";
         start.Environment["Pipe__Variables__DATABASE_SERVER__DEFAULT"] = "db-test";
         start.Environment["Pipe__Variables__DATABASE_SERVER__PROD"] = "db-prod";
+        // a _config of its own (from the prototypes), so a local auth.config of the developer doesn't apply
+        start.Environment["PIPE_CONFIG_PATH"] = Path.Combine(workFolder, "_config");
+        start.Environment["Pipe__Auth__Mode"] = "none";
+        start.Environment.Remove("PIPE_ADMIN_PASSWORD");
+        foreach (var (key, value) in settings ?? new Dictionary<string, string>())
+        {
+            start.Environment[key] = value;
+        }
 
         var process = Process.Start(start) ?? throw new InvalidOperationException("Can't start the Shell");
         var log = new StreamWriter(logFile) { AutoFlush = true };

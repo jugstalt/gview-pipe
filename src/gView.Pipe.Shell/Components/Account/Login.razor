@@ -1,0 +1,46 @@
+@page "/account/login"
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@layout AccountLayout
+@inject PipeAuthenticationOptions AuthOptions
+
+<PageTitle>Sign in · gView.Pipe</PageTitle>
+
+@if (AuthOptions.Mode == PipeAuthenticationMode.Oidc)
+{
+    <MudText Class="mb-4">Sign in with your organization account.</MudText>
+    <a class="mud-button-root mud-button mud-button-filled mud-button-filled-primary mud-button-filled-size-medium gview-pipe-account-button"
+       href="@($"account/challenge?returnUrl={Uri.EscapeDataString(SafeReturnUrl)}")" data-enhance-nav="false">Sign in</a>
+}
+else if (AuthOptions.Mode == PipeAuthenticationMode.Forms)
+{
+    @* a plain form post: the endpoint sets the cookie, which a circuit can't *@
+    <form method="post" action="account/signin" class="gview-pipe-account-form">
+        <AntiforgeryToken />
+        <input type="hidden" name="returnUrl" value="@SafeReturnUrl" />
+        <label for="username">User name</label>
+        <input id="username" name="username" autocomplete="username" required autofocus />
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+        @if (Error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true">Wrong user name or password.</MudAlert>
+        }
+        <button type="submit" class="mud-button-root mud-button mud-button-filled mud-button-filled-primary mud-button-filled-size-medium gview-pipe-account-button">Sign in</button>
+    </form>
+}
+else
+{
+    <MudText>No login is configured.</MudText>
+    <a href="" data-enhance-nav="false">Open gView.Pipe</a>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Error { get; set; }
+
+    private string SafeReturnUrl => PipeAuthentication.SafeReturnUrl(ReturnUrl);
+}

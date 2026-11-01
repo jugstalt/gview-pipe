@@ -2,12 +2,14 @@
 
 This page lists what the app protects and what you must protect yourself.
 
-## No authentication yet
+## Login
 
-The editor and all its functions are open to everyone who can reach the address. There are no users or roles. Until a login exists:
+Without configuration (`Pipe:Auth:Mode` = `none`), the editor and all its functions are open to everyone who can reach the address. Then:
 
 - bind the app to `localhost` or an internal network, and
 - put a reverse proxy or a VPN in front of it if people connect from other machines.
+
+As soon as other people can reach the app, switch on a login: fixed users (`forms`) or an identity provider (`oidc`), see [Authentication](authentication.md). Everyone who is signed in may do everything; there are no roles inside the app. Serve the app over https when it has a login, so passwords and the session cookie are encrypted.
 
 ## What a workflow can do
 

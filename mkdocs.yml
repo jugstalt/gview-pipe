@@ -57,6 +57,7 @@ plugins:
             Recipes: Rezepte
             Installation: Installation
             Configuration: Konfiguration
+            Authentication: Anmeldung
             Plugins: Plugins
             Running scripts: Skripte ausführen
             Operations: Betrieb
@@ -86,6 +87,7 @@ nav:
       - admin-guide/index.md
       - Installation: admin-guide/installation.md
       - Configuration: admin-guide/configuration.md
+      - Authentication: admin-guide/authentication.md
       - Plugins: admin-guide/plugins.md
       - Running scripts: admin-guide/scripts.md
       - Operations: admin-guide/operations.md

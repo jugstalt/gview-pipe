@@ -4,6 +4,7 @@ This guide is for people who install and operate gView.Pipe.
 
 - [Installation](installation.md): ZIP and Docker, first start.
 - [Configuration](configuration.md): settings, folders, environment variables.
+- [Authentication](authentication.md): login with fixed users or an identity provider (OIDC).
 - [Plugins](plugins.md): which plugins exist and how to install them.
 - [Running scripts](scripts.md): release script folders and Git servers.
 - [Operations](operations.md): reverse proxy, webhooks, backup, updates, logs.

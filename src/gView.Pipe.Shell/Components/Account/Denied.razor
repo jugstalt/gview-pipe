@@ -1,0 +1,32 @@
+@page "/account/denied"
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@layout AccountLayout
+@inject PipeAuthenticationOptions AuthOptions
+
+<PageTitle>No access · gView.Pipe</PageTitle>
+
+<MudAlert Severity="Severity.Warning" Class="mb-4">
+    @if (User?.Identity?.Name is { Length: > 0 } name)
+    {
+        <span>You are signed in as <b>@name</b>, but you have no access to gView.Pipe.</span>
+    }
+    else
+    {
+        <span>You have no access to gView.Pipe.</span>
+    }
+    @if (AuthOptions.Oidc.RequiredRoles.Count > 0)
+    {
+        <span> It needs the role @string.Join(" or ", AuthOptions.Oidc.RequiredRoles).</span>
+    }
+</MudAlert>
+@* the logout also ends the session at the identity provider, so another account can sign in *@
+<a class="mud-button-root mud-button mud-button-outlined mud-button-outlined-primary mud-button-outlined-size-medium gview-pipe-account-button"
+   href="account/logout" data-enhance-nav="false">Sign out</a>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private System.Security.Claims.ClaimsPrincipal? User => HttpContext?.User;
+}

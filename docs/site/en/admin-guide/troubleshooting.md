@@ -43,6 +43,14 @@ The `data/keys/` folder doesn't match `data/credentials/`. Restore both from the
 
 Runs that were in progress end with a restart. Active workflows are armed again, but a Wait node that was waiting has lost its run.
 
+## Nobody can sign in
+
+- **Forms:** the log says that no users are configured, or the user has neither `Password` nor `PasswordHash`. User names ignore case, passwords don't. After 10 attempts per minute from one address the app answers `429`; wait a minute.
+- **OIDC, the app doesn't start:** `Pipe:Auth:Oidc` needs `Authority` and `ClientId`.
+- **OIDC, an error at the identity provider about the redirect URI:** register `https://<app>/signin-oidc` and `https://<app>/signout-callback-oidc` at the client. Behind a reverse proxy see [Operations](operations.md#running-behind-a-reverse-proxy).
+- **OIDC, a certificate error in the log:** the app must trust the certificate of the provider. A self-signed test certificate must be imported into the trusted root certificates.
+- **No access although the user has the role:** the role must reach the app in the claim `RoleClaimType` (default `role`). Request the scope `role` and check that the provider puts the roles into the token or userinfo.
+
 ## Where to look
 
 - The application log (console, service log or `docker logs`).

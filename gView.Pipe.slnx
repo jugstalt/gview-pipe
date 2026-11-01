@@ -41,6 +41,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="src/tests/gView.Pipe.Core.Tests/gView.Pipe.Core.Tests.csproj" />
+    <Project Path="src/tests/gView.Pipe.AspNetCore.Tests/gView.Pipe.AspNetCore.Tests.csproj" />
     <Project Path="src/tests/gView.Pipe.Plugins.Tests/gView.Pipe.Plugins.Tests.csproj" />
     <Project Path="src/tests/gView.Pipe.Plugins.Database.Tests/gView.Pipe.Plugins.Database.Tests.csproj" />
     <Project Path="src/tests/gView.Pipe.Plugins.Scripts.Tests/gView.Pipe.Plugins.Scripts.Tests.csproj" />

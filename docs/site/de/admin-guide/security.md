@@ -2,12 +2,14 @@
 
 Diese Seite zeigt, was die App schützt und was du selbst schützen musst.
 
-## Noch keine Authentifizierung
+## Anmeldung
 
-Der Editor und alle seine Funktionen stehen jedem offen, der die Adresse erreicht. Es gibt keine Benutzer und keine Rollen. Solange es keine Anmeldung gibt:
+Ohne Konfiguration (`Pipe:Auth:Mode` = `none`) stehen der Editor und alle seine Funktionen jedem offen, der die Adresse erreicht. Dann:
 
 - binde die App an `localhost` oder ein internes Netz, und
 - setze einen Reverse Proxy oder ein VPN davor, wenn Leute von anderen Rechnern zugreifen.
+
+Sobald andere die App erreichen, schalte eine Anmeldung ein: feste Benutzer (`forms`) oder einen Identity Provider (`oidc`), siehe [Anmeldung](authentication.md). Wer angemeldet ist, darf alles; Rollen innerhalb der App gibt es nicht. Betreibe die App mit Anmeldung über https, damit Passwörter und das Sitzungs-Cookie verschlüsselt übertragen werden.
 
 ## Was ein Workflow kann
 

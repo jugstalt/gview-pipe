@@ -2,7 +2,9 @@
 
 Die Einstellungen stehen in `_config/pipe.config` im Arbeitsordner der App (im Abschnitt `Pipe`, JSON mit Kommentaren). Fehlt die Datei beim Start, legt die App sie aus der Vorlage `_setup/proto/pipe.config` an; danach passt du sie an. `appsettings.json` enthält nur ASP.NET-Core-Einstellungen wie `Logging`. Umgebungsvariablen und die Kommandozeile überschreiben `pipe.config`. Die Startskripte im ZIP setzen die Ordner als Umgebungsvariablen.
 
-Im Docker-Image ist `/app/_config` ein Volume, damit die Datei Updates übersteht.
+Die Anmeldung hat eine eigene Datei `_config/auth.config`, die genauso aus `_setup/proto/auth.config` entsteht (siehe [Anmeldung](authentication.md)).
+
+Im Docker-Image ist `/app/_config` ein Volume, damit die Dateien Updates überstehen.
 
 ## Konfiguration über Updates behalten
 

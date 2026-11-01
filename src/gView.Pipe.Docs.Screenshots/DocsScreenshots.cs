@@ -35,6 +35,15 @@ internal sealed class DocsScreenshots
         await EditorEnvironmentAsync();
     }
 
+    /// <summary>The login form; needs a Shell in the forms mode.</summary>
+    public async Task TakeLoginAsync()
+    {
+        await _page.SetViewportSizeAsync(1024, 600);
+        await _page.GotoAsync(new Uri(_address, "/").ToString());
+        await _page.GetByLabel("User name").FillAsync("admin");
+        await ShotAsync("login");
+    }
+
     private async Task StartPageAsync()
     {
         await LowAsync();

@@ -21,7 +21,7 @@ gview-pipe\
 Start the app with the start script. It listens on `http://localhost:5100`. Open that address in a browser.
 
 !!! note
-    The start script binds to `localhost` only. To reach the app from other machines, put a reverse proxy in front of it (see [Operations](operations.md#running-behind-a-reverse-proxy)) or set `urls` in `<root>\_config\pipe.config` (see [Configuration](configuration.md#listening-address)). There is **no login** yet: don't expose the app directly to a network you don't trust (see [Security](security.md)).
+    The start script binds to `localhost` only. To reach the app from other machines, put a reverse proxy in front of it (see [Operations](operations.md#running-behind-a-reverse-proxy)) or set `urls` in `<root>\_config\pipe.config` (see [Configuration](configuration.md#listening-address)). By default there is **no login**: switch one on before others can reach the app (see [Authentication](authentication.md)).
 
 On the first start with an empty `data` folder, gView.Pipe copies the sample workflows into the group **Samples**.
 
@@ -37,6 +37,7 @@ docker run -d --name gview-pipe -p 8080:8080 \
 - `/app/data` holds all runtime state: mount a volume or a folder, or the data is lost with the container.
 - The image contains `git` (for Run Scripts Repo) and `python3` (for `.py` scripts). It has no PowerShell and no Windows shell, so `.ps1`, `.bat` and `.cmd` scripts don't run in it.
 - For Read File / Write File and script folders, mount the folders and name them in the configuration, for example `-v /srv/pipe/files:/app/files -v /srv/pipe/scripts:/app/scripts`. The defaults are `files` and `scripts` below `/app`.
+- For a login with the user `admin`, add `-e PIPE_ADMIN_PASSWORD=<password>` (see [Authentication](authentication.md#docker-the-admin-password-as-a-variable)).
 
 Settings are passed as environment variables, see [Configuration](configuration.md#environment-variables).
 

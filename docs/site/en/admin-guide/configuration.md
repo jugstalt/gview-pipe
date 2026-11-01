@@ -2,7 +2,9 @@
 
 The settings are in `_config/pipe.config` in the working directory of the app (in the `Pipe` section, JSON with comments). If the file is missing at the start, the app creates it from the prototype `_setup/proto/pipe.config`; adjust it afterwards. `appsettings.json` holds only ASP.NET Core settings like `Logging`. Environment variables and the command line override `pipe.config`. The start scripts of the ZIP set the folders as environment variables.
 
-In the Docker image `/app/_config` is a volume, so the file survives updates.
+The login has its own file `_config/auth.config`, created the same way from `_setup/proto/auth.config` (see [Authentication](authentication.md)).
+
+In the Docker image `/app/_config` is a volume, so the files survive updates.
 
 ## Keeping the configuration over updates
 

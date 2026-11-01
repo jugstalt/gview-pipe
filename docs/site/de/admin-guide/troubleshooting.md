@@ -43,6 +43,14 @@ Der Ordner `data/keys/` passt nicht zu `data/credentials/`. Stelle beide aus dem
 
 Laufende Läufe enden mit einem Neustart. Aktive Workflows werden wieder scharf geschaltet, aber ein wartender Wait-Node hat seinen Lauf verloren.
 
+## Niemand kann sich anmelden
+
+- **Forms:** Das Log meldet, dass keine Benutzer konfiguriert sind, oder der Benutzer hat weder `Password` noch `PasswordHash`. Bei Benutzernamen spielt Groß-/Kleinschreibung keine Rolle, bei Passwörtern schon. Nach 10 Versuchen pro Minute von einer Adresse antwortet die App mit `429`; warte eine Minute.
+- **OIDC, die App startet nicht:** `Pipe:Auth:Oidc` braucht `Authority` und `ClientId`.
+- **OIDC, ein Fehler beim Identity Provider wegen der Redirect-URI:** Trage `https://<app>/signin-oidc` und `https://<app>/signout-callback-oidc` beim Client ein. Hinter einem Reverse Proxy siehe [Betrieb](operations.md#hinter-einem-reverse-proxy).
+- **OIDC, ein Zertifikatsfehler im Log:** Die App muss dem Zertifikat des Providers vertrauen. Ein selbstsigniertes Testzertifikat muss in die vertrauenswürdigen Stammzertifikate importiert werden.
+- **Kein Zugriff, obwohl der Benutzer die Rolle hat:** Die Rolle muss im Claim `RoleClaimType` (Vorgabe `role`) bei der App ankommen. Fordere den Scope `role` an und prüfe, dass der Provider die Rollen in das Token oder in Userinfo schreibt.
+
 ## Wo du nachsiehst
 
 - Das Anwendungs-Log (Konsole, Dienst-Log oder `docker logs`).

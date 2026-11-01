@@ -12,11 +12,11 @@
     <link href="@Assets["app.css"]" rel="stylesheet" />
     <ImportMap />
     <title>gView.Pipe</title>
-    <HeadOutlet @rendermode="InteractiveServerNoPrerender" />
+    <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveServerNoPrerender" />
+    <Routes @rendermode="PageRenderMode" />
     @* Monaco for code fields; must come before the Blazor script *@
     <script src="@Assets["_content/BlazorMonaco/jsInterop.js"]"></script>
     <script src="@Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"]"></script>
@@ -31,4 +31,10 @@
 @code {
     // no prerendering: the diagram canvas needs JS interop, and the app has nothing to gain from static HTML
     static private readonly IComponentRenderMode InteractiveServerNoPrerender = new InteractiveServerRenderMode(prerender: false);
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    // the account pages are static ([ExcludeFromInteractiveRouting]): they post a form and set the cookie
+    private IComponentRenderMode? PageRenderMode => HttpContext.AcceptsInteractiveRouting() ? InteractiveServerNoPrerender : null;
 }

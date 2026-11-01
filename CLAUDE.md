@@ -8,7 +8,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - No UI dependencies, and it must stay small: plugins share it with the host.
 - `gView.Pipe.Core`: engine, plugin catalog/loader, expression evaluator, scheduler, trigger manager, memory and file stores.
   - Headless, no Blazor.
-- `gView.Pipe.AspNetCore`: ASP.NET Core integration. `app.MapPipeWebhooks()` maps the webhook route (see ADR 0008). This is the only place with HTTP types; Core stays free of ASP.NET.
+- `gView.Pipe.AspNetCore`: ASP.NET Core integration. `app.MapPipeWebhooks()` maps the webhook route (see ADR 0008). `AddPipeAuthentication()`, `UsePipeAuthentication()`, `MapPipeAuthentication()` and `RequirePipeAuthorization()` add the login of the UI (none, forms or OIDC, see ADR 0014); the static pages `/account/login` and `/account/denied` live in the Shell. This is the only place with HTTP types; Core stays free of ASP.NET.
 - `gView.Pipe.Plugins`: the built-in nodes and credential types.
   - They use only the Abstraction contracts, exactly like external plugins.
   - Ids are in `PipeBuiltIn.cs` and must never change.
@@ -65,7 +65,7 @@ python -m mkdocs serve                 # live preview of the docs
 ./build.cmd Docs                       # static site in artifacts/docs/site
 ```
 
-The Shell keeps its runtime state in `src/gView.Pipe.Shell/data/`, which Git ignores; never commit it. Its settings (`Pipe:*`) are in `_config/pipe.config` (also ignored, never commit it), created on first start from the checked-in prototype `_setup/proto/pipe.config`; `appsettings*.json` hold only ASP.NET Core settings like logging (see ADR 0012). It loads external plugins from `plugins/<Name>/<Name>.dll`.
+The Shell keeps its runtime state in `src/gView.Pipe.Shell/data/`, which Git ignores; never commit it. Its settings (`Pipe:*`) are in `_config/pipe.config` (also ignored, never commit it), created on first start from the checked-in prototype `_setup/proto/pipe.config`; the login settings (`Pipe:Auth:*`) are in `_config/auth.config` the same way; `appsettings*.json` hold only ASP.NET Core settings like logging (see ADR 0012). It loads external plugins from `plugins/<Name>/<Name>.dll`.
 
 ## Documentation
 
@@ -84,6 +84,6 @@ The AppHost can start optional containers. They are switched on by uncommenting 
 
 - `ADD_MAILPIT`: Mailpit for the Send Mail node, with SMTP on `localhost:1025` and the UI at http://localhost:8025.
 - `ADD_GITEA`: Gitea for Run Scripts with Git, at http://localhost:3000 (SSH on port 2222). Login is `gitea`/`gitea`.
-- `ADD_IDENTITYSERVER`: IdentityServer.NET at https://localhost:8443 with admin password `admin`. Client `local-gview-pipe`/`secret` for `https://localhost:7240` is prepared for future authentication.
+- `ADD_IDENTITYSERVER`: IdentityServer.NET at https://localhost:8443, admin `admin@is.net`/`admin`, image tag pinned in `AppHost.cs`. Client `local-gview-pipe`/`secret` for `https://localhost:7240` serves the OIDC mode (ADR 0014); the role `gview-pipe` and test users are created in its admin UI. Its certificate is self-signed: Windows must trust it.
 
 Sample workflows live in `samples/workflows/`. They are seeded into an empty `data/workflows/` on first start, and the plugin tests run them too.

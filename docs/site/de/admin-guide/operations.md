@@ -6,7 +6,8 @@ Für den Zugriff von anderen Rechnern und für HTTPS setzt du einen Reverse Prox
 
 - Leite `/` an die App weiter. Der Editor nutzt eine Live-Verbindung (Blazor Server, WebSockets): Schalte WebSocket-Weiterleitung ein und trenne ruhende Verbindungen nicht zu früh.
 - Webhooks liegen unter `/webhook/<Pfad>`. Willst du nur Webhooks ins Internet geben, leite nur `/webhook/` weiter und halte den Editor intern.
-- **Der Editor hat keine Anmeldung.** Wer ihn öffnen kann, kann Workflows anlegen und alles ausführen, was du freigegeben hast. Schütze ihn mit dem Proxy (Authentifizierung, IP-Beschränkung) oder einem VPN.
+- Ohne Anmeldung (`Pipe:Auth:Mode` = `none`) kann jeder, der den Editor öffnet, Workflows anlegen und alles ausführen, was du freigegeben hast. Schalte eine Anmeldung ein (siehe [Anmeldung](authentication.md)) oder schütze den Editor mit dem Proxy (Authentifizierung, IP-Beschränkung) oder einem VPN.
+- Mit dem Anmeldemodus `oidc` hinter einem Proxy, der HTTPS beendet, setze `Pipe:Auth:UseForwardedHeaders` auf `true` und lass den Proxy `X-Forwarded-Proto` und `X-Forwarded-Host` senden. Sonst schickt die App `http://`-Redirect-URIs an den Identity Provider, der sie ablehnt.
 
 ## Webhooks im Betrieb
 
@@ -39,6 +40,8 @@ Sichere den ganzen Ordner `data`, dazu `files` und `scripts`, wenn du sie nutzt:
 
 !!! important
     Stelle `credentials/` und `keys/` **gemeinsam** wieder her. Ohne die Schlüssel lassen sich gespeicherte Credentials nicht lesen, und du musst sie neu eingeben.
+
+Sichere auch `_config` (`pipe.config`, `auth.config`); dort stehen die Einstellungen und im Anmeldemodus `forms` die Benutzer. Die Schlüssel in `data/keys/` schützen auch die Anmelde-Cookies: Neue Schlüssel melden alle ab.
 
 Für eine konsistente Kopie hältst du die App an oder kopierst, solange nichts läuft. Dateien werden über eine temporäre Datei geschrieben und dann an ihren Platz verschoben.
 

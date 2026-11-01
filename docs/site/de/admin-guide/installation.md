@@ -21,7 +21,7 @@ gview-pipe\
 Starte die App mit dem Startskript. Sie lauscht auf `http://localhost:5100`. Öffne diese Adresse im Browser.
 
 !!! note
-    Das Startskript bindet nur an `localhost`. Damit andere Rechner die App erreichen, setze einen Reverse Proxy davor (siehe [Betrieb](operations.md#hinter-einem-reverse-proxy)) oder setze `urls` in `<root>\_config\pipe.config` (siehe [Konfiguration](configuration.md#lauschadresse)). Es gibt noch **keine Anmeldung**: Setze die App nicht direkt einem Netz aus, dem du nicht vertraust (siehe [Sicherheit](security.md)).
+    Das Startskript bindet nur an `localhost`. Damit andere Rechner die App erreichen, setze einen Reverse Proxy davor (siehe [Betrieb](operations.md#hinter-einem-reverse-proxy)) oder setze `urls` in `<root>\_config\pipe.config` (siehe [Konfiguration](configuration.md#lauschadresse)). Standardmäßig gibt es **keine Anmeldung**: Schalte eine ein, bevor andere die App erreichen (siehe [Anmeldung](authentication.md)).
 
 Beim ersten Start mit leerem Ordner `data` kopiert gView.Pipe die Beispiel-Workflows in die Gruppe **Samples**.
 
@@ -37,6 +37,7 @@ docker run -d --name gview-pipe -p 8080:8080 \
 - `/app/data` enthält den gesamten Laufzeitzustand: Binde ein Volume oder einen Ordner ein, sonst gehen die Daten mit dem Container verloren.
 - Das Image enthält `git` (für Run Scripts Repo) und `python3` (für `.py`-Skripte). Es hat weder PowerShell noch eine Windows-Shell, also laufen `.ps1`-, `.bat`- und `.cmd`-Skripte darin nicht.
 - Für Read File / Write File und Skriptordner bindest du die Ordner ein und nennst sie in der Konfiguration, zum Beispiel `-v /srv/pipe/files:/app/files -v /srv/pipe/scripts:/app/scripts`. Die Vorgaben sind `files` und `scripts` unterhalb von `/app`.
+- Für eine Anmeldung mit dem Benutzer `admin` ergänze `-e PIPE_ADMIN_PASSWORD=<Passwort>` (siehe [Anmeldung](authentication.md#docker-das-admin-passwort-als-variable)).
 
 Einstellungen übergibst du als Umgebungsvariablen, siehe [Konfiguration](configuration.md#umgebungsvariablen).
 

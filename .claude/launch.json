@@ -8,6 +8,28 @@
       "port": 5240
     },
     {
+      "name": "gview-pipe-shell-forms",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/gView.Pipe.Shell", "--no-launch-profile", "--no-build", "--urls", "http://localhost:5241"],
+      "env": { "ASPNETCORE_ENVIRONMENT": "Development", "PIPE_ADMIN_PASSWORD": "test-only" },
+      "port": 5241
+    },
+    {
+      "name": "gview-pipe-shell-oidc",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/gView.Pipe.Shell", "--no-launch-profile", "--no-build", "--urls", "https://localhost:7241"],
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Pipe__Auth__Mode": "oidc",
+        "Pipe__Auth__Oidc__Authority": "https://localhost:8443",
+        "Pipe__Auth__Oidc__ClientId": "local-gview-pipe",
+        "Pipe__Auth__Oidc__ClientSecret": "secret",
+        "Pipe__Auth__Oidc__RequiredRoles__0": "gview-pipe"
+      },
+      "port": 7241,
+      "url": "https://localhost:7241"
+    },
+    {
       "name": "gview-pipe-docs",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "mkdocs", "serve", "--dev-addr", "127.0.0.1:8100"],

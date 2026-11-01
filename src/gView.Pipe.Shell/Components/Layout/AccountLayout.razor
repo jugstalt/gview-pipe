@@ -1,0 +1,14 @@
+@inherits LayoutComponentBase
+
+@* static layout of the account pages: no circuit, so no MainLayout with its JS and theme toggle *@
+<MudThemeProvider Theme="PipeTheme.Default" />
+
+<div class="gview-pipe-account">
+    <div class="gview-pipe-account-card mud-paper mud-elevation-2">
+        <div class="gview-pipe-account-title">
+            <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" />
+            <MudText Typo="Typo.h5">gView.Pipe</MudText>
+        </div>
+        @Body
+    </div>
+</div>

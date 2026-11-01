@@ -6,7 +6,8 @@ For access from other machines and for HTTPS, put a reverse proxy (IIS, nginx, T
 
 - Forward `/` to the app. The editor uses a live connection (Blazor Server, WebSockets): enable WebSocket forwarding and don't cut idle connections too early.
 - Webhooks are served under `/webhook/<path>`. If you want to expose only webhooks to the internet, forward just `/webhook/` and keep the editor internal.
-- **The editor has no login.** Whoever can open it can create workflows and run everything you released. Protect it with the proxy (authentication, IP restriction) or a VPN.
+- Without a login (`Pipe:Auth:Mode` = `none`), whoever can open the editor can create workflows and run everything you released. Switch on a login (see [Authentication](authentication.md)) or protect the editor with the proxy (authentication, IP restriction) or a VPN.
+- With the login mode `oidc` behind a proxy that terminates HTTPS, set `Pipe:Auth:UseForwardedHeaders` to `true` and let the proxy send `X-Forwarded-Proto` and `X-Forwarded-Host`. Otherwise the app sends `http://` redirect URIs to the identity provider, which rejects them.
 
 ## Webhooks in production
 
@@ -39,6 +40,8 @@ Back up the whole `data` folder, plus `files` and `scripts` if you use them:
 
 !!! important
     Restore `credentials/` and `keys/` **together**. Without the keys, stored credentials can't be read, and you must enter them again.
+
+Back up `_config` too (`pipe.config`, `auth.config`); it holds the settings and, in the login mode `forms`, the users. The keys in `data/keys/` also protect the login cookies: new keys sign everybody out.
 
 For a consistent copy, stop the app or copy while nothing is running. Files are written through a temporary file and then moved into place.
 

@@ -2,6 +2,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject gView.Pipe.Shell.PipeDocsSite Docs
+@inject PipeAuthenticationOptions AuthOptions
 
 <MudThemeProvider @ref="_themeProvider" Theme="PipeTheme.Default" IsDarkMode="_isDark" />
 
@@ -29,6 +30,14 @@
                     <MudIconButton Icon="@ModeIcon" Color="Color.Inherit" aria-label="@ModeText" OnClick="NextModeAsync" />
                 </MudTooltip>
                 <PipeRunningIndicator OnClick="@(() => Navigation.NavigateTo(""))" />
+                @if (AuthOptions.Mode != PipeAuthenticationMode.None && _userName is not null)
+                {
+                    <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" aria-label="Account">
+                        <MudMenuItem Disabled="true">@_userName</MudMenuItem>
+                        @* a full request: the logout clears the cookie (and the session at the identity provider) *@
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="@(() => Navigation.NavigateTo("account/logout", forceLoad: true))">Sign out</MudMenuItem>
+                    </MudMenu>
+                }
             </MudAppBar>
             <MudMainContent Class="gview-pipe-shell-main">
                 @Body
@@ -46,6 +55,18 @@
     private ThemeMode _mode = ThemeMode.System;
     private bool _systemDark;
     private bool _isDark;
+    private string? _userName;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationState is not null)
+        {
+            _userName = (await AuthenticationState).User.Identity?.Name;
+        }
+    }
 
     private string ModeIcon => _mode switch
     {

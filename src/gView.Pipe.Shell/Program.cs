@@ -1,3 +1,6 @@
+using gView.Pipe.AspNetCore.Authentication;
+using gView.Pipe.AspNetCore.Extensions.Builder;
+using gView.Pipe.AspNetCore.Extensions.DependencyInjection;
 using gView.Pipe.AspNetCore.Extensions.Routing;
 using gView.Pipe.Core.Extensions.DependencyInjection;
 using gView.Pipe.Razor.Extensions.DependencyInjection;
@@ -5,6 +8,13 @@ using gView.Pipe.Shell;
 using gView.Pipe.Shell.Components;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using MudBlazor.Services;
+
+if (args is ["--hash-password", var password])
+{
+    // for Pipe:Auth:Users[].PasswordHash in _config/auth.config
+    Console.WriteLine(PipePasswordHasher.Hash(password));
+    return;
+}
 
 if (WindowsServiceHelpers.IsWindowsService())
 {
@@ -60,12 +70,33 @@ builder.Services
     })
     .AddPipeRazor();
 
+// login of the UI (ADR 0014), from _config/auth.config
+builder.Services.AddPipeAuthentication(options =>
+{
+    builder.Configuration.GetSection("Pipe:Auth").Bind(options);
+
+    // Docker shortcut: PIPE_ADMIN_PASSWORD sets the password of "admin" (or PIPE_ADMIN_USER) and switches none to forms
+    if (Environment.GetEnvironmentVariable("PIPE_ADMIN_PASSWORD") is { Length: > 0 } adminPassword)
+    {
+        var adminName = Environment.GetEnvironmentVariable("PIPE_ADMIN_USER") is { Length: > 0 } name ? name : "admin";
+        options.Users.RemoveAll(u => string.Equals(u.Name, adminName, StringComparison.OrdinalIgnoreCase));
+        options.Users.Add(new PipeFormsUser { Name = adminName, Password = adminPassword });
+        if (options.Mode == PipeAuthenticationMode.None)
+        {
+            options.Mode = PipeAuthenticationMode.Forms;
+        }
+    }
+});
+
 var docs = PipeDocsSite.Find(builder.Configuration["Pipe:DocsPath"]);
 builder.Services.AddSingleton(docs);
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
+
+// first: handles the forwarded headers of a reverse proxy
+app.UsePipeAuthentication();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -77,10 +108,13 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapPipeWebhooks();
+app.MapPipeAuthentication();
 docs.Map(app);
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    // webhooks, docs and static files stay open; the login pages are [AllowAnonymous]
+    .RequirePipeAuthorization();
 
 app.Run();
