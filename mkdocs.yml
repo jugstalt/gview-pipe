@@ -1,0 +1,69 @@
+site_name: gView.Pipe
+site_description: Workflow automation for gView
+docs_dir: docs/site
+site_dir: artifacts/docs/site
+repo_url: https://github.com/jugstalt/gview-pipe
+
+# relative links and file names: the same site runs at the root of a docs host and under /docs in the Shell
+use_directory_urls: false
+
+theme:
+  name: material
+  # no Google Fonts: the site must work offline inside the Shell
+  font: false
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: de
+          name: Deutsch
+          build: true
+          nav_translations:
+            Home: Start
+            User Guide: Anwenderhandbuch
+            Admin Guide: Administratorhandbuch
+            Developer Guide: Entwicklerhandbuch
+            Getting started: Erste Schritte
+            Triggers and webhooks: Trigger und Webhooks
+            Error handling: Fehlerbehandlung
+
+nav:
+  - Home: index.md
+  - User Guide:
+      - user-guide/index.md
+      - Getting started: user-guide/getting-started.md
+      - Triggers and webhooks: user-guide/triggers.md
+      - Error handling: user-guide/error-handling.md
+  - Admin Guide: admin-guide/index.md
+  - Developer Guide: developer-guide/index.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences

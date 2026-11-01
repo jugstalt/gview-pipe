@@ -55,9 +55,22 @@ dotnet build gView.Pipe.slnx
 dotnet test --solution gView.Pipe.slnx
 dotnet run --project src/gView.Pipe.Shell
 dotnet run --project src/Aspire/gView.Pipe.AppHost
+pip install -r docs/requirements.txt   # once, for the docs
+python -m mkdocs serve                 # live preview of the docs
+./build.cmd Docs                       # static site in artifacts/docs/site
 ```
 
 The Shell keeps its runtime state in `src/gView.Pipe.Shell/data/`, which Git ignores; never commit it. It loads external plugins from `plugins/<Name>/<Name>.dll`.
+
+## Documentation
+
+The user and admin documentation is a MkDocs Material site in `docs/site/` (`en/` is the source, `de/` the translation), configured by `mkdocs.yml`. `docs/adr` is internal and not part of the site.
+
+- A change to a node, a parameter, the configuration or the behavior of the app updates the matching pages in both languages in the same change. A missing German page falls back to English with a warning; don't leave it that way on purpose.
+- Links inside the site are relative, so the same site runs at `/docs` in the Shell and at the root of a docs host.
+- `docs/site/en/nodes/` is generated from the node attributes, never edited or committed.
+- Python is needed for the docs only. `dotnet build` and `dotnet test` don't use it.
+- Images in `docs/site/images/` are English only; the UI has no other language.
 
 ## Dev containers
 

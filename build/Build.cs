@@ -229,6 +229,28 @@ class Build : NukeBuild
             RunDocker($"push {DockerRegistry}/{DockerImage}:latest");
         });
 
+    // Static documentation site (MkDocs Material, see mkdocs.yml) in artifacts/docs/site.
+    // Needs Python and "pip install -r docs/requirements.txt"; without them the target is skipped.
+    Target Docs => _ => _
+        .Executes(() =>
+        {
+            var check = ProcessTasks.StartProcess("python", "-m mkdocs --version", workingDirectory: RootDirectory, logger: (_, _) => { }, timeout: 30000);
+            check.WaitForExit();
+            if (check.ExitCode != 0)
+            {
+                Log.Warning("Docs skipped: MkDocs not found. Install Python, then run: pip install -r docs/requirements.txt");
+                return;
+            }
+
+            // strict: broken links fail the build; a missing German page only warns (fallback to English)
+            ProcessTasks.StartProcess("python", "-m mkdocs build --strict --clean",
+                    workingDirectory: RootDirectory,
+                    logger: (_, text) => Log.Information(text))
+                .AssertZeroExitCode();
+
+            Log.Information("Docs site: {Site}", ArtifactsDirectory / "docs" / "site");
+        });
+
     Target Deploy => _ => _
         .DependsOn(Zip, Docker);
 
