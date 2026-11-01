@@ -22,6 +22,20 @@ if (catalog.Nodes.Count == 0)
 
 var files = NodeReferenceWriter.Write(catalog, output);
 Console.WriteLine($"{catalog.Nodes.Count} nodes, {catalog.CredentialTypes.Count} credential types: {files} pages in {output}");
+
+// the sample workflows are offered for download on the recipe pages
+var downloads = Path.Combine(FindRepositoryRoot(), "docs", "site", "downloads", "workflows");
+if (Directory.Exists(downloads))
+{
+    Directory.Delete(downloads, recursive: true);
+}
+Directory.CreateDirectory(downloads);
+var samples = Directory.GetFiles(Path.Combine(FindRepositoryRoot(), "samples", "workflows"), "*.json");
+foreach (var sample in samples)
+{
+    File.Copy(sample, Path.Combine(downloads, Path.GetFileName(sample)));
+}
+Console.WriteLine($"{samples.Length} sample workflows copied to {downloads}");
 return 0;
 
 static string FindRepositoryRoot()

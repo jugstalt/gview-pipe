@@ -35,7 +35,7 @@ public sealed class RespondToWebhookNodeParameters
     [Range(100, 599)]
     public int StatusCode { get; set; } = 200;
 
-    [PipeParameter(Label = "Headers", Order = 4)]
+    [PipeParameter(Label = "Headers", Order = 4, Description = "Response headers; a Content-Type other than JSON sends a text body as is (e.g. text/html)")]
     public Dictionary<string, string> Headers { get; set; } = new();
 }
 

@@ -14,7 +14,7 @@ namespace gView.Pipe.Plugins.Nodes.Network;
 public sealed class SendEmailNodeParameters
 {
     [Required, PipeCredential(PipeBuiltInCredentials.Smtp)]
-    [PipeParameter(Label = "SMTP credential", Order = 1, Expressions = false)]
+    [PipeParameter(Label = "SMTP credential", Order = 1, Expressions = false, Description = "The SMTP server and login used to send the mail")]
     public string? CredentialId { get; set; }
 
     [PipeParameter(Label = "From", Order = 2, Placeholder = "Pipe <pipe@example.com>", Description = "Empty: the credential's default sender")]

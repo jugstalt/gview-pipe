@@ -29,7 +29,7 @@ try
     });
     var page = await context.NewPageAsync();
 
-    await new DocsScreenshots(page, shell.Address, output).TakeAllAsync();
+    await new DocsScreenshots(page, shell.Address, shell.WorkflowsFolder, output).TakeAllAsync();
 }
 catch (PlaywrightException ex) when (ex.Message.Contains("Executable doesn't exist"))
 {

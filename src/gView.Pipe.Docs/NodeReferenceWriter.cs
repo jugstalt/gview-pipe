@@ -160,12 +160,11 @@ static internal class NodeReferenceWriter
         }
 
         var rows = new List<(int Order, ParameterInfoRow Row)>();
-        foreach (var property in node.ParametersType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        // the same properties the editor shows: all readable and writable ones, with or without [PipeParameter]
+        var properties = node.ParametersType.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.CanRead && p.CanWrite).ToList();
+        foreach (var property in properties)
         {
-            if (property.GetCustomAttribute<PipeParameterAttribute>() is not { } attribute)
-            {
-                continue;
-            }
+            var attribute = property.GetCustomAttribute<PipeParameterAttribute>() ?? new PipeParameterAttribute();
 
             var type = UnderlyingType(property.PropertyType);
             var details = new List<string>();
@@ -203,8 +202,9 @@ static internal class NodeReferenceWriter
                 typeName = "code";
             }
 
-            rows.Add((attribute.Order, new ParameterInfoRow(
-                attribute.Label ?? property.Name,
+            // properties without an explicit order keep their declaration order, after the ordered ones
+            rows.Add((attribute.Order > 0 ? attribute.Order : 1000 + properties.IndexOf(property), new ParameterInfoRow(
+                attribute.Label ?? Humanize(property.Name),
                 Key(property.Name),
                 typeName,
                 property.GetCustomAttribute<RequiredAttribute>() is not null,
@@ -286,6 +286,24 @@ static internal class NodeReferenceWriter
     static private Type UnderlyingType(Type type) => Nullable.GetUnderlyingType(type) ?? type;
 
     static private bool IsText(Type type) => type == typeof(string) || typeof(JsonNode).IsAssignableFrom(type);
+
+    // "StopOnFirstFailure" -> "Stop on first failure", like the editor
+    static private string Humanize(string name)
+    {
+        var text = new StringBuilder();
+        for (var i = 0; i < name.Length; i++)
+        {
+            if (i > 0 && char.IsUpper(name[i]) && !char.IsUpper(name[i - 1]))
+            {
+                text.Append(' ').Append(char.ToLowerInvariant(name[i]));
+            }
+            else
+            {
+                text.Append(name[i]);
+            }
+        }
+        return text.ToString();
+    }
 
     // the same names the JSON has: camelCase
     static private string Key(string name) => JsonNamingPolicy.CamelCase.ConvertName(name);

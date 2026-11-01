@@ -21,6 +21,9 @@ internal sealed class ShellProcess : IAsyncDisposable
 
     public Uri Address { get; }
 
+    /// <summary>The <c>workflows</c> folder of the temporary data folder: files put here show up in the editor.</summary>
+    public string WorkflowsFolder => Path.Combine(_workFolder, "data", "workflows");
+
     static public async Task<ShellProcess> StartAsync(string repositoryRoot)
     {
         var workFolder = Path.Combine(Path.GetTempPath(), "gview-pipe-docs-" + Guid.NewGuid().ToString("N")[..8]);

@@ -37,7 +37,7 @@ public sealed class SqlNodeParameters
     public const string ConnectionStringCredential = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f14";
 
     [Required, PipeCredential(ConnectionStringCredential)]
-    [PipeParameter(Label = "Connection", Order = 1, Expressions = false)]
+    [PipeParameter(Label = "Connection", Order = 1, Expressions = false, Description = "Connection String credential: provider (sqlserver, postgres or sqlite) and connection string")]
     public string? CredentialId { get; set; }
 
     [PipeParameter(Label = "Database", Order = 2, Expressions = false,
