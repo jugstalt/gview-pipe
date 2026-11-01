@@ -99,10 +99,11 @@
             </MudAlert>
         }
 
-        <div class="gview-pipe-editor-body" style="--gview-pipe-palette-width:@(_paletteWidth)px;--gview-pipe-panel-width:@(_panelWidth)px">
+        @* the splitters are dragged in the browser (gview-pipe-resize.js) *@
+        <div class="gview-pipe-editor-body" @ref="_body" style="--gview-pipe-palette-width:@(_paletteWidth)px;--gview-pipe-panel-width:@(_panelWidth)px">
             <PipeNodePalette OnAdd="AddNode" />
-            <div class="gview-pipe-splitter" title="Drag to resize, double-click to reset"
-                 @onpointerdown="e => StartResize(ResizeSide.Palette, e)" @onpointerdown:preventDefault @ondblclick="() => ResetWidth(ResizeSide.Palette)"></div>
+            <div class="gview-pipe-splitter" data-gview-pipe-splitter="palette" title="Drag to resize, double-click to reset"
+                 @ondblclick="() => ResetWidth(ResizeSide.Palette)"></div>
 
             <div class="gview-pipe-editor-canvas">
                 <CascadingValue Value="_diagram" IsFixed="true">
@@ -140,8 +141,8 @@
                 }
             </div>
 
-            <div class="gview-pipe-splitter" title="Drag to resize, double-click to reset"
-                 @onpointerdown="e => StartResize(ResizeSide.Panel, e)" @onpointerdown:preventDefault @ondblclick="() => ResetWidth(ResizeSide.Panel)"></div>
+            <div class="gview-pipe-splitter" data-gview-pipe-splitter="panel" title="Drag to resize, double-click to reset"
+                 @ondblclick="() => ResetWidth(ResizeSide.Panel)"></div>
             <div class="gview-pipe-editor-panel">
                 @if (_selected is not null)
                 {
@@ -175,12 +176,6 @@
     }
 </div>
 
-@if (_resizing is not null)
-{
-    @* catches the pointer anywhere while a splitter is dragged *@
-    <div class="gview-pipe-resize-overlay" @onpointermove="Resize" @onpointerup="EndResizeAsync" @onpointerleave="EndResizeAsync"></div>
-}
-
 @code {
     [Parameter, EditorRequired] public string WorkflowId { get; set; } = "";
 
@@ -193,63 +188,52 @@
 
     private double _paletteWidth = DefaultPaletteWidth;
     private double _panelWidth = DefaultPanelWidth;
-    private (ResizeSide Side, double StartX, double StartWidth)? _resizing;
+    private ElementReference _body;
+    private IJSObjectReference? _resizeModule, _resizer;
+    private DotNetObjectReference<PipeEditor>? _self;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        // the body appears once the workflow is loaded
+        if (_resizeModule is not null || string.IsNullOrEmpty(_body.Id))
         {
             return;
         }
 
-        // widths the user chose last time, kept in the browser
         try
         {
+            _resizeModule = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/gView.Pipe.Razor/js/gview-pipe-resize.js");
+            _self ??= DotNetObjectReference.Create(this);
+            _resizer = await _resizeModule.InvokeAsync<IJSObjectReference>("init", _body, _self);
+
+            // widths the user chose last time, kept in the browser
             var stored = await JS.InvokeAsync<string?>("localStorage.getItem", WidthsKey);
             if (stored?.Split(';') is [var palette, var panel]
                 && double.TryParse(palette, System.Globalization.CultureInfo.InvariantCulture, out var p)
                 && double.TryParse(panel, System.Globalization.CultureInfo.InvariantCulture, out var q))
             {
-                _paletteWidth = ClampWidth(ResizeSide.Palette, p);
-                _panelWidth = ClampWidth(ResizeSide.Panel, q);
+                _paletteWidth = await ClampWidthAsync(ResizeSide.Palette, p);
+                _panelWidth = await ClampWidthAsync(ResizeSide.Panel, q);
                 StateHasChanged();
             }
         }
         catch (JSException) { }
+        catch (JSDisconnectedException) { }
     }
 
-    private void StartResize(ResizeSide side, PointerEventArgs e)
-        => _resizing = (side, e.ClientX, side == ResizeSide.Palette ? _paletteWidth : _panelWidth);
-
-    private async Task Resize(PointerEventArgs e)
+    /// <summary>Called by gview-pipe-resize.js when a splitter is released.</summary>
+    [JSInvokable]
+    public async Task WidthChanged(string side, double width)
     {
-        if (_resizing is not { } resizing)
+        if (side == "palette")
         {
-            return;
-        }
-        // released before the overlay was there to see it
-        if (e.Buttons == 0)
-        {
-            await EndResizeAsync();
-            return;
-        }
-
-        // the palette grows to the right, the panel to the left
-        var delta = e.ClientX - resizing.StartX;
-        var width = resizing.StartWidth + (resizing.Side == ResizeSide.Palette ? delta : -delta);
-        if (resizing.Side == ResizeSide.Palette)
-        {
-            _paletteWidth = ClampWidth(ResizeSide.Palette, width);
+            _paletteWidth = width;
         }
         else
         {
-            _panelWidth = ClampWidth(ResizeSide.Panel, width);
+            _panelWidth = width;
         }
-    }
-
-    private async Task EndResizeAsync()
-    {
-        _resizing = null;
+        StateHasChanged();
         await SaveWidthsAsync();
     }
 
@@ -266,8 +250,9 @@
         await SaveWidthsAsync();
     }
 
-    static private double ClampWidth(ResizeSide side, double width)
-        => side == ResizeSide.Palette ? Math.Clamp(width, 160, 640) : Math.Clamp(width, 300, 1000);
+    // the limits depend on the window, so the script knows them
+    private async Task<double> ClampWidthAsync(ResizeSide side, double width)
+        => await _resizeModule!.InvokeAsync<double>("clamp", side == ResizeSide.Palette ? "palette" : "panel", width);
 
     private async Task SaveWidthsAsync()
     {
@@ -1284,13 +1269,27 @@
         _ => Color.Default
     };
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         RunningExecutions.Changed -= RunningChanged;
         _runningClock?.Dispose();
         _runningThrottle?.Dispose();
         _runCts?.Cancel();
-        return ValueTask.CompletedTask;
+
+        try
+        {
+            if (_resizer is not null)
+            {
+                await _resizer.InvokeVoidAsync("dispose");
+                await _resizer.DisposeAsync();
+            }
+            if (_resizeModule is not null)
+            {
+                await _resizeModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { }
+        _self?.Dispose();
     }
 
     /// <summary>Pushes live node states of the editor's own run onto the canvas.</summary>

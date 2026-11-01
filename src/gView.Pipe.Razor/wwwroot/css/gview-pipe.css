@@ -322,6 +322,7 @@
     flex-shrink: 0;
     z-index: 10;
     cursor: col-resize;
+    touch-action: none;
     background: transparent;
     transition: background .15s;
 }
@@ -330,13 +331,14 @@
         background: var(--mud-palette-primary);
     }
 
-.gview-pipe-resize-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
+.gview-pipe-resizing {
     cursor: col-resize;
     user-select: none;
 }
+
+    .gview-pipe-resizing .gview-pipe-splitter {
+        background: var(--mud-palette-primary);
+    }
 
 .gview-pipe-palette-group {
     margin: 12px 0 4px;
