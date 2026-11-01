@@ -10,6 +10,8 @@ COPY /app .
 
 # workflows, executions, credentials, data protection keys
 VOLUME /app/data
+# pipe.config, created from _setup/proto on first start
+VOLUME /app/_config
 
 # not 80 => errors with RunAsNonRoot
 EXPOSE 8080

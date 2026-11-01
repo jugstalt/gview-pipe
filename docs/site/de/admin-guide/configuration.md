@@ -1,6 +1,8 @@
 # Konfiguration
 
-Die Einstellungen stehen in `appsettings.json` neben der App (im Abschnitt `Pipe`). Überschreibe sie in `appsettings.Production.json`, mit Umgebungsvariablen oder auf der Kommandozeile. Die Startskripte im ZIP setzen die Ordner als Umgebungsvariablen.
+Die Einstellungen stehen in `_config/pipe.config` im Arbeitsordner der App (im Abschnitt `Pipe`, JSON mit Kommentaren). Fehlt die Datei beim Start, legt die App sie aus der Vorlage `_setup/proto/pipe.config` an; danach passt du sie an. `appsettings.json` enthält nur ASP.NET-Core-Einstellungen wie `Logging`. Umgebungsvariablen und die Kommandozeile überschreiben `pipe.config`. Die Startskripte im ZIP setzen die Ordner als Umgebungsvariablen.
+
+Im Docker-Image ist `/app/_config` ein Volume, damit die Datei Updates übersteht.
 
 ## Einstellungen
 
@@ -18,7 +20,7 @@ Die Einstellungen stehen in `appsettings.json` neben der App (im Abschnitt `Pipe
 
 Relative Pfade gelten relativ zum Arbeitsordner der App.
 
-Beispiel (`appsettings.Production.json`):
+Beispiel (`_config/pipe.config`):
 
 ```json
 {
@@ -49,7 +51,7 @@ Pipe__Scripts__GitServers__company__Url=https://git.example.com
 
 Die Adresse setzt du mit `--urls` oder der Variablen `ASPNETCORE_URLS`, zum Beispiel `http://*:5100`. Das Docker-Image nutzt `http://*:8080`.
 
-## Grenzen, die nicht in appsettings stehen
+## Grenzen, die nicht in der Konfiguration stehen
 
 Einige Optionen lassen sich nur im Code setzen (`Program.cs` des Shell), zum Beispiel wie viele Executions je Workflow behalten werden (50), wie lange ein Wait-Node höchstens wartet (eine Stunde), die JavaScript-Grenzen und die maximale Body-Größe eines Webhooks (10 MB). Frag deinen Entwickler, wenn du sie ändern willst.
 

@@ -15,6 +15,7 @@ TestResults/
 ## Anchored on purpose: git on Windows ignores case, and a bare "data/" would also hit source folders named "Data".
 ## Sample workflows live in /samples and are seeded into an empty store on first start.
 src/gView.Pipe.Shell/data/
+src/gView.Pipe.Shell/_config/
 src/gView.Pipe.Shell/plugins/
 src/gView.Pipe.Shell/files/
 src/gView.Pipe.Shell/scripts/

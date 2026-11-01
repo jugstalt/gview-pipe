@@ -65,7 +65,7 @@ python -m mkdocs serve                 # live preview of the docs
 ./build.cmd Docs                       # static site in artifacts/docs/site
 ```
 
-The Shell keeps its runtime state in `src/gView.Pipe.Shell/data/`, which Git ignores; never commit it. It loads external plugins from `plugins/<Name>/<Name>.dll`.
+The Shell keeps its runtime state in `src/gView.Pipe.Shell/data/`, which Git ignores; never commit it. Its settings (`Pipe:*`) are in `_config/pipe.config` (also ignored, never commit it), created on first start from the checked-in prototype `_setup/proto/pipe.config`; `appsettings*.json` hold only ASP.NET Core settings like logging (see ADR 0012). It loads external plugins from `plugins/<Name>/<Name>.dll`.
 
 ## Documentation
 

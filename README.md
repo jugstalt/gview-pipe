@@ -54,7 +54,7 @@ dotnet run --project src/Aspire/gView.Pipe.AppHost
 
 ### Configuration
 
-`src/gView.Pipe.Shell/appsettings.json`:
+`src/gView.Pipe.Shell/_config/pipe.config` (not in Git, created on first start from `_setup/proto/pipe.config`):
 
 | Key | Default | Meaning |
 |---|---|---|

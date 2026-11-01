@@ -21,6 +21,8 @@
     <!-- seeded into an empty workflow store on first start -->
     <None Include="..\..\samples\workflows\*.json" Link="samples\workflows\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\samples\groups.json" Link="samples\groups.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- prototype of _config/pipe.config, copied on first start -->
+    <None Update="_setup\proto\pipe.config" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

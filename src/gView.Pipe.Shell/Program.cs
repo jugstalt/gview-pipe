@@ -5,7 +5,11 @@ using gView.Pipe.Shell;
 using gView.Pipe.Shell.Components;
 using MudBlazor.Services;
 
+PipeConfigSetup.TrySetup();
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddPipeConfig();
 
 builder.AddServiceDefaults();
 
