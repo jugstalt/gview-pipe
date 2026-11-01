@@ -15,6 +15,8 @@ You build a workflow in the editor: nodes on a canvas, connected by lines. Open 
 
 The palette and the side panel can be resized by dragging the thin bar next to them. A double click resets the width.
 
+The icon at the right of the top bar switches the colors: following the system, light or dark. The browser keeps your choice.
+
 ## Building a workflow
 
 1. **Add a node:** click it in the palette. It appears on the canvas; drag it where you want it.

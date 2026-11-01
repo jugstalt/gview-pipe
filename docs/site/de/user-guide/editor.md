@@ -15,6 +15,8 @@ Im Editor baust du einen Workflow: Nodes auf einer Arbeitsfläche, verbunden dur
 
 Palette und Seitenpanel änderst du in der Breite, indem du den schmalen Balken neben ihnen ziehst. Ein Doppelklick setzt die Breite zurück.
 
+Das Symbol rechts in der oberen Leiste wechselt die Farben: wie das System, hell oder dunkel. Der Browser merkt sich deine Wahl.
+
 ## Einen Workflow bauen
 
 1. **Node hinzufügen:** Klicke ihn in der Palette an. Er erscheint auf der Arbeitsfläche; ziehe ihn an die gewünschte Stelle.

@@ -35,6 +35,7 @@
 
 @code {
     [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     [Parameter] public string? Label { get; set; }
     [Parameter] public string? HelperText { get; set; }
@@ -76,13 +77,24 @@
                 await _editor.SetValue(_text);
             }
         }
+
+        // the theme is global in Monaco: switch it when the host's mode changes
+        if (_editor is not null && _dark != DarkMode)
+        {
+            await BlazorMonaco.Editor.Global.SetTheme(JS, Theme);
+        }
+        _dark = DarkMode;
     }
+
+    private bool _dark;
+
+    private string Theme => DarkMode ? "vs-dark" : "vs";
 
     private StandaloneEditorConstructionOptions Options(StandaloneCodeEditor editor) => new()
     {
         Value = _text,
         Language = Language ?? "plaintext",
-        Theme = DarkMode ? "vs-dark" : "vs",
+        Theme = Theme,
         AutomaticLayout = true,
         Minimap = new EditorMinimapOptions { Enabled = false },
         ScrollBeyondLastLine = false,
