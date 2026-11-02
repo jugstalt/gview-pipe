@@ -33,7 +33,7 @@ Die Einstellungen kommen aus `appsettings.json`, aus `portal.config.json` neben 
 
 Der Name des angemeldeten Anwenders geht mit jeder Anfrage ans Backend. Läufe zeigen in der Historie des Editors `portal:<Name>` als Starter, und Anwender sehen und stoppen nur ihre eigenen Läufe.
 
-Gestartet wird es wie die Shell: `dotnet run --project src/gView.Pipe.Portal` (Port 5250 in der Entwicklung, `--launch-profile https` für https auf 7250).
+Gestartet wird es wie die Shell: `dotnet run --project src/gView.Pipe.Portal` (Port 5250 in der Entwicklung, `--launch-profile https` für https auf 7250). Im AppHost stellst du den Login oben in `AppHost.cs` ein: `#define PORTAL_OIDC` (IdentityServer, Benutzer `portal@is.net`) oder `#define PORTAL_FORMS` (feste Benutzer `portal` mit der Portal-Rolle `portal-demo` und einer Adresse sowie `guest`, beide mit dem Namen als Passwort); definiere nur eines.
 
 Für den Modus forms erzeugst du den Hash eines Passworts mit dem Portal selbst:
 

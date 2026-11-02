@@ -2,8 +2,25 @@
 #define ADD_MAILPIT
 #define ADD_GITEA
 #define ADD_IDENTITYSERVER
-// the portal signs users in with the IdentityServer (needs ADD_IDENTITYSERVER); without it the portal has no login
+
+// how users sign in, for the Shell (PIPE_*) and for the portal (PORTAL_*); at most one of the two per app, none: no login.
+// OIDC signs in through the IdentityServer (needs ADD_IDENTITYSERVER), FORMS through fixed users of the AppHost.
+// The settings go in as environment variables, which win over _config/auth.config; but lists (Users, Scopes) are merged
+// by position, so move away a _config/auth.config of your own that has Users while you use PIPE_FORMS
+#define PIPE_OIDC
+//#define PIPE_FORMS
 #define PORTAL_OIDC
+//#define PORTAL_FORMS
+
+#if PIPE_OIDC && PIPE_FORMS
+#error PIPE_OIDC and PIPE_FORMS exclude each other: define only one
+#endif
+#if PORTAL_OIDC && PORTAL_FORMS
+#error PORTAL_OIDC and PORTAL_FORMS exclude each other: define only one
+#endif
+#if (PIPE_OIDC || PORTAL_OIDC) && !ADD_IDENTITYSERVER
+#error PIPE_OIDC and PORTAL_OIDC need ADD_IDENTITYSERVER
+#endif
 
 using System.Security.Cryptography;
 
@@ -106,7 +123,7 @@ var shell = builder.AddProject<Projects.gView_Pipe_Shell>("gview-pipe")
        .WithEnvironment("Pipe__DevPortalKey", portalKey);
 
 #if ADD_IDENTITYSERVER
-// the roles of the users above for the OIDC mode of the Shell (_config/auth.config: "Mode": "oidc"); unused in other modes
+// the roles of the users above for the OIDC mode of the Shell (PIPE_OIDC, or "Mode": "oidc" in _config/auth.config); unused in other modes
 shell.WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-viewers", "viewer")
      .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-operators", "operator")
      .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-editors", "editor")
@@ -114,17 +131,53 @@ shell.WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-viewers", "viewer")
      .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-admins", "admin");
 #endif
 
+#if PIPE_OIDC
+// users of the IdentityServer sign in (ADR 0014); only those with the role gview-pipe enter, the rest is up to the mappings above
+shell.WithEnvironment("Pipe__Auth__Mode", "oidc")
+     .WithEnvironment("Pipe__Auth__Oidc__Authority", "https://localhost:8443")
+     .WithEnvironment("Pipe__Auth__Oidc__ClientId", "local-gview-pipe")
+     .WithEnvironment("Pipe__Auth__Oidc__ClientSecret", "secret")
+     .WithEnvironment("Pipe__Auth__Oidc__RequiredRoles__0", "gview-pipe")
+     // a user without a mapped role is only a viewer
+     .WithEnvironment("Pipe__Auth__DefaultRole", "viewer");
+#elif PIPE_FORMS
+// fixed users (ADR 0014): name and password are the same; plain passwords log a warning on start, which is fine for development
+shell.WithEnvironment("Pipe__Auth__Mode", "forms")
+     .WithEnvironment("Pipe__Auth__DefaultRole", "viewer");
+var formsRoles = new[] { "viewer", "operator", "editor", "admin" };
+for (var i = 0; i < formsRoles.Length; i++)
+{
+    shell.WithEnvironment($"Pipe__Auth__Users__{i}__Name", formsRoles[i])
+         .WithEnvironment($"Pipe__Auth__Users__{i}__Password", formsRoles[i])
+         .WithEnvironment($"Pipe__Auth__Users__{i}__Role", formsRoles[i]);
+}
+// viewer in general, editor in the group samples
+shell.WithEnvironment("Pipe__Auth__Users__4__Name", "samples")
+     .WithEnvironment("Pipe__Auth__Users__4__Password", "samples")
+     .WithEnvironment("Pipe__Auth__Users__4__Role", "viewer")
+     .WithEnvironment("Pipe__Auth__Users__4__GroupRoles__samples", "editor");
+#endif
+
 var portal = builder.AddProject<Projects.gView_Pipe_Portal>("gview-pipe-portal")
        .WithEnvironment("Portal__BackendUrl", shell.GetEndpoint("https"))
        .WithEnvironment("Portal__ApiKey", portalKey)
        .WaitFor(shell);
 
-#if PORTAL_OIDC && ADD_IDENTITYSERVER
+#if PORTAL_OIDC
 // users of the IdentityServer sign in; the role claim "role" gives them the portal roles (ADR 0030) and "email" their address
 portal.WithEnvironment("Portal__Auth__Mode", "Oidc")
       .WithEnvironment("Portal__Auth__Oidc__Authority", "https://localhost:8443")
       .WithEnvironment("Portal__Auth__Oidc__ClientId", "local-gview-pipe-portal")
       .WithEnvironment("Portal__Auth__Oidc__ClientSecret", "secret");
+#elif PORTAL_FORMS
+// fixed users: portal has the portal role portal-demo (ADR 0030) and an address for mails (ADR 0029), guest has neither
+portal.WithEnvironment("Portal__Auth__Mode", "Forms")
+      .WithEnvironment("Portal__Auth__Users__0__Name", "portal")
+      .WithEnvironment("Portal__Auth__Users__0__Password", "portal")
+      .WithEnvironment("Portal__Auth__Users__0__Email", "portal@example.com")
+      .WithEnvironment("Portal__Auth__Users__0__Roles__0", "portal-demo")
+      .WithEnvironment("Portal__Auth__Users__1__Name", "guest")
+      .WithEnvironment("Portal__Auth__Users__1__Password", "guest");
 #endif
 
 builder.Build().Run();
