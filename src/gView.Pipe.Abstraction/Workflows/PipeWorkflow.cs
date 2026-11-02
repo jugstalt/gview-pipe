@@ -85,4 +85,37 @@ public sealed class PipeWorkflowSettings
     /// Environments a webhook caller may choose with the header <c>X-Pipe-Environment</c>. Empty: the caller can't.
     /// </summary>
     public List<string>? WebhookEnvironments { get; set; }
+
+    /// <summary>How the workflow appears in the portal; null: not published (ADR 0027).</summary>
+    public PipeWorkflowPortalSettings? Portal { get; set; }
+}
+
+public enum PipePortalRunMode
+{
+    /// <summary>The user waits (up to the timeout); then the run continues in the background.</summary>
+    Wait,
+
+    /// <summary>The run starts and the user comes back later.</summary>
+    Background
+}
+
+/// <summary>Portal settings of a workflow (ADR 0027).</summary>
+public sealed class PipeWorkflowPortalSettings
+{
+    /// <summary>Only published workflows are visible to portal users; the group is the category.</summary>
+    public bool Published { get; set; }
+
+    public PipePortalRunMode DefaultMode { get; set; } = PipePortalRunMode.Wait;
+
+    /// <summary>Whether the user may choose the other mode when starting.</summary>
+    public bool AllowModeChoice { get; set; } = true;
+
+    /// <summary>Seconds a user waits before the run goes on in the background.</summary>
+    public int WaitTimeoutSeconds { get; set; } = 30;
+
+    /// <summary>When false, users can't stop their runs (e.g. imports that must not end halfway).</summary>
+    public bool AllowCancel { get; set; } = true;
+
+    /// <summary>At most one run at a time, whoever started it.</summary>
+    public bool SingleRun { get; set; }
 }

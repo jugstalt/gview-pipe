@@ -78,6 +78,10 @@ else
                                    ExpressionPreview="ExpressionPreview" />
                     break;
 
+                case PipeFieldKind.FormFields:
+                    <PipeFormFieldsField Field="field" Value="@(value as JsonArray)" ValueChanged="v => SetAsync(field, v)" />
+                    break;
+
                 case PipeFieldKind.RawJson:
                     <PipeRawJsonField Label="@field.Label" HelperText="@field.Description" Value="value" ValueChanged="v => SetAsync(field, v)" />
                     break;

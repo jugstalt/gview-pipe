@@ -9,7 +9,7 @@ Schlüssel legst du auf der Seite **API keys** an (Navigation). Ein Schlüssel h
 | Einstellung | Bedeutung |
 |---|---|
 | Name | Wer oder was ihn nutzt, z. B. `CI Deploy`. Mit dem Schlüssel gestartete Läufe zeigen in der Historie `API · CI Deploy`. |
-| Rights | **Read**: Workflows, Executions, Gruppen. **Run**: Läufe starten, stoppen, wiederholen. **Deploy**: Workflows anlegen, ändern, löschen, aktivieren. |
+| Rights | **Read**: Workflows, Executions, Gruppen. **Run**: Läufe starten, stoppen, wiederholen. **Deploy**: Workflows anlegen, ändern, löschen, aktivieren. **Portal**: nur die [Portal-Endpunkte](#portal-endpunkte) für das Anwender-Portal; allein verwenden. |
 | Only these groups | Beschränkt den Schlüssel auf die Workflows dieser Gruppen. Andere Workflows sieht er gar nicht, auch keine ohne Gruppe. |
 | Expires | Nach diesem Tag wird der Schlüssel abgelehnt. Leer: nie. |
 
@@ -108,3 +108,21 @@ Schicke `If-Match` mit dem `ETag` eines `GET`, um sicherzugehen, dass niemand de
     ```
 
 Credentials, Variablen und Gruppen lassen sich über die API nicht ändern; richte sie in der UI ein.
+
+## Portal-Endpunkte
+
+Für das Anwender-Portal (Anwender, die Workflows ausführen, aber nicht bearbeiten) erreicht ein Key mit dem Recht **Portal** nur `/api/v1/portal`. Er kann nichts anderes, und kein anderer Key erreicht diese Endpunkte. Jede Anfrage nennt den Anwender, für den sie gilt, im Header `X-Pipe-On-Behalf-Of`; Läufe zeigen `portal:<Anwender>` als Starter, und Anwender sehen und stoppen nur ihre eigenen Läufe. Der Portal-Server wird darin als vertrauenswürdig behandelt, dass er den richtigen Anwender nennt. Halte den Key deshalb auf diesem Server und lass nur ihn das Backend erreichen.
+
+| Methode und Pfad | Macht |
+|---|---|
+| `GET /api/v1/portal/workflows` | Die veröffentlichten Workflows mit Kategorie, Formular und Einstellungen zum Lauf. |
+| `POST /api/v1/portal/workflows/{id}/run` | Startet einen Lauf. Body `{ "values": { … }, "mode": "wait" oder "background" }`. Die Werte werden gegen das Formular geprüft (`422` mit den falschen Feldern). Beim Warten kommt das Ergebnis zurück, oder `202`, wenn das Warte-Timeout abgelaufen ist. |
+| `GET /api/v1/portal/executions` | Die Läufe des Anwenders, neueste zuerst, auch die laufenden. |
+| `GET /api/v1/portal/executions/{workflowId}/{id}` | Status und Ergebnis eines Laufs des Anwenders. |
+| `POST /api/v1/portal/executions/{workflowId}/{id}/cancel` | Stoppt einen Lauf des Anwenders, falls der Workflow das nicht verbietet. |
+
+Welche Workflows erscheinen, stellst du in den [Workflow-Einstellungen](../user-guide/editor.md#workflow-settings) ein: Sichtbar sind nur Workflows mit *Publish in portal*, in der Kategorie ihrer Gruppe. Der Form Trigger legt das Formular fest, der Result-Node, was der Anwender am Ende sieht. Anwender sehen nie rohe Items oder Fehlerdetails der Nodes: Ein fehlgeschlagener Lauf zeigt die *Error message* des Result-Nodes oder einen allgemeinen Text mit der Nummer des Laufs.
+
+Jedes Feld des Formulars hat einen Namen, einen Typ (Text, mehrzeiliger Text, Zahl, Ja/Nein, Datum, Auswahl, Passwort), ein Label, eine Beschreibung, einen Platzhalter, einen Standardwert und *Required*. Textfelder können ein **Muster** haben, einen regulären Ausdruck, auf den der Text als Ganzes passen muss (z. B. `[A-Z]{1,2}-\d{1,5}`), mit der Meldung, die sonst erscheint. Das Portal kann es schon beim Tippen prüfen; das Backend prüft es bei jedem Start nochmal. Beschränke Muster auf das, was .NET und JavaScript gemeinsam verstehen.
+
+Ein Anwender darf `Pipe:Portal:MaxRunsPerUser` Läufe gleichzeitig haben (Standard 3, 0 = unbegrenzt); weitere beantwortet das Backend mit `429`.

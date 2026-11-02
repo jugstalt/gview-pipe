@@ -81,6 +81,7 @@ static public class PipeApiEndpoints
         api.MapPost("/executions/{workflowId}/{id}/cancel", CancelAsync).Need(PipeApiRights.Run).WithSummary("Stops a running or queued execution");
         api.MapPost("/executions/{workflowId}/{id}/replay", ReplayAsync).Need(PipeApiRights.Run).WithSummary("Runs a stored execution again");
         api.MapGet("/groups", (Delegate)ListGroupsAsync).Need(PipeApiRights.Read).WithSummary("Lists the workflow groups");
+        PipePortalEndpoints.Map(api);
         api.MapGet("/audit", AuditAsync).Need(PipeApiRights.Read).WithSummary("The audit log, newest first; only for keys not limited to groups");
         return api;
     }
@@ -88,14 +89,14 @@ static public class PipeApiEndpoints
     static private TBuilder Need<TBuilder>(this TBuilder builder, PipeApiRights right) where TBuilder : IEndpointConventionBuilder
         => builder.WithMetadata(new PipeApiRightMetadata(right));
 
-    static private PipeApiKey Key(HttpContext context) => (PipeApiKey)context.Items[KeyItem]!;
+    static internal PipeApiKey Key(HttpContext context) => (PipeApiKey)context.Items[KeyItem]!;
 
-    static private IResult Json(object? value, int status = StatusCodes.Status200OK) => Results.Json(value, PipeJson.Options, statusCode: status);
+    static internal IResult Json(object? value, int status = StatusCodes.Status200OK) => Results.Json(value, PipeJson.Options, statusCode: status);
 
-    static private IResult Problem(int status, string title, object? details = null)
+    static internal IResult Problem(int status, string title, object? details = null)
         => Results.Problem(statusCode: status, title: title, extensions: details is null ? null : new Dictionary<string, object?> { ["details"] = details });
 
-    static private IResult NotFound(string what) => Problem(StatusCodes.Status404NotFound, $"{what} not found");
+    static internal IResult NotFound(string what) => Problem(StatusCodes.Status404NotFound, $"{what} not found");
 
     /// <summary>The workflow, when it exists and the key covers its group; a limited key never learns about others.</summary>
     static private async Task<PipeWorkflow?> VisibleWorkflowAsync(string id, HttpContext context)
@@ -104,10 +105,10 @@ static public class PipeApiEndpoints
         return workflow is not null && Key(context).Covers(workflow.GroupId) ? workflow : null;
     }
 
-    static private T Services<T>(HttpContext context) where T : notnull => context.RequestServices.GetRequiredService<T>();
+    static internal T Services<T>(HttpContext context) where T : notnull => context.RequestServices.GetRequiredService<T>();
 
     /// <summary>An audit entry with the key as actor (ADR 0022).</summary>
-    static private Task WriteAuditAsync(HttpContext context, PipeAuditArea area, string action, string? objectId, string? objectName, string? details = null)
+    static internal Task WriteAuditAsync(HttpContext context, PipeAuditArea area, string action, string? objectId, string? objectName, string? details = null)
         => Services<IPipeAuditLog>(context).WriteAsync(new PipeAuditEntry
         {
             Timestamp = DateTimeOffset.UtcNow,
@@ -281,7 +282,7 @@ static public class PipeApiEndpoints
     }
 
     /// <summary>Status, error and the items of the node that finished last, as a webhook "when finished" answers.</summary>
-    static private object Result(PipeExecution execution)
+    static internal object Result(PipeExecution execution)
     {
         var last = execution.NodeRuns.Values
             .Where(r => r.FinishedAt is not null && r.Outputs is not null)

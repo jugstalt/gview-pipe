@@ -47,7 +47,8 @@ public sealed class PipeExecutionSummary
            && (query.Statuses is not { Count: > 0 } || query.Statuses.Contains(Status))
            && (query.Modes is not { Count: > 0 } || query.Modes.Contains(Mode))
            && (query.From is null || StartedAt >= query.From)
-           && (query.Before is null || StartedAt < query.Before);
+           && (query.Before is null || StartedAt < query.Before)
+           && (query.StartedBy is null || string.Equals(StartedBy, query.StartedBy, StringComparison.Ordinal));
 }
 
 /// <summary>Filters for <see cref="Storage.IPipeExecutionStore.QueryAsync"/>. Empty filters match everything.</summary>
@@ -62,6 +63,9 @@ public sealed record PipeExecutionQuery
 
     /// <summary>Started before; pass the start of the last row to load the next page.</summary>
     public DateTimeOffset? Before { get; init; }
+
+    /// <summary>Only executions started by exactly this (e.g. <c>portal:anna</c>).</summary>
+    public string? StartedBy { get; init; }
 
     public int MaxCount { get; init; } = 50;
 }

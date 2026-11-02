@@ -34,6 +34,8 @@ static public class PipeBuiltInNodes
     public const string DateTime = "3776167c-16a8-441b-8c44-318c58f59288";
     public const string Crypto = "0cfe2067-05cc-4d62-9922-e380979ed6f4";
     public const string Compression = "4d279dad-5d3a-488b-80d4-5c95cebb0269";
+    public const string FormTrigger = "a6d0c1f4-3b52-4e8a-9c17-72e5b0d84f31";
+    public const string Result = "d93e7a58-1f06-4b2c-8a4d-6c0b51e92a7f";
 }
 
 /// <summary>Ids of the built-in credential types.</summary>

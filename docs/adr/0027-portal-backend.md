@@ -1,6 +1,6 @@
 # 27. Portal: backend
 
-Date: 2026-11-02 · Status: proposed
+Date: 2026-11-02 · Status: accepted
 
 ## Context
 
@@ -21,3 +21,4 @@ Users who may only run workflows (not edit or deploy them) have the REST API ([A
 
 - New: `PipeApiRights.Portal`, Form Trigger and Result nodes, publish flag, the audit log records portal starts with the user.
 - The backend trusts a `portal` key to name the right user; a stolen key can act as any user, so the backend should be reachable only from the portal host.
+- Implemented: the Form Trigger takes its fields as a JSON array for now (a field editor can follow); the Result node does text, Markdown and table, file downloads come later. The limit per user is `Pipe:Portal:MaxRunsPerUser`.

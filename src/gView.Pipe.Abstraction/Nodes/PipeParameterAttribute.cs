@@ -44,3 +44,12 @@ public sealed class PipeCredentialAttribute : Attribute
 public sealed class PipeWorkflowReferenceAttribute : Attribute
 {
 }
+
+/// <summary>
+/// Marks the property of a Form Trigger that holds the fields of the form (a JSON array of
+/// <see cref="Portal.PipeFormField"/>): the editor offers a field editor instead of raw JSON.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class PipeFormFieldsAttribute : Attribute
+{
+}

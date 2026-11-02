@@ -9,7 +9,7 @@ Create keys on the page **API keys** (navigation). A key has:
 | Setting | Meaning |
 |---|---|
 | Name | Who or what uses it, e.g. `CI Deploy`. Runs started with the key show `API · CI Deploy` in the history. |
-| Rights | **Read**: workflows, executions, groups. **Run**: start, stop, replay runs. **Deploy**: create, change, delete, activate workflows. |
+| Rights | **Read**: workflows, executions, groups. **Run**: start, stop, replay runs. **Deploy**: create, change, delete, activate workflows. **Portal**: only the [portal endpoints](#portal-endpoints), for the user portal; use it alone. |
 | Only these groups | Limits the key to the workflows of these groups. It doesn't see other workflows at all, also not workflows without a group. |
 | Expires | After this day the key is refused. Empty: never. |
 
@@ -108,3 +108,21 @@ Send `If-Match` with the `ETag` of a `GET` to make sure nobody changed the workf
     ```
 
 Credentials, variables and groups can't be changed through the API; set them up in the UI.
+
+## Portal endpoints
+
+For the user portal (users who run workflows, but don't edit them) a key with the right **Portal** reaches only `/api/v1/portal`. It cannot do anything else, and no other key reaches these endpoints. Every request names the user it is for in the header `X-Pipe-On-Behalf-Of`; runs show `portal:<user>` as the starter, and users see and stop only their own runs. The portal server is trusted to name the right user, so keep the key on that server and let only it reach the backend.
+
+| Method and path | Does |
+|---|---|
+| `GET /api/v1/portal/workflows` | The published workflows with category, form and run settings. |
+| `POST /api/v1/portal/workflows/{id}/run` | Starts a run. Body `{ "values": { … }, "mode": "wait" or "background" }`. The values are checked against the form (`422` with the fields that are wrong). Waiting answers with the result, or `202` when the wait timeout passed. |
+| `GET /api/v1/portal/executions` | The runs of the user, newest first, with the running ones. |
+| `GET /api/v1/portal/executions/{workflowId}/{id}` | Status and result of a run of the user. |
+| `POST /api/v1/portal/executions/{workflowId}/{id}/cancel` | Stops a run of the user, unless the workflow forbids it. |
+
+Which workflows appear is set in the [workflow settings](../user-guide/editor.md#workflow-settings): only workflows with *Publish in portal* are visible, in the category of their group. The [Form Trigger](../user-guide/nodes/index.md) declares the form, the Result node what the user sees at the end. Users never see raw items or error details of nodes: a failed run shows the *Error message* of the Result node, or a general text with the number of the run.
+
+Each field of the form has a name, a type (text, multiline text, number, yes/no, date, choice, password), a label, a description, a placeholder, a default and *Required*. Text fields can have a **pattern**, a regular expression the text must match as a whole (e.g. `[A-Z]{1,2}-\d{1,5}`), with the message shown otherwise. The portal can check it while the user types; the backend checks it again on every start. Keep patterns to what .NET and JavaScript share.
+
+A user may have `Pipe:Portal:MaxRunsPerUser` runs at the same time (default 3, 0 = no limit); more are answered with `429`.

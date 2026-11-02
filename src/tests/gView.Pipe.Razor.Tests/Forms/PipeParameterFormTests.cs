@@ -4,6 +4,7 @@ using gView.Pipe.Core.Extensions.DependencyInjection;
 using gView.Pipe.Plugins;
 using gView.Pipe.Plugins.Nodes.Network;
 using gView.Pipe.Plugins.Nodes.Transform;
+using gView.Pipe.Plugins.Nodes.Triggers;
 using gView.Pipe.Razor.Forms;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +35,28 @@ public class PipeParameterFormTests : BunitContext
             .Add(p => p.ParametersType, parametersType)
             .Add(p => p.Parameters, parameters)
             .Add(p => p.OnChanged, EventCallback.Factory.Create(this, () => onChanged?.Invoke())));
+    }
+
+    [Fact]
+    public void The_fields_of_a_form_trigger_are_edited_as_cards_and_keep_unknown_properties()
+    {
+        var parameters = new JsonObject
+        {
+            ["fields"] = new JsonArray(new JsonObject { ["name"] = "plate", ["type"] = "text", ["pattern"] = @"[A-Z]{2}-\d+", ["future"] = 1 })
+        };
+        var changes = 0;
+        var form = RenderForm(typeof(FormTriggerNodeParameters), parameters, () => changes++);
+
+        Assert.Equal("plate", form.Find("input[value=plate]").GetAttribute("value"));
+        Assert.Contains("Pattern (regular expression)", form.Markup);
+
+        form.FindAll("button").First(b => b.TextContent.Contains("Add field")).Click();
+
+        var fields = (JsonArray)parameters["fields"]!;
+        Assert.Equal(2, fields.Count);
+        Assert.Equal("field1", (string?)fields[1]!["name"]);
+        Assert.Equal(1, (int?)fields[0]!["future"]);
+        Assert.Equal(1, changes);
     }
 
     [Fact]

@@ -50,7 +50,7 @@
                 </MudTd>
                 <MudTd DataLabel="Key"><code>@context.Prefix</code></MudTd>
                 <MudTd DataLabel="Rights">
-                    @foreach (var right in new[] { PipeApiRights.Read, PipeApiRights.Run, PipeApiRights.Deploy }.Where(r => context.Rights.HasFlag(r)))
+                    @foreach (var right in new[] { PipeApiRights.Read, PipeApiRights.Run, PipeApiRights.Deploy, PipeApiRights.Portal }.Where(r => context.Rights.HasFlag(r)))
                     {
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@right.ToString().ToLowerInvariant()</MudChip>
                     }

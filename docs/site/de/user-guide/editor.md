@@ -106,4 +106,5 @@ Wähle keinen Node (klicke auf die leere Arbeitsfläche), um die Einstellungen d
 | Webhook callers may choose | Environments, die ein Webhook-Aufrufer mit `X-Pipe-Environment` wählen kann. |
 | Variables | Variablen dieses Workflows, ein Wert je Environment. |
 | Error workflow | Wird gestartet, wenn ein durch Trigger gestarteter Lauf fehlschlägt, siehe [Fehlerbehandlung](error-handling.md#fehler-workflows). *Inherit* (Vorgabe) übernimmt den der Gruppe oder der Instanz, *None* schaltet ihn ab. |
+| Publish in portal | Macht den Workflow für Anwender im Anwender-Portal sichtbar, in der Kategorie seiner Gruppe. Dann stellst du ein, ob der Anwender wartet oder der Lauf im Hintergrund läuft, das Warte-Timeout, ob der Anwender umschalten und den Lauf stoppen darf und ob nur ein Lauf gleichzeitig laufen darf. Das Formular kommt aus einem Form-Trigger-Node, das Ergebnis aus einem Result-Node. Ohne Form Trigger startet der Workflow ohne Eingabe. Siehe [REST API](../admin-guide/api.md#portal-endpunkte). |
 | Executions | Die Historie dieses Workflows, siehe [Executions](executions.md). |

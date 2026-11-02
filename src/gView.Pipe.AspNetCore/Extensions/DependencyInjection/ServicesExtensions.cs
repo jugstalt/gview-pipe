@@ -23,6 +23,7 @@ static public class ServicesExtensions
     static public IServiceCollection AddPipeApi(this IServiceCollection services)
     {
         services.TryAddSingleton<PipeApiAuthenticator>();
+        services.TryAddSingleton<PipePortalRuns>();
         services.TryAddSingleton<PipeAuditRefusals>();
         services.AddOpenApi(PipeApiEndpoints.DocumentName, openApi =>
         {

@@ -56,6 +56,32 @@
     <PipeWorkflowSelect Label="Error workflow" ExcludeId="@Workflow.Id" InheritText="@ErrorInheritText" NoneValue="@PipeErrorWorkflows.None"
                         HelperText="Runs (via its Error Trigger) when a triggered run of this workflow fails"
                         Value="@Workflow.Settings.ErrorWorkflowId" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ErrorWorkflowId = v)" />
+    <div>
+        <MudText Typo="Typo.subtitle2">User portal</MudText>
+        <MudSwitch T="bool" Color="Color.Primary" Label="Publish in portal" Class="ml-n2"
+                   Value="Workflow.Settings.Portal?.Published ?? false"
+                   ValueChanged="v => ChangeAsync(() => Portal().Published = v)" />
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">Portal users see published workflows in the category of the group. The form comes from the Form Trigger, the result from the Result node.</MudText>
+        @if (Workflow.Settings.Portal is { Published: true } portal)
+        {
+            <MudStack Spacing="1" Class="mt-2">
+                <MudSelect T="PipePortalRunMode" Label="Default" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Value="portal.DefaultMode" ValueChanged="v => ChangeAsync(() => portal.DefaultMode = v)">
+                    <MudSelectItem Value="PipePortalRunMode.Wait">The user waits for the result</MudSelectItem>
+                    <MudSelectItem Value="PipePortalRunMode.Background">Runs in the background</MudSelectItem>
+                </MudSelect>
+                <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Wait timeout (seconds)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1"
+                                 HelperText="After this time the run goes on in the background"
+                                 Value="portal.WaitTimeoutSeconds" ValueChanged="v => ChangeAsync(() => portal.WaitTimeoutSeconds = v)" />
+                <MudCheckBox T="bool" Color="Color.Primary" Label="User may choose waiting or background"
+                             Value="portal.AllowModeChoice" ValueChanged="v => ChangeAsync(() => portal.AllowModeChoice = v)" />
+                <MudCheckBox T="bool" Color="Color.Primary" Label="User may stop the run"
+                             Value="portal.AllowCancel" ValueChanged="v => ChangeAsync(() => portal.AllowCancel = v)" />
+                <MudCheckBox T="bool" Color="Color.Primary" Label="Only one run at a time"
+                             Value="portal.SingleRun" ValueChanged="v => ChangeAsync(() => portal.SingleRun = v)" />
+            </MudStack>
+        }
+    </div>
 </MudStack>
 </div>
 
@@ -190,6 +216,8 @@
         _executions = await ExecutionStore.ListAsync(Workflow.Id, 20);
         _history = await AuditLog.QueryAsync(new PipeAuditQuery { Area = PipeAuditArea.Workflow, ObjectId = Workflow.Id, MaxCount = 10 });
     }
+
+    private PipeWorkflowPortalSettings Portal() => Workflow.Settings.Portal ??= new();
 
     private async Task ChangeAsync(Action change)
     {

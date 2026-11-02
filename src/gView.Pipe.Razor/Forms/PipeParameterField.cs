@@ -26,7 +26,10 @@ public enum PipeFieldKind
     SelectionList,
     Dictionary,
     List,
-    RawJson
+    RawJson,
+
+    /// <summary>The fields of a form (<see cref="PipeFormFieldsAttribute"/>), edited as cards.</summary>
+    FormFields
 }
 
 /// <summary>Form metadata of one property of a parameter or credential class.</summary>
@@ -84,6 +87,7 @@ static public class PipeParameterFields
         var options = property.GetCustomAttribute<PipeOptionsAttribute>();
         var kind = credential is not null ? PipeFieldKind.Credential
             : property.GetCustomAttribute<PipeWorkflowReferenceAttribute>() is not null ? PipeFieldKind.Workflow
+            : property.GetCustomAttribute<PipeFormFieldsAttribute>() is not null ? PipeFieldKind.FormFields
             : options is not null ? (propertyType == typeof(string) ? PipeFieldKind.Option : PipeFieldKind.SelectionList)
             : KindOf(propertyType);
         var itemKind = kind switch
@@ -108,7 +112,7 @@ static public class PipeParameterFields
             CodeLanguage = parameter?.CodeLanguage,
             Expressions = (parameter?.Expressions ?? true) && parameter?.Code != true
                           && kind is not (PipeFieldKind.Boolean or PipeFieldKind.Enum or PipeFieldKind.Credential or PipeFieldKind.Workflow
-                                         or PipeFieldKind.Option or PipeFieldKind.SelectionList),
+                                         or PipeFieldKind.Option or PipeFieldKind.SelectionList or PipeFieldKind.FormFields),
             Refreshable = options?.Refreshable ?? false,
             Required = property.GetCustomAttribute<RequiredAttribute>() is not null,
             Secret = property.GetCustomAttribute<SecretAttribute>() is not null,

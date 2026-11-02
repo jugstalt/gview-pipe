@@ -16,7 +16,13 @@ public enum PipeApiRights
     Run = 2,
 
     /// <summary>Create, replace, delete, activate and deactivate workflows.</summary>
-    Deploy = 4
+    Deploy = 4,
+
+    /// <summary>
+    /// The portal endpoints under <c>/api/v1/portal</c> only: published workflows, own runs. May name the user it acts
+    /// for (ADR 0027). Shouldn't be combined with the other rights.
+    /// </summary>
+    Portal = 8
 }
 
 /// <summary>A key for the REST API. Only the hash of the key is stored.</summary>

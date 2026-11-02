@@ -21,8 +21,9 @@
                         <MudCheckBox T="bool" @bind-Value="_read" Label="Read" Color="Color.Primary" />
                         <MudCheckBox T="bool" @bind-Value="_run" Label="Run" Color="Color.Primary" />
                         <MudCheckBox T="bool" @bind-Value="_deploy" Label="Deploy" Color="Color.Primary" />
+                        <MudCheckBox T="bool" @bind-Value="_portal" Label="Portal" Color="Color.Primary" />
                     </MudStack>
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Read: workflows, executions, groups. Run: start, stop, replay. Deploy: create, change, delete, activate workflows.</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Read: workflows, executions, groups. Run: start, stop, replay. Deploy: create, change, delete, activate workflows. Portal: only the portal endpoints (published workflows, own runs), for the user portal; use it alone.</MudText>
                 </div>
                 <MudSelect T="string" Label="Only these groups" Dense="true" Variant="Variant.Outlined" MultiSelection="true" Clearable="true"
                            HelperText="Empty: all workflows. Limited keys don't see workflows outside of their groups."
@@ -66,7 +67,7 @@
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     private string _name = "";
-    private bool _read = true, _run, _deploy;
+    private bool _read = true, _run, _deploy, _portal;
     private IReadOnlyCollection<string> _groups = [];
     private DateTime? _expires;
     private string? _error;
@@ -77,7 +78,7 @@
 
     private async Task CreateAsync()
     {
-        var rights = (_read ? PipeApiRights.Read : 0) | (_run ? PipeApiRights.Run : 0) | (_deploy ? PipeApiRights.Deploy : 0);
+        var rights = (_read ? PipeApiRights.Read : 0) | (_run ? PipeApiRights.Run : 0) | (_deploy ? PipeApiRights.Deploy : 0) | (_portal ? PipeApiRights.Portal : 0);
         if (string.IsNullOrWhiteSpace(_name))
         {
             _error = "The key needs a name";
