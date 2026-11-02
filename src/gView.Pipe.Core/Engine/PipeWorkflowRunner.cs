@@ -26,6 +26,8 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
     private readonly PipeCoreOptions _options;
     private readonly ILogger<PipeWorkflowRunner> _logger;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _slots = new();
+    // runs waiting per workflow, counted against MaxQueuedRuns; guarded by locking itself
+    private readonly Dictionary<string, int> _queued = new();
 
     public PipeWorkflowRunner(
         IPipeEngine engine,
@@ -77,7 +79,8 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
             ReplayFromNodeId = fromNodeId,
             Observer = observer
         };
-        return (await RunAsync(workflow, request, waitForSlot: true, cancellationToken))!;
+        return await RunAsync(workflow, request, waitForSlot: true, cancellationToken)
+            ?? throw new OperationCanceledException("The replay was canceled while it waited for a free slot");
     }
 
     private async Task<PipeExecution?> RunAsync(PipeWorkflow workflow, PipeExecutionRequest? request, bool waitForSlot, CancellationToken cancellationToken)
@@ -86,22 +89,39 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         // keyed by limit as well, so a changed setting takes effect with the next run
         var slot = _slots.GetOrAdd($"{workflow.Id}:{maxRuns}", _ => new SemaphoreSlim(maxRuns, maxRuns));
 
-        if (waitForSlot)
-        {
-            await slot.WaitAsync(cancellationToken);
-        }
-        else if (!await slot.WaitAsync(0, cancellationToken))
-        {
-            _logger.LogWarning("Workflow {WorkflowName} already runs {MaxRuns} time(s); run skipped", workflow.Name, maxRuns);
-            return null;
-        }
-
-        // the id is known before the run starts, so the run can be stopped from the UI (IPipeRunningExecutions.Cancel)
+        // the id is known before the run starts or waits, so it can be stopped from the UI (IPipeRunningExecutions.Cancel)
         request ??= new PipeExecutionRequest();
         if (request.ExecutionId is null)
         {
             request = request with { ExecutionId = Guid.NewGuid().ToString("N") };
         }
+        var ticket = request.QueueTicket;
+
+        if (!await slot.WaitAsync(0, cancellationToken))
+        {
+            // replays wait without limit; triggered runs only with room in the queue (ADR 0016)
+            var queueLimit = waitForSlot ? (int?)null
+                : request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.Error ? workflow.Settings.MaxQueuedRuns : 0;
+            if (queueLimit <= 0)
+            {
+                _logger.LogWarning("Workflow {WorkflowName} already runs {MaxRuns} time(s); run skipped", workflow.Name, maxRuns);
+                ticket?.Reject();
+                return null;
+            }
+            if (!await WaitInQueueAsync(workflow, request, slot, queueLimit, cancellationToken))
+            {
+                ticket?.Reject();
+                return null;
+            }
+        }
+
+        // the caller may have abandoned the ticket just now; then the run must not start
+        if (ticket is not null && !ticket.TryStart())
+        {
+            slot.Release();
+            return null;
+        }
+
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _monitor.RegisterCancellation(request.ExecutionId!, cancellation);
 
@@ -137,6 +157,56 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         {
             _monitor.UnregisterCancellation(request.ExecutionId!);
             slot.Release();
+        }
+    }
+
+    /// <summary>
+    /// Waits for a slot in the order of arrival (SemaphoreSlim queues async waiters FIFO). False when the queue is full,
+    /// or when the run left the queue: canceled in the UI, abandoned by its trigger or by the caller.
+    /// </summary>
+    /// <param name="limit">Runs that may wait for this workflow; null = no limit (replays, not counted).</param>
+    private async Task<bool> WaitInQueueAsync(PipeWorkflow workflow, PipeExecutionRequest request, SemaphoreSlim slot, int? limit, CancellationToken cancellationToken)
+    {
+        if (limit is not null)
+        {
+            lock (_queued)
+            {
+                var waiting = _queued.GetValueOrDefault(workflow.Id);
+                if (waiting >= limit)
+                {
+                    _logger.LogWarning("Workflow {WorkflowName} is busy and {Waiting} run(s) already wait; run skipped", workflow.Name, waiting);
+                    return false;
+                }
+                _queued[workflow.Id] = waiting + 1;
+            }
+        }
+
+        var executionId = request.ExecutionId!;
+        using var leave = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, request.QueueTicket?.AbandonedToken ?? CancellationToken.None);
+        _monitor.RegisterQueued(executionId, workflow, request.Mode, leave);
+        request.QueueTicket?.MarkQueued();
+        _logger.LogInformation("Workflow {WorkflowName} is busy; run {ExecutionId} waits", workflow.Name, executionId);
+
+        try
+        {
+            await slot.WaitAsync(leave.Token);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Run {ExecutionId} of workflow {WorkflowName} left the queue before it started", executionId, workflow.Name);
+            return false;
+        }
+        finally
+        {
+            _monitor.UnregisterQueued(executionId);
+            if (limit is not null)
+            {
+                lock (_queued)
+                {
+                    _queued[workflow.Id]--;
+                }
+            }
         }
     }
 

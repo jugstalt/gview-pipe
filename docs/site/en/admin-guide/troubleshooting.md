@@ -30,7 +30,8 @@ The plugin isn't installed or couldn't be loaded. Check:
 | `405` | The method differs from the one set in the trigger. |
 | `401` | The credential is missing or wrong. |
 | `413` | The body is larger than 10 MB. |
-| `429` | The workflow is already running and its limit of concurrent runs is reached. |
+| `429` | The workflow is already running, its limit of concurrent runs is reached and no room is left in its queue. |
+| `503` | The run waited in the queue longer than the webhook's timeout. Retry later, or raise the timeout or **Max concurrent runs**. |
 | `500` | The run failed. The body has the error and the `executionId`; look the run up in the history. See [Error handling](../user-guide/error-handling.md). |
 
 If a workflow can't be activated because its path is already used, the editor shows which workflow and node use it.

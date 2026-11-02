@@ -14,9 +14,11 @@ public sealed record PipeRunningExecutionInfo(
     DateTimeOffset? FinishedAt,
     string? ParentExecutionId,
     IReadOnlyList<string> RunningNodes,
-    PipeLiveLine? LastLine)
+    PipeLiveLine? LastLine,
+    int? QueuePosition = null)
 {
-    public bool IsRunning => Status == PipeExecutionStatus.Running;
+    /// <summary>Running or waiting in the queue: not finished yet.</summary>
+    public bool IsRunning => Status is PipeExecutionStatus.Running or PipeExecutionStatus.Queued;
 }
 
 /// <summary>
@@ -39,7 +41,7 @@ public interface IPipeRunningExecutions
     /// <summary>Live output lines (the most recent ones), all nodes.</summary>
     IReadOnlyList<PipeLiveLine> GetLines(string executionId);
 
-    /// <summary>Asks a running execution to stop. False if it isn't running (anymore).</summary>
+    /// <summary>Asks a running execution to stop, or takes a queued one out of the queue. False if it isn't running (anymore).</summary>
     bool Cancel(string executionId);
 
     /// <summary>

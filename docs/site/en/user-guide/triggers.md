@@ -65,6 +65,8 @@ The **Respond** parameter decides what the caller receives.
 
 In both waiting modes the caller gets `202` with `"status": "running"` when the run takes longer than the timeout. The run is never canceled when the caller disconnects.
 
+When the workflow is busy and has a queue (**Max queued runs** in the workflow panel), the run waits for a free slot. *Immediately* then answers `"status": "queued"`. In the waiting modes the time in the queue counts against the timeout: if the run still waits when it passes, the caller gets `503` with `Retry-After` and the run leaves the queue.
+
 ### Respond to Webhook
 
 The Respond to Webhook node sends the answer in the mode *Using respond node*. It lets you choose the status code, headers and body:
@@ -86,13 +88,14 @@ The items pass through the node, so the workflow can continue after it has answe
 | Code | Reason |
 |---|---|
 | 200 | Answer of the workflow (*When finished*) or of a Respond to Webhook node. |
-| 202 | Started (*Immediately*), or the timeout passed while the run goes on. |
+| 202 | Started or queued (*Immediately*), or the timeout passed while the run goes on. |
 | 400 | The header `X-Pipe-Environment` names an environment the workflow doesn't allow. |
 | 401 | The credential is missing or wrong. |
 | 404 | No active webhook at this path. |
 | 405 | The method does not match the trigger. |
 | 413 | The body is too large. |
-| 429 | The workflow is already running and its limit of concurrent runs is reached (default 1). |
+| 429 | The workflow is already running, its limit of concurrent runs is reached (default 1) and its queue is full or off. |
+| 503 | The run still waited in the queue when the timeout passed; it was taken out of the queue. Try again after `Retry-After` seconds. |
 | 500 | The run failed, or ended without reaching a Respond to Webhook node. The body contains the error and the execution id. |
 
 The `500` body looks like `{ "error": "…", "executionId": "…" }`. Look the execution id up in the execution history to see which node failed.

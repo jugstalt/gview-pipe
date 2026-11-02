@@ -24,6 +24,22 @@ public class PipeRunningExecutionsPanelTests : BunitContext
             line is null ? null : new PipeLiveLine("n", "Run Scripts", new PipeLogEntry(DateTimeOffset.UtcNow, Microsoft.Extensions.Logging.LogLevel.Information, line)));
 
     [Fact]
+    public void Queued_runs_show_their_position_and_can_be_stopped()
+    {
+        _running.Infos =
+        [
+            new("waiting", "orders", "Orders", PipeExecutionMode.Trigger, PipeExecutionStatus.Queued, DateTimeOffset.UtcNow, null, null, [], null, QueuePosition: 2)
+        ];
+
+        Render<MudPopoverProvider>();
+        var row = Assert.Single(Render<PipeRunningExecutionsPanel>().FindAll(".gview-pipe-running-row"));
+
+        Assert.Contains("Queued (#2)", row.TextContent);
+        Assert.DoesNotContain("finished", row.ClassList);
+        Assert.Single(row.QuerySelectorAll("button[aria-label=Stop]"));
+    }
+
+    [Fact]
     public void Nothing_running_renders_nothing()
     {
         var panel = Render<PipeRunningExecutionsPanel>();

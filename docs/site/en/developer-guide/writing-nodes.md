@@ -116,7 +116,7 @@ public Task<IAsyncDisposable?> ActivateAsync(IPipeTriggerContext context, Cancel
 
 - `ActivateAsync` is called when an active workflow is saved or the app starts. Return a handle that disarms the trigger.
 - `context.Host` offers `RegisterSchedule` (cron) and `RegisterWebhook` (HTTP, served by `MapPipeWebhooks()`).
-- `FireAsync` starts an execution at this trigger and completes when it has finished. It returns `null` when the workflow's limit of concurrent runs skipped the run.
+- `FireAsync` starts an execution at this trigger and completes when it has finished. It returns `null` when the workflow's limit of concurrent runs skipped the run, or when it left the queue. Pass a `PipeQueueTicket` in `PipeTriggerFireOptions` to learn whether the run started, waits or was skipped, and to take it out of the queue with `TryAbandon` (see the Webhook Trigger).
 - `ExecuteAsync` of a trigger usually just passes the trigger items on: `PipeNodeResult.FromMain(context.GetInput())`.
 - `IPipeSubWorkflowTrigger` and `IPipeErrorTrigger` are markers for the entry points of sub-workflows and error workflows.
 

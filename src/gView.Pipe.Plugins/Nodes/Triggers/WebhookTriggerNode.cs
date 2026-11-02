@@ -51,7 +51,7 @@ public sealed class WebhookTriggerNodeParameters
     public WebhookResponseMode ResponseMode { get; set; } = WebhookResponseMode.Immediately;
 
     [PipeParameter(Label = "Wait timeout (seconds)", Order = 4, Expressions = false,
-        Description = "When waiting for the run or a respond node: after this time 202 is returned and the run continues")]
+        Description = "When waiting for the run or a respond node: after this time 202 is returned and the run continues. The time a run waits in the queue counts; still waiting then, the call gets 503 and the run leaves the queue")]
     public int TimeoutSeconds { get; set; } = 30;
 
     [PipeCredential(PipeBuiltInCredentials.BasicAuth, PipeBuiltInCredentials.BearerToken, PipeBuiltInCredentials.ApiKeyHeader)]
@@ -161,31 +161,38 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
         // registered before the run starts, so a fast respond node can't miss it
         using var waiting = parameters.ResponseMode == WebhookResponseMode.UsingRespondNode ? PipeWebhookResponses.Wait(executionId) : null;
 
-        // the run must not stop when the caller disconnects
-        var run = context.FireAsync([item], CancellationToken.None, new PipeTriggerFireOptions { ExecutionId = executionId, BinaryContent = binaryContent, Environment = environment });
+        // the run must not stop when the caller disconnects; the ticket tells whether it runs, waits or was skipped (ADR 0016)
+        var ticket = new PipeQueueTicket();
+        var run = context.FireAsync([item], CancellationToken.None,
+            new PipeTriggerFireOptions { ExecutionId = executionId, BinaryContent = binaryContent, Environment = environment, QueueTicket = ticket });
 
         if (parameters.ResponseMode == WebhookResponseMode.Immediately)
         {
             _ = run.ContinueWith(
                 task => context.Logger.LogError(task.Exception, "Webhook run {ExecutionId} failed", executionId),
                 TaskContinuationOptions.OnlyOnFaulted);
-            return PipeWebhookResponse.Json(202, new JsonObject { ["executionId"] = executionId, ["status"] = "started" });
+            return ticket.State switch
+            {
+                PipeQueueState.Rejected => Busy(),
+                PipeQueueState.Queued => PipeWebhookResponse.Json(202, new JsonObject { ["executionId"] = executionId, ["status"] = "queued" }),
+                _ => PipeWebhookResponse.Json(202, new JsonObject { ["executionId"] = executionId, ["status"] = "started" })
+            };
         }
 
         var timeout = TimeSpan.FromSeconds(Math.Max(1, parameters.TimeoutSeconds));
         if (waiting is not null)
         {
-            return await RespondNodeResponseAsync(waiting, run, executionId, timeout, cancellationToken);
+            return await RespondNodeResponseAsync(waiting, run, ticket, executionId, timeout, cancellationToken);
         }
 
         if (await Task.WhenAny(run, Task.Delay(timeout, cancellationToken)) != run)
         {
-            return PipeWebhookResponse.Json(202, new JsonObject { ["executionId"] = executionId, ["status"] = "running" });
+            return TimedOut(ticket, executionId, timeout);
         }
 
         return await run switch
         {
-            null => PipeWebhookResponse.Error(429, "The workflow is already running (max concurrent runs reached)"),
+            null => Busy(),
             { Status: not PipeExecutionStatus.Success } failed => PipeWebhookResponse.Error(500, failed.Error ?? failed.Status.ToString(), executionId),
             var execution => PipeWebhookResponse.Json(200, ResponseBody(execution))
         };
@@ -195,6 +202,7 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
     static private async Task<PipeWebhookResponse> RespondNodeResponseAsync(
         PipeWebhookResponses.Waiting waiting,
         Task<PipeExecution?> run,
+        PipeQueueTicket ticket,
         string executionId,
         TimeSpan timeout,
         CancellationToken cancellationToken)
@@ -206,7 +214,7 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
         }
         if (finished != run)
         {
-            return PipeWebhookResponse.Json(202, new JsonObject { ["executionId"] = executionId, ["status"] = "running" });
+            return TimedOut(ticket, executionId, timeout);
         }
 
         // the respond node may have answered just before the run ended
@@ -217,10 +225,27 @@ public sealed class WebhookTriggerNode : IPipeTriggerNode, IPipeNode<WebhookTrig
 
         return await run switch
         {
-            null => PipeWebhookResponse.Error(429, "The workflow is already running (max concurrent runs reached)"),
+            null => Busy(),
             { Status: not PipeExecutionStatus.Success } failed => PipeWebhookResponse.Error(500, failed.Error ?? failed.Status.ToString(), executionId),
             _ => PipeWebhookResponse.Error(500, "The workflow finished without reaching a Respond to Webhook node", executionId)
         };
+    }
+
+    static private PipeWebhookResponse Busy()
+        => PipeWebhookResponse.Error(429, "The workflow is already running (max concurrent runs reached)");
+
+    /// <summary>
+    /// The wait timeout passed: a run still in the queue leaves it (503, try again later); a running one continues (202).
+    /// </summary>
+    static private PipeWebhookResponse TimedOut(PipeQueueTicket ticket, string executionId, TimeSpan timeout)
+    {
+        if (ticket.TryAbandon())
+        {
+            var response = PipeWebhookResponse.Error(503, "The workflow is busy and the run didn't start in time; try again later");
+            response.Headers["Retry-After"] = Math.Max(1, (int)timeout.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return response;
+        }
+        return PipeWebhookResponse.Json(202, new JsonObject { ["executionId"] = executionId, ["status"] = "running" });
     }
 
     static private (PipeItem Item, Dictionary<string, byte[]> BinaryContent) ToItem(PipeWebhookRequest request, HashSet<string> hiddenHeaders)

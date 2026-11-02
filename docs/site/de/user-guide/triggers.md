@@ -65,6 +65,8 @@ Der Parameter **Respond** bestimmt, was der Aufrufer bekommt.
 
 In beiden wartenden Modi bekommt der Aufrufer `202` mit `"status": "running"`, wenn der Lauf länger als das Timeout dauert. Der Lauf wird nie abgebrochen, wenn der Aufrufer die Verbindung trennt.
 
+Ist der Workflow ausgelastet und hat eine Warteschlange (**Max queued runs** im Workflow-Panel), wartet der Lauf auf einen freien Platz. *Immediately* antwortet dann mit `"status": "queued"`. In den wartenden Modi zählt die Zeit in der Warteschlange zum Timeout: Wartet der Lauf bei dessen Ablauf noch, bekommt der Aufrufer `503` mit `Retry-After`, und der Lauf wird aus der Warteschlange genommen.
+
 ### Respond to Webhook
 
 Der Node Respond to Webhook sendet die Antwort im Modus *Using respond node*. Du wählst Statuscode, Header und Body:
@@ -86,13 +88,14 @@ Die Items laufen durch den Node, der Workflow kann also nach der Antwort weiterm
 | Code | Grund |
 |---|---|
 | 200 | Antwort des Workflows (*When finished*) oder eines Respond-to-Webhook-Nodes. |
-| 202 | Gestartet (*Immediately*), oder das Timeout ist abgelaufen, während der Lauf weitergeht. |
+| 202 | Gestartet oder eingereiht (*Immediately*), oder das Timeout ist abgelaufen, während der Lauf weitergeht. |
 | 400 | Der Header `X-Pipe-Environment` nennt ein Environment, das der Workflow nicht erlaubt. |
 | 401 | Das Credential fehlt oder ist falsch. |
 | 404 | Unter diesem Pfad gibt es keinen aktiven Webhook. |
 | 405 | Die Methode passt nicht zum Trigger. |
 | 413 | Der Body ist zu groß. |
-| 429 | Der Workflow läuft schon, und sein Limit für gleichzeitige Läufe ist erreicht (Standard 1). |
+| 429 | Der Workflow läuft schon, sein Limit für gleichzeitige Läufe ist erreicht (Standard 1), und seine Warteschlange ist voll oder ausgeschaltet. |
+| 503 | Der Lauf wartete beim Ablauf des Timeouts noch in der Warteschlange und wurde aus ihr genommen. Versuche es nach `Retry-After` Sekunden erneut. |
 | 500 | Der Lauf ist fehlgeschlagen oder endete, ohne einen Respond-to-Webhook-Node zu erreichen. Der Body enthält den Fehler und die Execution-Id. |
 
 Der `500`-Body sieht so aus: `{ "error": "…", "executionId": "…" }`. Suche die Execution-Id in der Execution-Historie, um zu sehen, welcher Node fehlgeschlagen ist.

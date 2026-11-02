@@ -42,7 +42,7 @@ public interface IPipeTriggerContext
 
     /// <summary>
     /// Starts an execution of the workflow at this trigger node and completes when it has finished.
-    /// Returns null if the run was skipped because of the workflow's concurrency limit.
+    /// Returns null if the run was skipped because of the workflow's concurrency limit, or left the queue.
     /// </summary>
     Task<PipeExecution?> FireAsync(IReadOnlyList<PipeItem> items, CancellationToken cancellationToken, PipeTriggerFireOptions? options = null);
 }
@@ -60,4 +60,7 @@ public sealed class PipeTriggerFireOptions
     /// The engine moves it into the execution's binary store.
     /// </summary>
     public IReadOnlyDictionary<string, byte[]>? BinaryContent { get; init; }
+
+    /// <summary>Follows the run through the workflow's queue, e.g. to give up waiting (see ADR 0016).</summary>
+    public PipeQueueTicket? QueueTicket { get; init; }
 }

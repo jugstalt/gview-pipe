@@ -15,7 +15,7 @@ For access from other machines and for HTTPS, put a reverse proxy (IIS, nginx, T
 - A path belongs to exactly one workflow in the whole app. A second workflow with the same path can't be activated, and the editor shows the reason after saving.
 - **Always set a credential** (Basic Auth, Bearer Token or API Key Header) on webhooks that are reachable from outside. Without one, anyone who knows the URL can start the workflow.
 - The maximum body size is 10 MB (answer `413`). Callers that wait for the workflow have a timeout per webhook (default 30 seconds). After it they get `202` and the run continues.
-- A workflow runs once at a time by default. More calls get `429` while it runs. Raise **Max concurrent runs** in the workflow panel if calls must run in parallel.
+- A workflow runs once at a time by default. More calls get `429` while it runs. Raise **Max concurrent runs** in the workflow panel if calls must run in parallel, or **Max queued runs** if they may wait. The queue is kept in memory: a restart drops waiting runs.
 - Runs are not canceled when the caller disconnects.
 
 How callers see failures is described in [Triggers and webhooks](../user-guide/triggers.md) and [Error handling](../user-guide/error-handling.md).

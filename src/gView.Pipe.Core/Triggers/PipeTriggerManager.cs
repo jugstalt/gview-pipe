@@ -181,7 +181,8 @@ internal sealed class PipeTriggerManager : IPipeTriggerManager, IHostedService
                 InputItems = items,
                 ExecutionId = options?.ExecutionId,
                 Environment = options?.Environment,
-                BinaryContent = options?.BinaryContent
+                BinaryContent = options?.BinaryContent,
+                QueueTicket = options?.QueueTicket
             };
 
             return _manager._runner.RunAsync(_workflow, request, cancellationToken);

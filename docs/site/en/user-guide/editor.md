@@ -92,7 +92,8 @@ Select no node (click the empty canvas) to see the settings of the workflow:
 | Setting | Meaning |
 |---|---|
 | Name, Description | Shown in the list. |
-| Max concurrent runs | How many runs of this workflow may be active at the same time (default 1). More are skipped; a webhook caller gets `429`. |
+| Max concurrent runs | How many runs of this workflow may be active at the same time (default 1). More wait in the queue or are skipped; a webhook caller gets `429` then. |
+| Max queued runs | How many triggered runs (cron, webhook, error workflow) may wait for a free slot, in the order they arrived (default 0: skip them). Waiting runs show as *Queued* under "Running now" and can be stopped there. Manual runs are never queued. |
 | Save item data of executions | Switch off to store only statuses, counts and logs in the history (sensitive data). |
 | Group | The group on the start page. |
 | Environment | The environment of triggered runs, or *Inherit* from the group or the instance. See [Variables and environments](variables.md). |

@@ -92,7 +92,8 @@ Wähle keinen Node (klicke auf die leere Arbeitsfläche), um die Einstellungen d
 | Einstellung | Bedeutung |
 |---|---|
 | Name, Description | Erscheinen in der Liste. |
-| Max concurrent runs | Wie viele Läufe dieses Workflows gleichzeitig aktiv sein dürfen (Vorgabe 1). Weitere werden übersprungen; ein Webhook-Aufrufer bekommt `429`. |
+| Max concurrent runs | Wie viele Läufe dieses Workflows gleichzeitig aktiv sein dürfen (Vorgabe 1). Weitere warten in der Warteschlange oder werden übersprungen; ein Webhook-Aufrufer bekommt dann `429`. |
+| Max queued runs | Wie viele getriggerte Läufe (Cron, Webhook, Fehler-Workflow) auf einen freien Platz warten dürfen, in der Reihenfolge ihres Eintreffens (Vorgabe 0: überspringen). Wartende Läufe erscheinen unter „Running now“ als *Queued* und lassen sich dort stoppen. Manuelle Läufe werden nie eingereiht. |
 | Save item data of executions | Schalte es aus, um nur Status, Zähler und Logs in der Historie zu speichern (sensible Daten). |
 | Group | Die Gruppe auf der Startseite. |
 | Environment | Das Environment für Läufe durch Trigger, oder *Inherit* von der Gruppe oder der Instanz. Siehe [Variablen und Environments](variables.md). |

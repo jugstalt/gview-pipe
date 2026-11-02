@@ -50,6 +50,79 @@ public class PipeWorkflowRunnerTests
     }
 
     [Fact]
+    public async Task Triggered_runs_wait_in_the_queue_in_order_and_are_skipped_when_it_is_full()
+    {
+        using var services = PipeTestHost.Create();
+        var runner = services.GetRequiredService<IPipeWorkflowRunner>();
+        var running = services.GetRequiredService<IPipeRunningExecutions>();
+        var workflow = new PipeWorkflowBuilder()
+            .Node("slow", TestNodeIds.Slow, new { delayMs = 300 })
+            .Configure(w => w.Settings.MaxQueuedRuns = 2)
+            .Build();
+        PipeExecutionRequest Triggered(string id, PipeQueueTicket ticket) => new() { Mode = PipeExecutionMode.Trigger, ExecutionId = id, QueueTicket = ticket };
+
+        var tickets = Enumerable.Range(0, 4).Select(_ => new PipeQueueTicket()).ToArray();
+        var first = runner.RunAsync(workflow, Triggered("r0", tickets[0]));
+        var second = runner.RunAsync(workflow, Triggered("r1", tickets[1]));
+        var third = runner.RunAsync(workflow, Triggered("r2", tickets[2]));
+        var fourth = await runner.RunAsync(workflow, Triggered("r3", tickets[3]));
+
+        Assert.Equal([PipeQueueState.Started, PipeQueueState.Queued, PipeQueueState.Queued, PipeQueueState.Rejected], tickets.Select(t => t.State));
+        Assert.Null(fourth);
+        Assert.Equal(2, running.Find("r2")!.QueuePosition);
+        Assert.Equal(PipeExecutionStatus.Queued, running.Find("r1")!.Status);
+
+        var executions = await Task.WhenAll(first, second, third);
+        Assert.All(executions, e => Assert.Equal(PipeExecutionStatus.Success, e!.Status));
+        // first come, first served
+        Assert.True(executions[1]!.StartedAt <= executions[2]!.StartedAt);
+    }
+
+    [Fact]
+    public async Task Abandoned_or_canceled_runs_leave_the_queue_and_never_start()
+    {
+        using var services = PipeTestHost.Create();
+        var runner = services.GetRequiredService<IPipeWorkflowRunner>();
+        var running = services.GetRequiredService<IPipeRunningExecutions>();
+        var executions = services.GetRequiredService<IPipeExecutionStore>();
+        var workflow = new PipeWorkflowBuilder()
+            .Node("slow", TestNodeIds.Slow, new { delayMs = 300 })
+            .Configure(w => w.Settings.MaxQueuedRuns = 5)
+            .Build();
+
+        var first = runner.RunAsync(workflow, new PipeExecutionRequest { Mode = PipeExecutionMode.Trigger });
+        var abandonedTicket = new PipeQueueTicket();
+        var abandoned = runner.RunAsync(workflow, new PipeExecutionRequest { Mode = PipeExecutionMode.Trigger, QueueTicket = abandonedTicket });
+        var canceled = runner.RunAsync(workflow, new PipeExecutionRequest { Mode = PipeExecutionMode.Trigger, ExecutionId = "waiting" });
+
+        Assert.True(abandonedTicket.TryAbandon());
+        Assert.True(running.Cancel("waiting"));
+
+        Assert.Null(await abandoned);
+        Assert.Null(await canceled);
+        Assert.Null(running.Find("waiting"));
+        await first;
+        Assert.Single(await executions.ListAsync(workflow.Id));
+        // too late: it has started
+        Assert.False(abandonedTicket.TryStart());
+    }
+
+    [Fact]
+    public async Task Manual_runs_are_never_queued()
+    {
+        using var services = PipeTestHost.Create();
+        var runner = services.GetRequiredService<IPipeWorkflowRunner>();
+        var workflow = new PipeWorkflowBuilder()
+            .Node("slow", TestNodeIds.Slow, new { delayMs = 300 })
+            .Configure(w => w.Settings.MaxQueuedRuns = 5)
+            .Build();
+
+        var first = runner.RunAsync(workflow);
+        Assert.Null(await runner.RunAsync(workflow));
+        await first;
+    }
+
+    [Fact]
     public async Task Replay_from_the_failed_node_reuses_the_stored_outputs_before_it()
     {
         using var services = PipeTestHost.Create();

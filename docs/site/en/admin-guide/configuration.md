@@ -98,4 +98,4 @@ The start scripts listen on `http://localhost:5100` by default. To change it, fo
 
 A few options can only be set in code (`Program.cs` of the Shell), for example how long a Wait node may wait (one hour), the JavaScript limits and the maximum body size of a webhook (10 MB). Ask your developer if you need to change them.
 
-Per workflow you can set the **maximum concurrent runs** (default 1) in the workflow panel of the editor. More runs at the same time are skipped, and a webhook caller gets `429`.
+Per workflow you can set the **maximum concurrent runs** (default 1) in the workflow panel of the editor. More runs at the same time are skipped, and a webhook caller gets `429`, unless **Max queued runs** lets triggered runs wait.

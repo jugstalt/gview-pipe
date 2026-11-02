@@ -51,4 +51,7 @@ public sealed record PipeExecutionRequest
     public PipeExecution? ReplayOf { get; init; }
 
     public string? ReplayFromNodeId { get; init; }
+
+    /// <summary>Follows a triggered run through the queue of the workflow (see ADR 0016).</summary>
+    public PipeQueueTicket? QueueTicket { get; init; }
 }

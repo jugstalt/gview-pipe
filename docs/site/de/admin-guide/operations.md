@@ -15,7 +15,7 @@ Für den Zugriff von anderen Rechnern und für HTTPS setzt du einen Reverse Prox
 - Ein Pfad gehört in der ganzen App genau einem Workflow. Ein zweiter Workflow mit demselben Pfad lässt sich nicht aktivieren, und der Editor zeigt nach dem Speichern den Grund.
 - **Setze bei von außen erreichbaren Webhooks immer ein Credential** (Basic Auth, Bearer Token oder API Key Header). Ohne eines kann jeder, der die URL kennt, den Workflow starten.
 - Die maximale Body-Größe beträgt 10 MB (Antwort `413`). Aufrufer, die auf den Workflow warten, haben je Webhook ein Timeout (Vorgabe 30 Sekunden). Danach bekommen sie `202`, und der Lauf geht weiter.
-- Ein Workflow läuft standardmäßig immer nur einmal gleichzeitig. Weitere Aufrufe bekommen `429`, solange er läuft. Erhöhe **Max concurrent runs** im Workflow-Panel, wenn Aufrufe parallel laufen sollen.
+- Ein Workflow läuft standardmäßig immer nur einmal gleichzeitig. Weitere Aufrufe bekommen `429`, solange er läuft. Erhöhe **Max concurrent runs** im Workflow-Panel, wenn Aufrufe parallel laufen sollen, oder **Max queued runs**, wenn sie warten dürfen. Die Warteschlange liegt im Speicher: Ein Neustart verwirft wartende Läufe.
 - Läufe werden nicht abgebrochen, wenn der Aufrufer die Verbindung trennt.
 
 Wie Aufrufer Fehler sehen, steht unter [Trigger und Webhooks](../user-guide/triggers.md) und [Fehlerbehandlung](../user-guide/error-handling.md).

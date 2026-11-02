@@ -86,7 +86,10 @@ public enum PipeExecutionStatus
     Running,
     Success,
     Error,
-    Canceled
+    Canceled,
+
+    /// <summary>Waits for a free slot of the workflow; only seen in live views, never stored.</summary>
+    Queued
 }
 
 public enum PipeNodeRunStatus

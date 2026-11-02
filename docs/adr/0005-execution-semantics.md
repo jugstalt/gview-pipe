@@ -30,7 +30,7 @@ Date: 2026-10-29 · Status: accepted
   - its log entries. The node's `ILogger` writes to the application log and to the run, and every entry also goes to the observers right away (`IPipeExecutionObserver.OnNodeLogAsync`), so the editor can show a node's output live while it runs (e.g. a script's progress). The engine adds its messages about the node (retries, failure, cancel). The log is capped at 1,000 entries per run.
 - **Running executions:** `PipeExecutionMonitor` (Core, `IPipeRunningExecutions`) observes every execution of the process, whatever started it, and keeps its node runs, the last 2000 live output lines and the cancellation the runner registers per run; finished runs stay visible for 60 seconds. The UI uses it for "Running now" on the start page, the "n running" indicator, and to watch or stop a run in the editor (`/workflows/{id}?execution={executionId}`). It only knows this process.
 - **Concurrency and history:**
-  - `MaxConcurrentRuns` applies per workflow (default 1). Surplus runs are skipped.
+  - `MaxConcurrentRuns` applies per workflow (default 1). Surplus runs are skipped, or wait with `MaxQueuedRuns` (see [ADR 0016](0016-queued-runs.md)).
   - The last 50 executions per workflow are kept; count and age are configurable per instance and workflow (see [ADR 0015](0015-execution-history-and-replay.md)). With `SaveExecutionData = false`, only statuses, counts and logs are stored, without input or output items.
 - **Schedules:** cron triggers use Cronos (5 or 6 fields) with a timer loop per registration.
 

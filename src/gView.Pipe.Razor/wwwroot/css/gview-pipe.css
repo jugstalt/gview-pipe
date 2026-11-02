@@ -116,6 +116,11 @@
     font-size: .8rem;
 }
 
+.gview-pipe-running-queued {
+    color: var(--mud-palette-warning);
+    font-size: .8rem;
+}
+
 .gview-pipe-running-line {
     overflow: hidden;
     text-overflow: ellipsis;

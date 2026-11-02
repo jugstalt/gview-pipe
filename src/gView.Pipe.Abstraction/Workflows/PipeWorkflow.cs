@@ -56,8 +56,11 @@ public sealed class PipeWorkflow
 
 public sealed class PipeWorkflowSettings
 {
-    /// <summary>Runs beyond this limit are skipped (and logged).</summary>
+    /// <summary>Runs beyond this limit wait (see <see cref="MaxQueuedRuns"/>) or are skipped (and logged).</summary>
     public int MaxConcurrentRuns { get; set; } = 1;
+
+    /// <summary>Triggered runs that may wait for a free slot; 0 = skip them (see ADR 0016).</summary>
+    public int MaxQueuedRuns { get; set; }
 
     /// <summary>When false, executions are stored without item data (status only).</summary>
     public bool SaveExecutionData { get; set; } = true;

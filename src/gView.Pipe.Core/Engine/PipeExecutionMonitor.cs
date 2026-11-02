@@ -1,4 +1,5 @@
 using gView.Pipe.Abstraction.Execution;
+using gView.Pipe.Abstraction.Workflows;
 using Microsoft.Extensions.Logging;
 
 namespace gView.Pipe.Core.Engine;
@@ -99,6 +100,36 @@ internal sealed class PipeExecutionMonitor : IPipeExecutionObserver, IPipeRunnin
         }
     }
 
+    /// <summary>The run waits for a free slot of the workflow (ADR 0016); canceling it takes it out of the queue.</summary>
+    public void RegisterQueued(string executionId, PipeWorkflow workflow, PipeExecutionMode mode, CancellationTokenSource leave)
+    {
+        lock (_lock)
+        {
+            var entry = GetOrAdd(executionId);
+            entry.Queued = new QueuedRun(executionId, workflow.Id, workflow.Name, mode, _time.GetUtcNow());
+            entry.Cancellation = leave;
+        }
+        Raise(executionId);
+    }
+
+    /// <summary>The run left the queue: it starts now, or it was canceled or abandoned.</summary>
+    public void UnregisterQueued(string executionId)
+    {
+        lock (_lock)
+        {
+            if (_entries.TryGetValue(executionId, out var entry))
+            {
+                entry.Queued = null;
+                entry.Cancellation = null;
+                if (entry.Execution is null)
+                {
+                    _entries.Remove(executionId);
+                }
+            }
+        }
+        Raise(executionId);
+    }
+
     public void UnregisterCancellation(string executionId)
     {
         lock (_lock)
@@ -123,7 +154,7 @@ internal sealed class PipeExecutionMonitor : IPipeExecutionObserver, IPipeRunnin
         {
             Purge();
             return _entries.Values
-                .Where(e => e.Execution is not null)
+                .Where(e => e.Execution is not null || e.Queued is not null)
                 .Select(Info)
                 .OrderByDescending(i => i.StartedAt)
                 .ToList();
@@ -134,7 +165,7 @@ internal sealed class PipeExecutionMonitor : IPipeExecutionObserver, IPipeRunnin
     {
         lock (_lock)
         {
-            return _entries.TryGetValue(executionId, out var entry) && entry.Execution is not null ? Info(entry) : null;
+            return _entries.TryGetValue(executionId, out var entry) && (entry.Execution is not null || entry.Queued is not null) ? Info(entry) : null;
         }
     }
 
@@ -206,8 +237,16 @@ internal sealed class PipeExecutionMonitor : IPipeExecutionObserver, IPipeRunnin
         }
     }
 
-    static private PipeRunningExecutionInfo Info(Entry entry)
+    private PipeRunningExecutionInfo Info(Entry entry)
     {
+        if (entry.Queued is { } queued && entry.Execution is null)
+        {
+            var position = 1 + _entries.Values.Count(e => e.Queued is { } other && e.Execution is null
+                && other.WorkflowId == queued.WorkflowId && other.Since < queued.Since);
+            return new PipeRunningExecutionInfo(queued.ExecutionId, queued.WorkflowId, queued.WorkflowName, queued.Mode, PipeExecutionStatus.Queued,
+                queued.Since, null, null, [], null, position);
+        }
+
         var execution = entry.Execution!;
         return new PipeRunningExecutionInfo(
             execution.Id,
@@ -241,5 +280,8 @@ internal sealed class PipeExecutionMonitor : IPipeExecutionObserver, IPipeRunnin
         public Queue<PipeLiveLine> Lines { get; } = new();
         public CancellationTokenSource? Cancellation { get; set; }
         public DateTimeOffset? FinishedAt { get; set; }
+        public QueuedRun? Queued { get; set; }
     }
+
+    private sealed record QueuedRun(string ExecutionId, string WorkflowId, string WorkflowName, PipeExecutionMode Mode, DateTimeOffset Since);
 }

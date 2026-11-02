@@ -20,6 +20,9 @@
                     case PipeExecutionStatus.Running:
                         <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Info" />
                         break;
+                    case PipeExecutionStatus.Queued:
+                        <MudIcon Icon="@Icons.Material.Filled.HourglassEmpty" Color="Color.Warning" Size="Size.Small" />
+                        break;
                     case PipeExecutionStatus.Success:
                         <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
                         break;
@@ -42,6 +45,10 @@
                             <span class="gview-pipe-group-label" style="--gview-pipe-accent:@PipeGroupVisuals.Accent(group.Color)">@group.Name</span>
                         }
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@info.Mode</MudChip>
+                        @if (info.QueuePosition is { } position)
+                        {
+                            <span class="gview-pipe-running-queued">Queued (#@position)</span>
+                        }
                         <span class="mud-text-secondary">@Duration(info)</span>
                         @if (info.RunningNodes.Count > 0)
                         {
@@ -56,7 +63,7 @@
                 @if (info.IsRunning)
                 {
                     <div @onclick:stopPropagation>
-                        <MudTooltip Text="Stop this run">
+                        <MudTooltip Text="@(info.Status == PipeExecutionStatus.Queued ? "Take this run out of the queue" : "Stop this run")">
                             <MudIconButton Icon="@Icons.Material.Filled.Stop" Color="Color.Error" Size="Size.Small" aria-label="Stop" OnClick="() => StopAsync(info)" />
                         </MudTooltip>
                     </div>
@@ -136,7 +143,9 @@
 
     private async Task StopAsync(PipeRunningExecutionInfo info)
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync("Stop run", $"Stop the running '{info.WorkflowName}'?", yesText: "Stop", cancelText: "Cancel");
+        var confirmed = info.Status == PipeExecutionStatus.Queued
+            ? await DialogService.ShowMessageBoxAsync("Remove from queue", $"Take the waiting run of '{info.WorkflowName}' out of the queue? It won't start.", yesText: "Remove", cancelText: "Cancel")
+            : await DialogService.ShowMessageBoxAsync("Stop run", $"Stop the running '{info.WorkflowName}'?", yesText: "Stop", cancelText: "Cancel");
         if (confirmed == true)
         {
             Running.Cancel(info.ExecutionId);

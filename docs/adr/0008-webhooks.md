@@ -19,7 +19,7 @@ Most real workflows are started from outside by an HTTP call. Core must stay fre
 - **Webhook Trigger node:**
   - Parameters: path (random by default), method (default POST), response mode and timeout, optional credential.
   - Credentials: Basic, Bearer or API-key header, compared in constant time. A missing or wrong credential returns 401.
-  - Status codes: 404 for unknown paths, 405 for a wrong method, 429 when the concurrency limit skips the run, 500 with the execution id when the run fails.
+  - Status codes: 404 for unknown paths, 405 for a wrong method, 429 when the concurrency limit skips the run, 503 when the run still waits in the queue at the timeout (see [ADR 0016](0016-queued-runs.md)), 500 with the execution id when the run fails.
 - **Request item:** `{ method, path, query, headers, body, receivedAt }`.
   - `authorization`, `proxy-authorization`, `cookie` and the API-key header are dropped, so secrets never reach the execution history.
   - Uploaded files become binary attachments. Their bytes travel with `PipeTriggerFireOptions.BinaryContent` into the execution's binary store, not as base64 in the item.

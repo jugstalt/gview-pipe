@@ -178,6 +178,51 @@ public sealed class WebhookTriggerTests : IAsyncLifetime
         Assert.Equal(PipeExecutionMode.Trigger, execution.Mode);
     }
 
+    static private PipeWorkflow SlowWorkflow(string path, string responseMode, int maxQueuedRuns, int timeoutSeconds = 30)
+        => new PipeWorkflowBuilder("Slow", path)
+            .Node("hook", PipeBuiltInNodes.WebhookTrigger, new { path, responseMode, timeoutSeconds })
+            .Node("wait", PipeBuiltInNodes.Wait, new { amount = 1.5, unit = "seconds" })
+            .Connect("hook", "wait")
+            .Configure(w =>
+            {
+                w.Active = true;
+                w.Settings.MaxQueuedRuns = maxQueuedRuns;
+            })
+            .Build();
+
+    [Fact]
+    public async Task Busy_webhook_answers_429_without_queue_and_202_queued_with_one()
+    {
+        await ActivateAsync(SlowWorkflow("noqueue", "immediately", maxQueuedRuns: 0));
+        await ActivateAsync(SlowWorkflow("queue", "immediately", maxQueuedRuns: 1));
+
+        Assert.Equal(HttpStatusCode.Accepted, (await _client.PostAsJsonAsync("/webhook/noqueue", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await _client.PostAsJsonAsync("/webhook/noqueue", new { })).StatusCode);
+
+        await _client.PostAsJsonAsync("/webhook/queue", new { });
+        var queued = await _client.PostAsJsonAsync("/webhook/queue", new { });
+        Assert.Equal(HttpStatusCode.Accepted, queued.StatusCode);
+        Assert.Equal("queued", JsonNode.Parse(await queued.Content.ReadAsStringAsync())!["status"]!.GetValue<string>());
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await _client.PostAsJsonAsync("/webhook/queue", new { })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Waiting_webhook_answers_503_when_its_run_is_still_queued_at_the_timeout()
+    {
+        await ActivateAsync(SlowWorkflow("wait-queue", "whenFinished", maxQueuedRuns: 1, timeoutSeconds: 1));
+
+        var first = _client.PostAsJsonAsync("/webhook/wait-queue", new { });
+        await Task.Delay(100);
+        var second = await _client.PostAsJsonAsync("/webhook/wait-queue", new { });
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, second.StatusCode);
+        Assert.True(second.Headers.Contains("Retry-After"));
+        // the first one ran past the timeout and continues
+        Assert.Equal(HttpStatusCode.Accepted, (await first).StatusCode);
+        await Task.Delay(1000);
+        Assert.Single(await _app.Services.GetRequiredService<IPipeExecutionStore>().ListAsync("wait-queue"));
+    }
+
     [Fact]
     public async Task Credential_protects_the_webhook()
     {

@@ -30,7 +30,8 @@ Das Plugin ist nicht installiert oder konnte nicht geladen werden. Prüfe:
 | `405` | Die Methode weicht von der im Trigger eingestellten ab. |
 | `401` | Das Credential fehlt oder ist falsch. |
 | `413` | Der Body ist größer als 10 MB. |
-| `429` | Der Workflow läuft schon, und sein Limit gleichzeitiger Läufe ist erreicht. |
+| `429` | Der Workflow läuft schon, sein Limit gleichzeitiger Läufe ist erreicht, und in seiner Warteschlange ist kein Platz mehr. |
+| `503` | Der Lauf wartete länger als das Timeout des Webhooks in der Warteschlange. Versuche es später erneut, oder erhöhe das Timeout oder **Max concurrent runs**. |
 | `500` | Der Lauf ist fehlgeschlagen. Der Body enthält den Fehler und die `executionId`; suche den Lauf in der Historie. Siehe [Fehlerbehandlung](../user-guide/error-handling.md). |
 
 Lässt sich ein Workflow nicht aktivieren, weil sein Pfad schon belegt ist, zeigt der Editor, welcher Workflow und welcher Node ihn nutzen.
