@@ -32,22 +32,26 @@ Ein Node, dessen Eingänge alle leer sind, wird übersprungen, ebenso die Nodes 
 
 ## Fehler-Workflows
 
-Ein Fehler-Workflow ist ein normaler Workflow, der mit einem **Error Trigger** beginnt. Du wählst ihn im Workflow-Panel des fehlschlagenden Workflows (**Error workflow**).
+Ein Fehler-Workflow ist ein normaler Workflow, der mit einem **Error Trigger** beginnt. Du wählst ihn im Workflow-Panel des fehlschlagenden Workflows (**Error workflow**), für alle Workflows einer Gruppe im Gruppen-Dialog oder für die ganze Instanz in der [Konfiguration](../admin-guide/configuration.md) (`Pipe:ErrorWorkflowId`). Ein Workflow nutzt den ersten, der auf Workflow → Gruppe → Instanz gesetzt ist; **None** am Workflow schaltet ihn ab.
 
-- Er läuft, wenn ein Lauf des Workflows fehlschlägt und von einem Trigger (Cron, Webhook) oder als Sub-Workflow gestartet wurde. Läufe, die du von Hand im Editor startest, starten ihn nicht.
+- Er läuft, wenn ein Lauf des Workflows fehlschlägt und von einem Trigger (Cron, Webhook) gestartet wurde oder ein [Replay](executions.md#replay) ist. Läufe, die du von Hand im Editor startest, starten ihn nicht.
+- Ein fehlschlagender **Sub-Workflow** startet ihn nicht: Sein Aufrufer schlägt ebenfalls fehl und meldet es, mit dem Sub-Workflow in `subWorkflow`. Fängt der Aufrufer den Fehler ab (*Continue* oder *Error output* an Execute Workflow), wird nichts gemeldet.
 - Er bekommt ein Item, das den fehlgeschlagenen Lauf beschreibt, zum Beispiel für eine Mail mit dem Namen des Workflows und des fehlgeschlagenen Nodes:
 
     ```json
     { "workflow": { "id": "…", "name": "…" },
-      "execution": { "id": "…", "mode": "…", "startedAt": "…", "error": "…" },
-      "node": { "id": "…", "name": "…" } }
+      "execution": { "id": "…", "mode": "…", "environment": "…", "startedAt": "…", "error": "…", "url": "…" },
+      "node": { "id": "…", "name": "…", "error": "…" },
+      "subWorkflow": { "id": "…", "name": "…", "executionId": "…", "error": "…", "node": { … } },
+      "suppressed": 0 }
     ```
 
-    Du nutzt es in Ausdrücken, zum Beispiel `{{ $json.workflow.name }}` und `{{ $json.execution.error }}`.
-- Ein Fehler des Fehler-Workflows selbst wird nur ins Anwendungslog geschrieben. Ein Workflow kann nicht sein eigener Fehler-Workflow sein.
+    Du nutzt es in Ausdrücken, zum Beispiel `{{ $json.workflow.name }}` und `{{ $json.execution.error }}`. `url` verweist auf den fehlgeschlagenen Lauf, wenn `Pipe:PublicUrl` konfiguriert ist; `subWorkflow` gibt es nur, wenn ein Sub-Workflow fehlgeschlagen ist.
+- **Throttle minutes** am Error Trigger (Vorgabe 15) startet ihn pro fehlgeschlagenem Workflow höchstens einmal in dieser Zeit. Fehler dazwischen werden in `suppressed` des nächsten Laufs gezählt. Mit 0 wird jeder Fehler gemeldet.
+- Ein Fehler des Fehler-Workflows selbst wird nur ins Anwendungslog geschrieben. Ein Workflow ist nie sein eigener Fehler-Workflow.
 - Er ändert das Ergebnis des fehlgeschlagenen Laufs **nicht**. Der Lauf bleibt **Error**.
 
-Der Beispiel-Workflow **Error Alerts** ist ein Fehler-Workflow.
+Die Beispiele **Error Mail**, **Error Teams** und **Error Slack** verschicken Benachrichtigungen, **Error Alerts** schreibt ins Log; siehe [Benachrichtigung bei Fehlern](notifications.md).
 
 ## Einen Webhook nach einem Fehler beantworten
 

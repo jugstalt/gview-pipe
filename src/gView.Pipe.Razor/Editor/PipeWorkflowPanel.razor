@@ -1,6 +1,8 @@
 @inject IPipeExecutionStore ExecutionStore
 @inject IPipeWorkflowGroupStore GroupStore
 @inject IPipeEnvironments Environments
+@inject IPipeErrorWorkflows ErrorWorkflows
+@inject IPipeWorkflowStore WorkflowStore
 
 <div class="gview-pipe-panel-header">
     <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
@@ -49,7 +51,7 @@
         <PipeVariablesEditor Variables="Workflow.Variables" VariablesChanged="v => ChangeAsync(() => Workflow.Variables = v)"
                              Description="Override group and instance variables of the same name; script nodes can override them again." />
     </div>
-    <PipeWorkflowSelect Label="Error workflow" ExcludeId="@Workflow.Id"
+    <PipeWorkflowSelect Label="Error workflow" ExcludeId="@Workflow.Id" InheritText="@ErrorInheritText" NoneValue="@PipeErrorWorkflows.None"
                         HelperText="Runs (via its Error Trigger) when a triggered run of this workflow fails"
                         Value="@Workflow.Settings.ErrorWorkflowId" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ErrorWorkflowId = v)" />
 </MudStack>
@@ -120,7 +122,30 @@
         }
     }
 
-    protected override async Task OnInitializedAsync() => _groups = await GroupStore.ListAsync();
+    /// <summary>What "inherit" means for the error workflow right now: the group's, the instance's or none.</summary>
+    private string ErrorInheritText
+    {
+        get
+        {
+            var inherited = ErrorWorkflows.Resolve(new PipeWorkflow { Id = Workflow.Id, GroupId = Workflow.GroupId }, _groups.FirstOrDefault(g => g.Id == Workflow.GroupId));
+            var name = inherited.WorkflowId is { } id ? _workflowNames.GetValueOrDefault(id, id) : null;
+            return inherited.Source switch
+            {
+                PipeErrorWorkflowSource.Group => $"Inherit ({name} from group '{inherited.SourceName}')",
+                PipeErrorWorkflowSource.Instance => $"Inherit ({name} from the instance)",
+                _ when inherited.SourceName is not null => $"Inherit (none, switched off in group '{inherited.SourceName}')",
+                _ => "Inherit (none)"
+            };
+        }
+    }
+
+    private Dictionary<string, string> _workflowNames = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groups = await GroupStore.ListAsync();
+        _workflowNames = (await WorkflowStore.ListAsync()).ToDictionary(w => w.Id, w => w.Name);
+    }
 
     protected override async Task OnParametersSetAsync()
     {

@@ -68,6 +68,12 @@ public class PipeCoreOptions
     /// <summary>Names of <see cref="Variables"/> to treat as secret (masked in logs and script output).</summary>
     public List<string> SecretVariables { get; } = new();
 
+    /// <summary>Error workflow of all workflows whose group and workflow don't set one (ADR 0017).</summary>
+    public string? ErrorWorkflowId { get; set; }
+
+    /// <summary>Address of the app as users reach it (e.g. <c>https://pipe.example.com</c>), for links in notifications.</summary>
+    public string? PublicUrl { get; set; }
+
     /// <summary>Arm the triggers of all active workflows when the host starts.</summary>
     public bool ActivateTriggersOnStartup { get; set; } = true;
 }

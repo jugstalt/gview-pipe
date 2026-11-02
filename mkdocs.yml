@@ -48,6 +48,7 @@ plugins:
             Getting started: Erste Schritte
             Triggers and webhooks: Trigger und Webhooks
             Error handling: Fehlerbehandlung
+            Failure notifications: Benachrichtigung bei Fehlern
             Node reference: Node-Referenz
             The editor: Der Editor
             Items and expressions: Items und Ausdrücke
@@ -79,6 +80,7 @@ nav:
       - Variables and environments: user-guide/variables.md
       - Credentials: user-guide/credentials.md
       - Error handling: user-guide/error-handling.md
+      - Failure notifications: user-guide/notifications.md
       - Executions: user-guide/executions.md
       - Recipes: user-guide/recipes.md
       # generated (src/gView.Pipe.Docs), not committed; the category pages are linked from the index

@@ -77,6 +77,9 @@ public sealed class PluginLoadingTests : IDisposable
     [InlineData("sub-workflow-demo.json")]
     [InlineData("price-calculator.json")]
     [InlineData("error-alerts.json")]
+    [InlineData("error-mail.json")]
+    [InlineData("error-teams.json")]
+    [InlineData("error-slack.json")]
     [InlineData("api-demo.json")]
     [InlineData("file-export.json")]
     public async Task Every_sample_workflow_runs_manually(string file)

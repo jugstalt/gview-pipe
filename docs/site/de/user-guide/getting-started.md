@@ -23,6 +23,7 @@ Beim ersten Start mit leerem Speicher kopiert gView.Pipe mehrere Beispiel-Workfl
 | API Demo | Ein Webhook, der mit Respond-to-Webhook-Nodes antwortet. |
 | Webhook Demo | Ein Webhook, der mit einer Begrüßung antwortet. Er ist inaktiv, bis du ihn einschaltest. |
 | File Export | Schreibt Bestellungen als CSV und liest sie wieder ein. |
+| Error Mail, Error Teams, Error Slack | Fehler-Workflows, die eine [Benachrichtigung bei Fehlern](notifications.md) schicken. Ihr sendender Node ist deaktiviert, bis du sie einrichtest. |
 
 ## Den ersten Workflow bauen
 

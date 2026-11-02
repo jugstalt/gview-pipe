@@ -23,11 +23,18 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
     private readonly IPipeNodeRegistry _registry;
     private readonly PipeExecutionMonitor _monitor;
     private readonly PipeExecutionRetention _retention;
+    private readonly IPipeErrorWorkflows _errorWorkflows;
+    private readonly IPipeWorkflowGroupStore _groupStore;
+    private readonly TimeProvider _time;
     private readonly PipeCoreOptions _options;
     private readonly ILogger<PipeWorkflowRunner> _logger;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _slots = new();
     // runs waiting per workflow, counted against MaxQueuedRuns; guarded by locking itself
     private readonly Dictionary<string, int> _queued = new();
+    // the last failed sub-workflow run per calling execution, until the caller ends (ADR 0017)
+    private readonly ConcurrentDictionary<string, PipeExecution> _failedSubRuns = new();
+    // per error workflow and failed workflow: when it last ran, and the failures suppressed since; guarded by locking itself
+    private readonly Dictionary<string, (DateTimeOffset LastRun, int Suppressed)> _notified = new();
 
     public PipeWorkflowRunner(
         IPipeEngine engine,
@@ -36,6 +43,9 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         IPipeNodeRegistry registry,
         PipeExecutionMonitor monitor,
         PipeExecutionRetention retention,
+        IPipeErrorWorkflows errorWorkflows,
+        IPipeWorkflowGroupStore groupStore,
+        TimeProvider time,
         IOptions<PipeCoreOptions> options,
         ILogger<PipeWorkflowRunner> logger)
     {
@@ -45,6 +55,9 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         _registry = registry;
         _monitor = monitor;
         _retention = retention;
+        _errorWorkflows = errorWorkflows;
+        _groupStore = groupStore;
+        _time = time;
         _options = options.Value;
         _logger = logger;
     }
@@ -146,10 +159,19 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
             await _executionStore.SaveAsync(toStore, CancellationToken.None);
             await _retention.PruneAsync(workflow, CancellationToken.None);
 
-            if (execution.Status == PipeExecutionStatus.Error && request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.SubWorkflow or PipeExecutionMode.Replay)
+            if (execution.Status == PipeExecutionStatus.Error)
             {
-                await RunErrorWorkflowAsync(workflow, execution);
+                if (request.Mode == PipeExecutionMode.SubWorkflow && execution.ParentExecutionId is { } callerId)
+                {
+                    // the caller reports it, unless it catches the failure (ADR 0017)
+                    _failedSubRuns[callerId] = execution;
+                }
+                else if (request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.Replay)
+                {
+                    await RunErrorWorkflowAsync(workflow, execution);
+                }
             }
+            _failedSubRuns.TryRemove(execution.Id, out _);
 
             return execution;
         }
@@ -211,44 +233,36 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
     }
 
     /// <summary>
-    /// Starts the workflow's error workflow for a failed triggered run. Problems are only logged:
-    /// they must not hide the original failure.
+    /// Starts the effective error workflow (workflow → group → instance) for a failed triggered run, at most once per
+    /// throttle period of its Error Trigger. Problems are only logged: they must not hide the original failure.
     /// </summary>
     private async Task RunErrorWorkflowAsync(PipeWorkflow workflow, PipeExecution failed)
     {
-        var errorWorkflowId = workflow.Settings.ErrorWorkflowId;
-        if (string.IsNullOrEmpty(errorWorkflowId) || errorWorkflowId == workflow.Id)
-        {
-            return;
-        }
-
         try
         {
+            var group = string.IsNullOrEmpty(workflow.GroupId) ? null : await _groupStore.GetAsync(workflow.GroupId, CancellationToken.None);
+            if (_errorWorkflows.Resolve(workflow, group).WorkflowId is not { } errorWorkflowId)
+            {
+                return;
+            }
+
             var errorWorkflow = await _workflowStore.GetAsync(errorWorkflowId, CancellationToken.None)
                 ?? throw new PipeException($"Error workflow '{errorWorkflowId}' not found");
             var entry = PipeEntryNodes.Find<IPipeErrorTrigger>(errorWorkflow, _registry)
                 ?? throw new PipeException($"Error workflow '{errorWorkflow.Name}' has no Error Trigger");
 
-            var failedNode = failed.ErrorNodeId is { } nodeId ? failed.NodeRuns.GetValueOrDefault(nodeId) : null;
-            var item = new PipeItem(new JsonObject
+            if (!TryNotify(workflow.Id, errorWorkflow.Id, ThrottleOf(entry), out var suppressed))
             {
-                ["workflow"] = new JsonObject { ["id"] = workflow.Id, ["name"] = workflow.Name },
-                ["execution"] = new JsonObject
-                {
-                    ["id"] = failed.Id,
-                    ["mode"] = JsonSerializer.SerializeToNode(failed.Mode, PipeJson.Options),
-                    ["startedAt"] = failed.StartedAt.ToString("O"),
-                    ["error"] = failed.Error
-                },
-                ["node"] = failedNode is null ? null : new JsonObject { ["id"] = failedNode.NodeId, ["name"] = failedNode.NodeName, ["error"] = failedNode.Error }
-            });
+                _logger.LogInformation("Failure of {WorkflowName} not reported: error workflow {ErrorWorkflowName} ran recently", workflow.Name, errorWorkflow.Name);
+                return;
+            }
 
             await RunAsync(errorWorkflow, new PipeExecutionRequest
             {
                 Mode = PipeExecutionMode.Error,
                 Environment = failed.Environment,
                 StartNodeId = entry.Id,
-                InputItems = [item],
+                InputItems = [ErrorItem(workflow, failed, suppressed)],
                 ParentExecutionId = failed.Id,
                 ParentWorkflowId = workflow.Id
             }, CancellationToken.None);
@@ -256,6 +270,79 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error workflow of {WorkflowName} could not be run", workflow.Name);
+        }
+    }
+
+    /// <summary><c>{ workflow, execution, node, subWorkflow?, suppressed }</c>, see <see cref="IPipeErrorTrigger"/>.</summary>
+    private PipeItem ErrorItem(PipeWorkflow workflow, PipeExecution failed, int suppressed)
+    {
+        var execution = new JsonObject
+        {
+            ["id"] = failed.Id,
+            ["mode"] = JsonSerializer.SerializeToNode(failed.Mode, PipeJson.Options),
+            ["environment"] = failed.Environment,
+            ["startedAt"] = failed.StartedAt.ToString("O"),
+            ["error"] = failed.Error
+        };
+        if (!string.IsNullOrWhiteSpace(_options.PublicUrl))
+        {
+            execution["url"] = $"{_options.PublicUrl.TrimEnd('/')}/workflows/{Uri.EscapeDataString(workflow.Id)}?execution={Uri.EscapeDataString(failed.Id)}";
+        }
+
+        var json = new JsonObject
+        {
+            ["workflow"] = new JsonObject { ["id"] = workflow.Id, ["name"] = workflow.Name },
+            ["execution"] = execution,
+            ["node"] = NodeOf(failed),
+            ["suppressed"] = suppressed
+        };
+        if (_failedSubRuns.TryGetValue(failed.Id, out var sub))
+        {
+            json["subWorkflow"] = new JsonObject
+            {
+                ["id"] = sub.WorkflowId,
+                ["name"] = sub.WorkflowName,
+                ["executionId"] = sub.Id,
+                ["error"] = sub.Error,
+                ["node"] = NodeOf(sub)
+            };
+        }
+        return new PipeItem(json);
+    }
+
+    static private JsonObject? NodeOf(PipeExecution execution)
+        => execution.ErrorNodeId is { } nodeId && execution.NodeRuns.GetValueOrDefault(nodeId) is { } run
+            ? new JsonObject { ["id"] = run.NodeId, ["name"] = run.NodeName, ["error"] = run.Error }
+            : null;
+
+    static private TimeSpan ThrottleOf(PipeWorkflowNode errorTrigger)
+    {
+        var minutes = errorTrigger.Parameters[PipeErrorWorkflows.ThrottleMinutesParameter] is JsonValue value && value.TryGetValue<int>(out var set)
+            ? set
+            : PipeErrorWorkflows.DefaultThrottleMinutes;
+        return TimeSpan.FromMinutes(Math.Max(0, minutes));
+    }
+
+    /// <summary>
+    /// True when the error workflow may run for this failed workflow now; <paramref name="suppressed"/> is the number of
+    /// failures not reported since its last run.
+    /// </summary>
+    private bool TryNotify(string workflowId, string errorWorkflowId, TimeSpan throttle, out int suppressed)
+    {
+        var key = $"{errorWorkflowId}|{workflowId}";
+        var now = _time.GetUtcNow();
+        lock (_notified)
+        {
+            var (lastRun, count) = _notified.GetValueOrDefault(key);
+            if (throttle > TimeSpan.Zero && lastRun != default && now - lastRun < throttle)
+            {
+                _notified[key] = (lastRun, count + 1);
+                suppressed = 0;
+                return false;
+            }
+            _notified[key] = (now, 0);
+            suppressed = count;
+            return true;
         }
     }
 }

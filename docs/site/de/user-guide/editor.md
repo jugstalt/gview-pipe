@@ -83,7 +83,7 @@ Workflows werden in **Gruppen** einsortiert, die als Kacheln auf der Startseite 
 
 ![Die Startseite mit der Gruppe Samples](../../images/start-page.png)
 
-Öffne eine Gruppe, um ihre Workflows zu sehen und dort neue anzulegen. Das Löschen einer Gruppe löscht nie ihre Workflows.
+Öffne eine Gruppe, um ihre Workflows zu sehen und dort neue anzulegen. Das Löschen einer Gruppe löscht nie ihre Workflows. Der Gruppen-Dialog (Stift auf der Kachel) legt Name, Farbe und das fest, was ihre Workflows erben: das Environment, Variablen und den Fehler-Workflow.
 
 ## Einstellungen des Workflows
 
@@ -99,5 +99,5 @@ Wähle keinen Node (klicke auf die leere Arbeitsfläche), um die Einstellungen d
 | Environment | Das Environment für Läufe durch Trigger, oder *Inherit* von der Gruppe oder der Instanz. Siehe [Variablen und Environments](variables.md). |
 | Webhook callers may choose | Environments, die ein Webhook-Aufrufer mit `X-Pipe-Environment` wählen kann. |
 | Variables | Variablen dieses Workflows, ein Wert je Environment. |
-| Error workflow | Wird gestartet, wenn ein durch Trigger gestarteter Lauf fehlschlägt, siehe [Fehlerbehandlung](error-handling.md#fehler-workflows). |
+| Error workflow | Wird gestartet, wenn ein durch Trigger gestarteter Lauf fehlschlägt, siehe [Fehlerbehandlung](error-handling.md#fehler-workflows). *Inherit* (Vorgabe) übernimmt den der Gruppe oder der Instanz, *None* schaltet ihn ab. |
 | Executions | Die Historie dieses Workflows, siehe [Executions](executions.md). |

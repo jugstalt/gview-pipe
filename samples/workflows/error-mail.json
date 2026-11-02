@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "error-mail",
+  "name": "Error Mail",
+  "description": "Sample error workflow: mails failed triggered runs to the variable ALERT_MAIL_TO. Choose the SMTP credential in 'Send Mail' and enable it.",
+  "groupId": "samples",
+  "active": false,
+  "nodes": [
+    {
+      "id": "error",
+      "name": "On Error",
+      "type": "c102a313-b62c-4465-bf28-139c6b1ebbb0",
+      "typeVersion": 1,
+      "parameters": { "throttleMinutes": 15 },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "mail",
+      "name": "Send Mail",
+      "type": "fafaca25-a6f7-49bd-a689-c3a7f01b1c7a",
+      "typeVersion": 1,
+      "disabled": true,
+      "notes": "Disabled until set up: choose the SMTP credential and define the variable ALERT_MAIL_TO.",
+      "parameters": {
+        "to": "{{ $vars.ALERT_MAIL_TO }}",
+        "subject": "[gView.Pipe] {{ $json.workflow.name }} failed",
+        "text": "Workflow: {{ $json.workflow.name }}\nEnvironment: {{ $json.execution.environment }}\nStarted: {{ $json.execution.startedAt }}\nNode: {{ $json.node?.name ?? '-' }}\nError: {{ $json.execution.error }}\n{{ $json.subWorkflow ? 'Sub-workflow: ' + $json.subWorkflow.name + ', node ' + ($json.subWorkflow.node?.name ?? '-') + ': ' + $json.subWorkflow.error + '\\n' : '' }}{{ $json.suppressed > 0 ? $json.suppressed + ' more failure(s) since the last message.\\n' : '' }}{{ $json.execution.url ?? '' }}"
+      },
+      "position": { "x": 240, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "error", "sourcePort": "main", "targetNodeId": "mail", "targetPort": "main" }
+  ]
+}

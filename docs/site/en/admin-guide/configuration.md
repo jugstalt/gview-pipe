@@ -27,6 +27,8 @@ The variable `PIPE_CONFIG_PATH` moves the `_config` folder. The start scripts an
 | `Pipe:Environments` | `TEST`, `STAGE`, `PROD` | Environments groups and workflows can choose, besides `DEFAULT`. |
 | `Pipe:Variables` | none | Instance variables per environment. |
 | `Pipe:SecretVariables` | none | Names of instance variables that are masked in logs and script output. |
+| `Pipe:ErrorWorkflowId` | none | Id of the [error workflow](../user-guide/notifications.md) for all workflows whose group and workflow don't set one, for example `error-mail`. |
+| `Pipe:PublicUrl` | none | Address users open the app at, for example `https://pipe.example.com`. Error workflows get a link to the failed run (`execution.url`). |
 | `Pipe:ExecutionRetention` | `50` | Executions kept per workflow. A workflow can set its own value. |
 | `Pipe:ExecutionRetentionDays` | `0` | Days executions are kept; `0` means no limit. A workflow can set its own value. Older executions are deleted once a day and after each run. |
 

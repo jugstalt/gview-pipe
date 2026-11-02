@@ -24,6 +24,9 @@ public sealed class PipeWorkflowGroup
     /// <summary>Variables of the group level (see <see cref="PipeVariable"/>).</summary>
     public List<PipeVariable>? Variables { get; set; }
 
+    /// <summary>Error workflow of the workflows in the group that don't set one; null inherits the instance's (ADR 0017).</summary>
+    public string? ErrorWorkflowId { get; set; }
+
     public DateTimeOffset? CreatedAt { get; set; }
 }
 

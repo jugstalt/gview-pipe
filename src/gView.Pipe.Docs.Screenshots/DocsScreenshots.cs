@@ -31,6 +31,7 @@ internal sealed class DocsScreenshots
         await WebhookTriggerAsync();
         await ErrorOutputAsync();
         await ExecutionsAsync();
+        await ErrorMailAsync();
         await CredentialsAsync();
         await VariablesAsync();
         await EditorEnvironmentAsync();
@@ -139,6 +140,15 @@ internal sealed class DocsScreenshots
           ]
         }
         """;
+
+    /// <summary>The Error Mail sample with its Send Mail node, which builds the message from the Error Trigger item.</summary>
+    private async Task ErrorMailAsync()
+    {
+        await HighAsync();
+        await OpenEditorAsync("error-mail");
+        await SelectNodeAsync("Send Mail");
+        await ShotAsync("error-mail");
+    }
 
     /// <summary>The history of all workflows, with the runs the earlier pictures made.</summary>
     private async Task ExecutionsAsync()

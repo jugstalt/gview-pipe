@@ -15,6 +15,8 @@ using gView.Pipe.Core.Storage;
 using gView.Pipe.Core.Triggers;
 using gView.Pipe.Core.Users;
 using gView.Pipe.Core.Variables;
+using gView.Pipe.Core.Workflows;
+using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Abstraction.Variables;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
@@ -76,6 +78,7 @@ static public class ServicesExtensions
         services.TryAddSingleton<IPipeCredentialStore, PipeMemoryCredentialStore>();
         services.TryAddSingleton<IPipeVariableStore, PipeMemoryVariableStore>();
         services.TryAddSingleton<IPipeEnvironments, PipeEnvironmentService>();
+        services.TryAddSingleton<IPipeErrorWorkflows, PipeErrorWorkflowService>();
 
         return services;
     }

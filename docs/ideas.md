@@ -2,14 +2,15 @@
 
 Backlog of possible features. Internal, not part of the docs site. Larger items get an ADR before they are built.
 
-Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: failure notifications, then the data nodes.
+Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: the data nodes.
 
 ## Operations and reliability
 
 - [x] Execution history of all workflows and replay (ADR 0015).
 - [x] Retry and timeout per node and "continue on error" existed already; exponential backoff added (ADR 0015).
 - [x] Queue for triggered runs (ADR 0016).
-- [ ] Failure notifications: a ready-made Error Trigger workflow that reports by mail or Teams/Slack.
+- [x] Failure notifications: inherited error workflow, throttling, Mail/Teams/Slack samples (ADR 0017).
+- [ ] "Back to normal" message when a workflow that failed succeeds again (needs the last state per workflow).
 - [ ] Metrics with OpenTelemetry: runs, duration and errors per workflow (the ServiceDefaults are already there).
 
 ## Nodes

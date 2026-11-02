@@ -3,17 +3,26 @@
 
 @* Picks a stored workflow by id. An id that no longer exists stays visible, so it isn't lost silently. *@
 
-<MudSelect T="string" Label="@Label" Dense="true" Variant="Variant.Outlined" Clearable="true" HelperText="@HelperText"
-           Value="@Value" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
-    @foreach (var workflow in _workflows)
-    {
-        <MudSelectItem Value="@workflow.Id">@Display(workflow)</MudSelectItem>
-    }
-    @if (!string.IsNullOrEmpty(Value) && _loaded && _workflows.All(w => w.Id != Value))
-    {
-        <MudSelectItem Value="@Value">Missing workflow '@Value'</MudSelectItem>
-    }
-</MudSelect>
+@if (InheritText is null)
+{
+    <MudSelect T="string" Label="@Label" Dense="true" Variant="Variant.Outlined" Clearable="true" HelperText="@HelperText"
+               Value="@Value" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
+        @Items
+    </MudSelect>
+}
+else
+{
+    @* inheriting: the empty choice inherits, and NoneValue switches it off *@
+    <MudSelect T="string" Label="@Label" Dense="true" Variant="Variant.Outlined" HelperText="@HelperText"
+               Value="@(Value ?? "")" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
+        <MudSelectItem Value="@("")">@InheritText</MudSelectItem>
+        @if (NoneValue is not null)
+        {
+            <MudSelectItem Value="@NoneValue">None</MudSelectItem>
+        }
+        @Items
+    </MudSelect>
+}
 
 @code {
     [Parameter] public string? Label { get; set; }
@@ -21,8 +30,26 @@
     [Parameter] public string? Value { get; set; }
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
+    /// <summary>When set, the empty choice inherits (shown with this text, e.g. "Inherit (Error Mail from the instance)").</summary>
+    [Parameter] public string? InheritText { get; set; }
+
+    /// <summary>Value of a "None" choice next to inherit, e.g. <see cref="PipeErrorWorkflows.None"/>.</summary>
+    [Parameter] public string? NoneValue { get; set; }
+
     /// <summary>Not offered, e.g. the workflow being edited.</summary>
     [Parameter] public string? ExcludeId { get; set; }
+
+    private RenderFragment Items => __builder =>
+    {
+        @foreach (var workflow in _workflows)
+        {
+            <MudSelectItem Value="@workflow.Id">@Display(workflow)</MudSelectItem>
+        }
+        @if (!string.IsNullOrEmpty(Value) && Value != NoneValue && _loaded && _workflows.All(w => w.Id != Value))
+        {
+            <MudSelectItem Value="@Value">Missing workflow '@Value'</MudSelectItem>
+        }
+    };
 
     private IReadOnlyList<PipeWorkflow> _workflows = [];
     private bool _loaded;

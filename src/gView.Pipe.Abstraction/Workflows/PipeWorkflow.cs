@@ -73,7 +73,8 @@ public sealed class PipeWorkflowSettings
 
     /// <summary>
     /// Workflow (with an <see cref="Triggers.IPipeErrorTrigger"/> node) started when a triggered execution of this
-    /// workflow fails. Manual runs don't start it.
+    /// workflow fails. Manual runs don't start it. Null inherits the group's or the instance's;
+    /// <see cref="PipeErrorWorkflows.None"/> switches it off (ADR 0017).
     /// </summary>
     public string? ErrorWorkflowId { get; set; }
 

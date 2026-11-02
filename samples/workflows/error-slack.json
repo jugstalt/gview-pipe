@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "error-slack",
+  "name": "Error Slack",
+  "description": "Sample error workflow: posts failed triggered runs to a Slack incoming webhook (secret variable ALERT_SLACK_URL). Enable 'Post to Slack' after setting it.",
+  "groupId": "samples",
+  "active": false,
+  "nodes": [
+    {
+      "id": "error",
+      "name": "On Error",
+      "type": "c102a313-b62c-4465-bf28-139c6b1ebbb0",
+      "typeVersion": 1,
+      "parameters": { "throttleMinutes": 15 },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "slack",
+      "name": "Post to Slack",
+      "type": "c4e8f2a3-6b1d-4f5e-a7c9-1e2d3f4a5b03",
+      "typeVersion": 1,
+      "disabled": true,
+      "notes": "Disabled until set up: define the secret variable ALERT_SLACK_URL (Slack app › Incoming Webhooks).",
+      "parameters": {
+        "method": "POST",
+        "url": "{{ $vars.ALERT_SLACK_URL }}",
+        "contentType": "application/json",
+        "body": {
+          "text": ":rotating_light: *{{ $json.workflow.name }}* failed ({{ $json.execution.environment }}) in node {{ $json.subWorkflow ? $json.subWorkflow.name + ' › ' + ($json.subWorkflow.node?.name ?? '-') : ($json.node?.name ?? '-') }}: {{ $json.execution.error }}{{ $json.suppressed > 0 ? ' (+' + $json.suppressed + ' more since the last message)' : '' }}{{ $json.execution.url ? ' <' + $json.execution.url + '|Open the run>' : '' }}"
+        }
+      },
+      "position": { "x": 240, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "error", "sourcePort": "main", "targetNodeId": "slack", "targetPort": "main" }
+  ]
+}

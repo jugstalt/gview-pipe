@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "error-teams",
+  "name": "Error Teams",
+  "description": "Sample error workflow: posts failed triggered runs as an Adaptive Card to a Teams workflow webhook (secret variable ALERT_TEAMS_URL). Enable 'Post to Teams' after setting it.",
+  "groupId": "samples",
+  "active": false,
+  "nodes": [
+    {
+      "id": "error",
+      "name": "On Error",
+      "type": "c102a313-b62c-4465-bf28-139c6b1ebbb0",
+      "typeVersion": 1,
+      "parameters": { "throttleMinutes": 15 },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "teams",
+      "name": "Post to Teams",
+      "type": "c4e8f2a3-6b1d-4f5e-a7c9-1e2d3f4a5b03",
+      "typeVersion": 1,
+      "disabled": true,
+      "notes": "Disabled until set up: define the secret variable ALERT_TEAMS_URL (Teams: Workflows › 'Post to a channel when a webhook request is received').",
+      "parameters": {
+        "method": "POST",
+        "url": "{{ $vars.ALERT_TEAMS_URL }}",
+        "contentType": "application/json",
+        "body": {
+          "type": "message",
+          "attachments": [
+            {
+              "contentType": "application/vnd.microsoft.card.adaptive",
+              "content": {
+                "type": "AdaptiveCard",
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "version": "1.4",
+                "body": [
+                  { "type": "TextBlock", "size": "Medium", "weight": "Bolder", "color": "Attention", "text": "{{ $json.workflow.name }} failed" },
+                  {
+                    "type": "FactSet",
+                    "facts": [
+                      { "title": "Environment", "value": "{{ $json.execution.environment }}" },
+                      { "title": "Started", "value": "{{ $json.execution.startedAt }}" },
+                      { "title": "Node", "value": "{{ $json.subWorkflow ? $json.subWorkflow.name + ' › ' + ($json.subWorkflow.node?.name ?? '-') : ($json.node?.name ?? '-') }}" },
+                      { "title": "More failures", "value": "{{ String($json.suppressed) }}" }
+                    ]
+                  },
+                  { "type": "TextBlock", "wrap": true, "text": "{{ $json.execution.error }}" }
+                ],
+                "actions": [
+                  { "type": "Action.OpenUrl", "title": "Open the run", "url": "{{ $json.execution.url ?? 'about:blank' }}" }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "position": { "x": 240, "y": 0 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "error", "sourcePort": "main", "targetNodeId": "teams", "targetPort": "main" }
+  ]
+}

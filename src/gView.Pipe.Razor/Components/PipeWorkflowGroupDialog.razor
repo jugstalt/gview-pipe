@@ -1,5 +1,7 @@
 @inject IPipeWorkflowGroupStore GroupStore
 @inject IPipeEnvironments Environments
+@inject IPipeErrorWorkflows ErrorWorkflows
+@inject IPipeWorkflowStore WorkflowStore
 
 @* Creates or edits a workflow group. Closes with the saved group. *@
 
@@ -22,6 +24,9 @@
             <PipeEnvironmentSelect InheritText="@($"Inherit ({Environments.Instance} from the instance)")"
                                    HelperText="For the workflows of the group that don't set their own"
                                    @bind-Value="_group.Environment" />
+            <PipeWorkflowSelect Label="Error workflow" InheritText="@ErrorInheritText" NoneValue="@PipeErrorWorkflows.None"
+                                HelperText="Runs when a triggered run of a workflow in the group fails, unless the workflow sets its own"
+                                @bind-Value="_group.ErrorWorkflowId" />
             <div>
                 <MudText Typo="Typo.subtitle2">Variables</MudText>
                 <PipeVariablesEditor @bind-Variables="_group.Variables"
@@ -48,10 +53,21 @@
     private PipeWorkflowGroup _group = new();
     private string? _error;
 
+    private string ErrorInheritText { get; set; } = "Inherit (none)";
+
     protected override void OnInitialized()
     {
         // edit a copy, so Cancel leaves the caller's object untouched
         _group = Group is null ? new PipeWorkflowGroup() : PipeJson.Clone(Group);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ErrorWorkflows.Instance is { } id)
+        {
+            var name = (await WorkflowStore.GetAsync(id))?.Name ?? id;
+            ErrorInheritText = $"Inherit ({name} from the instance)";
+        }
     }
 
     private async Task SaveAsync()

@@ -23,6 +23,7 @@ On the first start with an empty store, gView.Pipe copies a set of sample workfl
 | API Demo | A webhook that answers with Respond to Webhook nodes. |
 | Webhook Demo | A webhook that answers with a greeting. It is inactive until you switch it on. |
 | File Export | Writes orders as CSV and reads them back. |
+| Error Mail, Error Teams, Error Slack | Error workflows that send a [failure notification](notifications.md). Their sending node is disabled until you set them up. |
 
 ## Build your first workflow
 

@@ -32,22 +32,26 @@ A node whose inputs are all empty is skipped, and so are the nodes after it. Tha
 
 ## Error workflows
 
-An error workflow is a normal workflow that starts with an **Error Trigger**. Choose it in the workflow panel of the failing workflow (**Error workflow**).
+An error workflow is a normal workflow that starts with an **Error Trigger**. Choose it in the workflow panel of the failing workflow (**Error workflow**), for all workflows of a group in the group dialog, or for the whole instance in the [configuration](../admin-guide/configuration.md) (`Pipe:ErrorWorkflowId`). A workflow uses the first one set on workflow → group → instance; **None** on the workflow switches it off.
 
-- It runs when a run of the workflow fails and was started by a trigger (cron, webhook) or as a sub-workflow. Runs you start by hand in the editor don't start it.
+- It runs when a run of the workflow fails and was started by a trigger (cron, webhook) or is a [replay](executions.md#replay). Runs you start by hand in the editor don't start it.
+- A failing **sub-workflow** doesn't start it: its caller fails too and reports it, with the sub-workflow in `subWorkflow`. If the caller catches the failure (*Continue* or *Error output* on Execute Workflow), nothing is reported.
 - It receives one item that describes the failed run, for example to send a mail with the name of the workflow and the failed node:
 
     ```json
     { "workflow": { "id": "…", "name": "…" },
-      "execution": { "id": "…", "mode": "…", "startedAt": "…", "error": "…" },
-      "node": { "id": "…", "name": "…" } }
+      "execution": { "id": "…", "mode": "…", "environment": "…", "startedAt": "…", "error": "…", "url": "…" },
+      "node": { "id": "…", "name": "…", "error": "…" },
+      "subWorkflow": { "id": "…", "name": "…", "executionId": "…", "error": "…", "node": { … } },
+      "suppressed": 0 }
     ```
 
-    Use it in expressions, for example `{{ $json.workflow.name }}` and `{{ $json.execution.error }}`.
-- A failure of the error workflow itself is only written to the application log. A workflow can't be its own error workflow.
+    Use it in expressions, for example `{{ $json.workflow.name }}` and `{{ $json.execution.error }}`. `url` links to the failed run when `Pipe:PublicUrl` is configured; `subWorkflow` is only there when a sub-workflow failed.
+- **Throttle minutes** on the Error Trigger (default 15) starts it at most once in that time per failed workflow. Failures in between are counted in `suppressed` of the next run. Set 0 to report every failure.
+- A failure of the error workflow itself is only written to the application log. A workflow is never its own error workflow.
 - It does **not** change the result of the failed run. The run stays **Error**.
 
-The sample workflow **Error Alerts** is an error workflow.
+The samples **Error Mail**, **Error Teams** and **Error Slack** send notifications, **Error Alerts** writes to the log; see [Failure notifications](notifications.md).
 
 ## Answering a webhook after a failure
 

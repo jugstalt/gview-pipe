@@ -49,6 +49,9 @@ builder.Services
         // executions kept per workflow (ADR 0015); workflows can override both
         options.ExecutionRetention = builder.Configuration.GetValue("Pipe:ExecutionRetention", options.ExecutionRetention);
         options.ExecutionRetentionDays = builder.Configuration.GetValue("Pipe:ExecutionRetentionDays", options.ExecutionRetentionDays);
+        // failure notifications (ADR 0017): default error workflow, and the address for links to failed runs
+        options.ErrorWorkflowId = builder.Configuration["Pipe:ErrorWorkflowId"];
+        options.PublicUrl = builder.Configuration["Pipe:PublicUrl"];
         // folders released for Read File / Write File, by name
         foreach (var root in builder.Configuration.GetSection("Pipe:FileRoots").GetChildren().Where(r => !string.IsNullOrEmpty(r.Value)))
         {

@@ -169,6 +169,91 @@ public sealed class SubWorkflowTests : IDisposable
         Assert.Contains("database down", item["node"]!["error"]!.GetValue<string>());
     }
 
+    static private PipeWorkflow Alerts(string id = "alerts", int? throttleMinutes = null) => new PipeWorkflowBuilder("Alerts", id)
+        .Node("error", PipeBuiltInNodes.ErrorTrigger, throttleMinutes is null ? null : new { throttleMinutes })
+        .Node("noop", PipeBuiltInNodes.NoOp)
+        .Connect("error", "noop")
+        .Build();
+
+    static private PipeExecutionRequest Triggered => new() { Mode = PipeExecutionMode.Trigger };
+
+    [Fact]
+    public async Task Error_workflow_is_inherited_from_group_and_instance_and_can_be_switched_off()
+    {
+        using var services = PluginTestHost.Create(options: o =>
+        {
+            o.ErrorWorkflowId = "instance-alerts";
+            o.PublicUrl = "https://pipe.example.com/";
+        });
+        var workflows = services.GetRequiredService<IPipeWorkflowStore>();
+        var executions = services.GetRequiredService<IPipeExecutionStore>();
+        var runner = services.GetRequiredService<IPipeWorkflowRunner>();
+        await services.GetRequiredService<IPipeWorkflowGroupStore>().SaveAsync(new PipeWorkflowGroup { Id = "billing", Name = "Billing", ErrorWorkflowId = "group-alerts" });
+        await workflows.SaveAsync(Alerts("instance-alerts", throttleMinutes: 0));
+        await workflows.SaveAsync(Alerts("group-alerts", throttleMinutes: 0));
+
+        var inGroup = Failing(null!);
+        inGroup.Id = "in-group";
+        inGroup.GroupId = "billing";
+        var ungrouped = Failing(null!);
+        ungrouped.Id = "ungrouped";
+        var off = Failing(PipeErrorWorkflows.None);
+        off.Id = "off";
+        off.GroupId = "billing";
+
+        var failed = await runner.RunAsync(inGroup, Triggered);
+        await runner.RunAsync(ungrouped, Triggered);
+        await runner.RunAsync(off, Triggered);
+
+        var groupAlert = Assert.Single(await executions.ListAsync("group-alerts"));
+        Assert.Equal(failed!.Id, groupAlert.ParentExecutionId);
+        Assert.Equal($"https://pipe.example.com/workflows/in-group?execution={failed.Id}",
+            groupAlert.NodeRuns["noop"].Outputs!["main"][0].Json["execution"]!["url"]!.GetValue<string>());
+        Assert.Equal("ungrouped", Assert.Single(await executions.ListAsync("instance-alerts")).ParentWorkflowId);
+    }
+
+    [Fact]
+    public async Task Error_workflow_is_throttled_per_failed_workflow_and_counts_the_suppressed_failures()
+    {
+        await SaveAsync(Alerts());
+        var workflow = Failing("alerts");
+
+        await Runner.RunAsync(workflow, Triggered);
+        await Runner.RunAsync(workflow, Triggered);
+        await Runner.RunAsync(workflow, Triggered);
+        Assert.Single(await ExecutionsAsync("alerts"));
+
+        // without throttle the next failure is reported, with the two suppressed in between
+        await SaveAsync(Alerts(throttleMinutes: 0));
+        await Runner.RunAsync(workflow, Triggered);
+
+        var alerts = await ExecutionsAsync("alerts");
+        Assert.Equal(2, alerts.Count);
+        Assert.Equal(2, alerts[0].NodeRuns["noop"].Outputs!["main"][0].Json["suppressed"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public async Task Failing_sub_workflow_is_reported_once_by_its_caller()
+    {
+        await SaveAsync(Alerts(throttleMinutes: 0));
+        await SaveAsync(new PipeWorkflowBuilder("Broken", "broken")
+            .Node("in", PipeBuiltInNodes.ExecuteWorkflowTrigger)
+            .Node("code", PipeBuiltInNodes.Code, new { code = "throw new Error('boom');" })
+            .Connect("in", "code")
+            .Configure(w => w.Settings.ErrorWorkflowId = "alerts")
+            .Build());
+        var caller = Caller(new { workflowId = "broken" });
+        caller.Settings.ErrorWorkflowId = "alerts";
+
+        var failed = await Runner.RunAsync(caller, Triggered);
+
+        var alert = Assert.Single(await ExecutionsAsync("alerts"));
+        Assert.Equal(failed!.Id, alert.ParentExecutionId);
+        var sub = alert.NodeRuns["noop"].Outputs!["main"][0].Json["subWorkflow"]!;
+        Assert.Equal("Broken", sub["name"]!.GetValue<string>());
+        Assert.Equal("code", sub["node"]!["name"]!.GetValue<string>());
+    }
+
     [Fact]
     public async Task Manual_runs_and_missing_error_workflows_do_not_break_anything()
     {
