@@ -33,7 +33,15 @@ Die Einstellungen kommen aus `appsettings.json`, aus `portal.config.json` neben 
 
 Der Name des angemeldeten Anwenders geht mit jeder Anfrage ans Backend. Läufe zeigen in der Historie des Editors `portal:<Name>` als Starter, und Anwender sehen und stoppen nur ihre eigenen Läufe.
 
-Gestartet wird es wie die Shell: `dotnet run --project src/gView.Pipe.Portal` (Port 5250 in der Entwicklung).
+Gestartet wird es wie die Shell: `dotnet run --project src/gView.Pipe.Portal` (Port 5250 in der Entwicklung, `--launch-profile https` für https auf 7250).
+
+Für den Modus forms erzeugst du den Hash eines Passworts mit dem Portal selbst:
+
+```bash
+dotnet gView.Pipe.Portal.dll --hash-password "mein Passwort"
+```
+
+und trägst ihn als `PasswordHash` des Benutzers ein (siehe [Anmeldung](authentication.md#forms-feste-benutzer)). Mit OpenID Connect braucht der Client des Portals die Weiterleitungs-Adressen `<Adresse des Portals>/signin-oidc` und `<Adresse des Portals>/signout-callback-oidc`. Das Portal braucht dafür https, hinter einem Proxy mit `Portal:Auth:UseForwardedHeaders`. Es fragt die Scopes `openid profile role email` an, solange du `Portal:Auth:Oidc:Scopes` nicht setzt; `email` bringt die Adresse für die Mail bei Fertigstellung, der Client muss diesen Scope also verwenden dürfen.
 
 ## Was Anwender tun können
 
@@ -42,6 +50,19 @@ Gestartet wird es wie die Shell: `dotnet run --project src/gView.Pipe.Portal` (P
 - **Warten oder Hintergrund**: Der Autor legt den Standard fest und ob Anwender umschalten dürfen. Ein Lauf, auf den der Anwender wartet, läuft nach Ablauf des Warte-Timeouts im Hintergrund weiter.
 - **My runs**: die Läufe des Anwenders mit Status. Laufende Läufe haben einen *Stop*-Button, außer der Workflow verbietet es. Beendete Läufe haben *Run again*, das das Formular mit den Werten dieses Laufs öffnet (Passwörter werden nie aufbewahrt).
 - **Ergebnis**: Text, Markdown (ohne rohes HTML) oder eine Tabelle, wie es der Result-Node festlegt. Anwender sehen nie rohe Items oder die Details von Fehlern.
+
+## Wer welche Workflows sieht
+
+Ohne weitere Einstellungen sieht jeder angemeldete Anwender alle veröffentlichten Workflows. Um einige nur manchen Leuten zu zeigen, nutze **Portal-Rollen**:
+
+1. Gib den Anwendern beim Login des Portals Rollen. Mit OpenID Connect sind das die Claims des Rollen-Claim-Typs des Providers (`Portal:Auth:Oidc:RoleClaimType`, Standard `role`). Im Modus forms füge den Benutzern in `Portal:Auth:Users` `Roles` hinzu:
+
+    ```json
+    { "Name": "ada", "PasswordHash": "…", "Roles": [ "hr", "finance" ] }
+    ```
+2. Nenne im Editor die Rollen, die einen Workflow sehen dürfen (*Only these roles* in seinen Portal-Einstellungen) oder alle veröffentlichten Workflows einer Gruppe (*Portal roles* im Gruppen-Dialog). Die Rollen eines Workflows gelten vor denen seiner Gruppe. Ohne Rollen sieht ihn jeder.
+
+Ein Anwender braucht eine der Rollen; die Groß-/Kleinschreibung spielt keine Rolle. Ein Workflow, den die Rollen nicht erlauben, wird nicht aufgelistet, lässt sich nicht starten, und seine Läufe werden nicht gezeigt. Diese Rollen sind nicht die Rollen viewer bis admin des Editors, und sie prüft das Backend, nicht das Portal. Rollen kommen aus dem Login, eine Änderung gilt also ab der nächsten Anmeldung.
 
 ## Mail, wenn ein Lauf fertig ist
 

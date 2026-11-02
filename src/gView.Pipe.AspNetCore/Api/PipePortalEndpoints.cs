@@ -61,6 +61,9 @@ public sealed class PipePortalRuns
 static public class PipePortalEndpoints
 {
     public const string UserHeader = "X-Pipe-On-Behalf-Of";
+
+    /// <summary>The portal roles of the user, each percent-encoded, separated by commas (ADR 0030).</summary>
+    public const string RolesHeader = "X-Pipe-On-Behalf-Of-Roles";
     public const string UserPrefix = "portal:";
     public const int DefaultMaxRunsPerUser = 3;
     public const int DefaultHistoryDays = 30;
@@ -81,6 +84,23 @@ static public class PipePortalEndpoints
     {
         var user = context.Request.Headers[UserHeader].ToString().Trim();
         return user.Length is > 0 and <= 200 && !user.Any(char.IsControl) ? user : null;
+    }
+
+    /// <summary>The portal roles the portal sends for the user; none when the header is missing.</summary>
+    static private IReadOnlyCollection<string> Roles(HttpContext context)
+        => context.Request.Headers[RolesHeader].ToString()
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(200)
+            .Select(Uri.UnescapeDataString)
+            .ToList();
+
+    /// <summary>True when the roles of the user let them see the workflow (ADR 0030).</summary>
+    static private async Task<bool> AllowedAsync(PipeWorkflow workflow, HttpContext context)
+    {
+        var group = workflow.GroupId is { } id
+            ? await PipeApiEndpoints.Services<IPipeWorkflowGroupStore>(context).GetAsync(id, context.RequestAborted)
+            : null;
+        return PipePortalAccess.Allows(Roles(context), workflow, group);
     }
 
     static private IResult NoUser() => PipeApiEndpoints.Problem(StatusCodes.Status400BadRequest, $"The header {UserHeader} names the user the request is for");
@@ -118,7 +138,9 @@ static public class PipePortalEndpoints
     static private async Task<PipeWorkflow?> PublishedAsync(string id, HttpContext context)
     {
         var workflow = await PipeApiEndpoints.Services<IPipeWorkflowStore>(context).GetAsync(id, context.RequestAborted);
-        return workflow is { Settings.Portal.Published: true } && PipeApiEndpoints.Key(context).Covers(workflow.GroupId) ? workflow : null;
+        return workflow is { Settings.Portal.Published: true } && PipeApiEndpoints.Key(context).Covers(workflow.GroupId) && await AllowedAsync(workflow, context)
+            ? workflow
+            : null;
     }
 
     static private string? NotifyWorkflowId(HttpContext context)
@@ -139,10 +161,13 @@ static public class PipePortalEndpoints
             return NoUser();
         }
         var key = PipeApiEndpoints.Key(context);
-        var groups = (await PipeApiEndpoints.Services<IPipeWorkflowGroupStore>(context).ListAsync(context.RequestAborted))
-            .ToDictionary(g => g.Id, g => g.Name, StringComparer.Ordinal);
+        var allGroups = (await PipeApiEndpoints.Services<IPipeWorkflowGroupStore>(context).ListAsync(context.RequestAborted))
+            .ToDictionary(g => g.Id, StringComparer.Ordinal);
+        var groups = allGroups.ToDictionary(g => g.Key, g => g.Value.Name, StringComparer.Ordinal);
+        var roles = Roles(context);
         var workflows = (await PipeApiEndpoints.Services<IPipeWorkflowStore>(context).ListAsync(context.RequestAborted))
-            .Where(w => w.Settings.Portal is { Published: true } && key.Covers(w.GroupId))
+            .Where(w => w.Settings.Portal is { Published: true } && key.Covers(w.GroupId)
+                        && PipePortalAccess.Allows(roles, w, w.GroupId is { } gid ? allGroups.GetValueOrDefault(gid) : null))
             .OrderBy(w => w.Name, StringComparer.OrdinalIgnoreCase)
             .Select(w => new
             {
@@ -393,8 +418,11 @@ static public class PipePortalEndpoints
             return NoUser();
         }
         var key = PipeApiEndpoints.Key(context);
+        var roles = Roles(context);
+        var groups = (await PipeApiEndpoints.Services<IPipeWorkflowGroupStore>(context).ListAsync(context.RequestAborted))
+            .ToDictionary(g => g.Id, StringComparer.Ordinal);
         var workflows = (await PipeApiEndpoints.Services<IPipeWorkflowStore>(context).ListAsync(context.RequestAborted))
-            .Where(w => key.Covers(w.GroupId))
+            .Where(w => key.Covers(w.GroupId) && PipePortalAccess.Allows(roles, w, w.GroupId is { } gid ? groups.GetValueOrDefault(gid) : null))
             .ToDictionary(w => w.Id, StringComparer.Ordinal);
         var executions = await PipeApiEndpoints.Services<IPipeExecutionStore>(context).QueryAsync(new PipeExecutionQuery
         {
@@ -443,6 +471,7 @@ static public class PipePortalEndpoints
         // another user's run, or one of a workflow outside of the key, is not there
         if (await PipeApiEndpoints.Services<IPipeWorkflowStore>(context).GetAsync(workflowId, context.RequestAborted) is not { } workflow
             || !PipeApiEndpoints.Key(context).Covers(workflow.GroupId)
+            || !await AllowedAsync(workflow, context)
             || !await OwnsAsync(user, workflowId, id, context))
         {
             return PipeApiEndpoints.NotFound($"Execution '{id}'");
@@ -477,6 +506,7 @@ static public class PipePortalEndpoints
         }
         if (await PipeApiEndpoints.Services<IPipeWorkflowStore>(context).GetAsync(workflowId, context.RequestAborted) is not { } workflow
             || !PipeApiEndpoints.Key(context).Covers(workflow.GroupId)
+            || !await AllowedAsync(workflow, context)
             || !await OwnsAsync(user, workflowId, id, context))
         {
             return PipeApiEndpoints.NotFound($"Execution '{id}'");

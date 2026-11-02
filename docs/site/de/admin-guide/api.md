@@ -111,7 +111,7 @@ Credentials, Variablen und Gruppen lassen sich über die API nicht ändern; rich
 
 ## Portal-Endpunkte
 
-Für das Anwender-Portal (Anwender, die Workflows ausführen, aber nicht bearbeiten) erreicht ein Key mit dem Recht **Portal** nur `/api/v1/portal`. Er kann nichts anderes, und kein anderer Key erreicht diese Endpunkte. Jede Anfrage nennt den Anwender, für den sie gilt, im Header `X-Pipe-On-Behalf-Of`; Läufe zeigen `portal:<Anwender>` als Starter, und Anwender sehen und stoppen nur ihre eigenen Läufe. Der Portal-Server wird darin als vertrauenswürdig behandelt, dass er den richtigen Anwender nennt. Halte den Key deshalb auf diesem Server und lass nur ihn das Backend erreichen.
+Für das Anwender-Portal (Anwender, die Workflows ausführen, aber nicht bearbeiten) erreicht ein Key mit dem Recht **Portal** nur `/api/v1/portal`. Er kann nichts anderes, und kein anderer Key erreicht diese Endpunkte. Jede Anfrage nennt den Anwender, für den sie gilt, im Header `X-Pipe-On-Behalf-Of` und kann die [Portal-Rollen](portal.md#wer-welche-workflows-sieht) des Anwenders in `X-Pipe-On-Behalf-Of-Roles` auflisten (jede Rolle prozentcodiert, durch Kommas getrennt); Läufe zeigen `portal:<Anwender>` als Starter, und Anwender sehen und stoppen nur ihre eigenen Läufe. Der Portal-Server wird darin als vertrauenswürdig behandelt, dass er den richtigen Anwender nennt. Halte den Key deshalb auf diesem Server und lass nur ihn das Backend erreichen.
 
 | Methode und Pfad | Macht |
 |---|---|

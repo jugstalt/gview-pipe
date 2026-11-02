@@ -111,7 +111,7 @@ Credentials, variables and groups can't be changed through the API; set them up 
 
 ## Portal endpoints
 
-For the user portal (users who run workflows, but don't edit them) a key with the right **Portal** reaches only `/api/v1/portal`. It cannot do anything else, and no other key reaches these endpoints. Every request names the user it is for in the header `X-Pipe-On-Behalf-Of`; runs show `portal:<user>` as the starter, and users see and stop only their own runs. The portal server is trusted to name the right user, so keep the key on that server and let only it reach the backend.
+For the user portal (users who run workflows, but don't edit them) a key with the right **Portal** reaches only `/api/v1/portal`. It cannot do anything else, and no other key reaches these endpoints. Every request names the user it is for in the header `X-Pipe-On-Behalf-Of`, and may list the [portal roles](portal.md#who-sees-which-workflows) of the user in `X-Pipe-On-Behalf-Of-Roles` (each role percent-encoded, separated by commas); runs show `portal:<user>` as the starter, and users see and stop only their own runs. The portal server is trusted to name the right user, so keep the key on that server and let only it reach the backend.
 
 | Method and path | Does |
 |---|---|

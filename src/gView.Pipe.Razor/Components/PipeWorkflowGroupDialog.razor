@@ -29,6 +29,10 @@
             <PipeWorkflowSelect Label="Error workflow" InheritText="@ErrorInheritText" NoneValue="@PipeErrorWorkflows.None"
                                 HelperText="Runs when a triggered run of a workflow in the group fails, unless the workflow sets its own"
                                 @bind-Value="_group.ErrorWorkflowId" />
+            <MudTextField T="string" Label="Portal roles" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          HelperText="Only users with one of these roles see the published workflows of the group in the portal, unless a workflow names roles itself. Separate by commas; empty: everybody"
+                          Value="@string.Join(", ", _group.PortalRoles ?? [])"
+                          ValueChanged="v => _group.PortalRoles = gView.Pipe.Abstraction.Portal.PipePortalAccess.Parse(v)" />
             <div>
                 <MudText Typo="Typo.subtitle2">Variables</MudText>
                 <PipeVariablesEditor @bind-Variables="_group.Variables"

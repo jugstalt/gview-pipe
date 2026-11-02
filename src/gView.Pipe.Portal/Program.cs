@@ -6,6 +6,13 @@ using gView.Pipe.Portal.Components;
 using gView.Pipe.Portal.Portal;
 using MudBlazor.Services;
 
+if (args is ["--hash-password", var password])
+{
+    // for Portal:Auth:Users[].PasswordHash
+    Console.WriteLine(PipePasswordHasher.Hash(password));
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // a file next to the app for the settings of the installation, like _config/ of the Shell
@@ -32,7 +39,16 @@ builder.Services.AddHttpClient<PipePortalClient>(client =>
 });
 
 // the login of the users (ADR 0014), from the section Portal:Auth
-builder.Services.AddPipeAuthentication(options => builder.Configuration.GetSection("Portal:Auth").Bind(options));
+builder.Services.AddPipeAuthentication(options =>
+{
+    builder.Configuration.GetSection("Portal:Auth").Bind(options);
+
+    // the mail when a run is done needs the address of the user (ADR 0029): ask for it unless the scopes are set
+    if (options.Oidc.Scopes.Count == 0)
+    {
+        options.Oidc.Scopes = ["openid", "profile", "role", "email"];
+    }
+});
 
 var app = builder.Build();
 

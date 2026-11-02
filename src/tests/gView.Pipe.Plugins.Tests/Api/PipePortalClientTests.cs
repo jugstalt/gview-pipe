@@ -2,6 +2,7 @@ using gView.Pipe.Abstraction.Portal;
 using gView.Pipe.Abstraction.Security;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Workflows;
+using gView.Pipe.AspNetCore.Authentication;
 using gView.Pipe.AspNetCore.Extensions.DependencyInjection;
 using gView.Pipe.AspNetCore.Extensions.Routing;
 using gView.Pipe.Core.Extensions.DependencyInjection;
@@ -72,11 +73,11 @@ public sealed class PipePortalClientTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync() => await _app.DisposeAsync();
 
-    private PipePortalClient ClientFor(string user, string? email = null)
+    private PipePortalClient ClientFor(string user, string? email = null, params string[] roles)
     {
         var http = _app.GetTestClient();
         http.DefaultRequestHeaders.Add(PipePortalClient.KeyHeader, _key);
-        return new PipePortalClient(http, new FixedUser(user, email));
+        return new PipePortalClient(http, new FixedUser(user, email, roles), new PipeAuthenticationOptions());
     }
 
     [Fact]
@@ -154,7 +155,7 @@ public sealed class PipePortalClientTests : IAsyncLifetime
     }
 
     /// <summary>A signed-in user, or nobody for an empty name.</summary>
-    private sealed class FixedUser(string name, string? email = null) : AuthenticationStateProvider
+    private sealed class FixedUser(string name, string? email = null, string[]? roles = null) : AuthenticationStateProvider
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
@@ -163,6 +164,7 @@ public sealed class PipePortalClientTests : IAsyncLifetime
             {
                 claims.Add(new Claim("email", email));
             }
+            claims.AddRange((roles ?? []).Select(r => new Claim("role", r)));
             return Task.FromResult(new AuthenticationState(name.Length == 0
                 ? new ClaimsPrincipal(new ClaimsIdentity())
                 : new ClaimsPrincipal(new ClaimsIdentity(claims, "test"))));

@@ -89,7 +89,7 @@ Workflows werden in **Gruppen** einsortiert, die als Kacheln auf der Startseite 
 
 ![Die Startseite mit der Gruppe Samples](../../images/start-page.png)
 
-Öffne eine Gruppe, um ihre Workflows zu sehen und dort neue anzulegen. Das Löschen einer Gruppe löscht nie ihre Workflows. Der Gruppen-Dialog (Stift auf der Kachel) legt Name, Farbe und das fest, was ihre Workflows erben: das Environment, Variablen und den Fehler-Workflow.
+Öffne eine Gruppe, um ihre Workflows zu sehen und dort neue anzulegen. Das Löschen einer Gruppe löscht nie ihre Workflows. Der Gruppen-Dialog (Stift auf der Kachel) legt Name, Farbe, die [Portal-Rollen](../admin-guide/portal.md#wer-welche-workflows-sieht) und das fest, was ihre Workflows erben: das Environment, Variablen und den Fehler-Workflow.
 
 ## Einstellungen des Workflows
 
@@ -106,5 +106,5 @@ Wähle keinen Node (klicke auf die leere Arbeitsfläche), um die Einstellungen d
 | Webhook callers may choose | Environments, die ein Webhook-Aufrufer mit `X-Pipe-Environment` wählen kann. |
 | Variables | Variablen dieses Workflows, ein Wert je Environment. |
 | Error workflow | Wird gestartet, wenn ein durch Trigger gestarteter Lauf fehlschlägt, siehe [Fehlerbehandlung](error-handling.md#fehler-workflows). *Inherit* (Vorgabe) übernimmt den der Gruppe oder der Instanz, *None* schaltet ihn ab. |
-| Publish in portal | Macht den Workflow für Anwender im Anwender-Portal sichtbar, in der Kategorie seiner Gruppe. Dann stellst du ein, ob der Anwender wartet oder der Lauf im Hintergrund läuft, das Warte-Timeout, ob der Anwender umschalten und den Lauf stoppen darf und ob nur ein Lauf gleichzeitig laufen darf. Das Formular kommt aus einem Form-Trigger-Node, das Ergebnis aus einem Result-Node. Ohne Form Trigger startet der Workflow ohne Eingabe. Siehe [REST API](../admin-guide/api.md#portal-endpunkte). |
+| Publish in portal | Macht den Workflow für Anwender im Anwender-Portal sichtbar, in der Kategorie seiner Gruppe. Dann stellst du ein, wer ihn sehen darf (*Only these roles*), ob der Anwender wartet oder der Lauf im Hintergrund läuft, das Warte-Timeout, ob der Anwender umschalten und den Lauf stoppen darf und ob nur ein Lauf gleichzeitig laufen darf. Das Formular kommt aus einem Form-Trigger-Node, das Ergebnis aus einem Result-Node. Ohne Form Trigger startet der Workflow ohne Eingabe. Siehe [REST API](../admin-guide/api.md#portal-endpunkte). |
 | Executions | Die Historie dieses Workflows, siehe [Executions](executions.md). |

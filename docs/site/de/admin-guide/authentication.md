@@ -114,6 +114,8 @@ Der AppHost startet IdentityServer.NET unter `https://localhost:8443` (`ADD_IDEN
 
 Der Benutzer mit der Rolle kann arbeiten, der andere sieht **No access**.
 
+Der AppHost legt dafür schon Benutzer an (Passwort in Klammern), alle mit der Rolle `gview-pipe`: `pipe-viewer@is.net` (`viewer`), `pipe-editor@is.net` (`editor`) und `pipe-admin@is.net` (`admin`). Er bildet ihre Rollen `pipe-viewers`, `pipe-editors` und `pipe-admins` auf die [Rollen](#rollen) viewer, editor und admin der Shell ab; du setzt also nur noch `Mode` auf `oidc`. Der Benutzer `portal@is.net` (`portal`) mit der Rolle `portal-demo` ist für das [Portal](portal.md).
+
 ## Rollen
 
 Mit Anmeldung hat jeder Benutzer eine Rolle. Jede Rolle darf, was die vorherigen dürfen:

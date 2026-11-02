@@ -42,6 +42,7 @@ static internal class PipeAuthenticationEndpoints
         {
             claims.Add(new Claim("email", user.Email));
         }
+        claims.AddRange(user.Roles.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => new Claim("role", r.Trim())));
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
         return Results.Redirect($"{context.Request.PathBase}{returnUrl}");

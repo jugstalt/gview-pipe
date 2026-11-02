@@ -113,6 +113,12 @@ public sealed class PipeWorkflowPortalSettings
     /// <summary>Seconds a user waits before the run goes on in the background.</summary>
     public int WaitTimeoutSeconds { get; set; } = 30;
 
+    /// <summary>
+    /// Only users with one of these roles see and run the workflow in the portal; empty: the roles of the group, and
+    /// without those everybody (ADR 0030).
+    /// </summary>
+    public List<string>? Roles { get; set; }
+
     /// <summary>When false, users can't stop their runs (e.g. imports that must not end halfway).</summary>
     public bool AllowCancel { get; set; } = true;
 

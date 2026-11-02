@@ -27,6 +27,12 @@ public sealed class PipeWorkflowGroup
     /// <summary>Error workflow of the workflows in the group that don't set one; null inherits the instance's (ADR 0017).</summary>
     public string? ErrorWorkflowId { get; set; }
 
+    /// <summary>
+    /// Portal roles that may see the published workflows of the group that set no roles of their own; empty: everybody
+    /// (ADR 0030).
+    /// </summary>
+    public List<string>? PortalRoles { get; set; }
+
     public DateTimeOffset? CreatedAt { get; set; }
 }
 

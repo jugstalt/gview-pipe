@@ -23,7 +23,13 @@ public class PipeFormsLoginTests
         {
             options.Mode = mode;
             options.LoginAttemptsPerMinute = attempts;
-            options.Users.Add(new PipeFormsUser { Name = "admin", PasswordHash = PipePasswordHasher.Hash("s3cret") });
+            options.Users.Add(new PipeFormsUser
+            {
+                Name = "admin",
+                PasswordHash = PipePasswordHasher.Hash("s3cret"),
+                Email = "admin@example.com",
+                Roles = ["hr", "finance"]
+            });
         });
 
         var app = builder.Build();
@@ -31,6 +37,7 @@ public class PipeFormsLoginTests
         app.UseAntiforgery();
         app.MapPipeAuthentication();
         app.MapGet("/ui", (HttpContext context) => $"hello {context.User.Identity?.Name}").RequirePipeAuthorization();
+        app.MapGet("/claims", (HttpContext context) => string.Join(";", context.User.Claims.Select(c => $"{c.Type}={c.Value}"))).RequirePipeAuthorization();
         // the host's login page renders the token; here an endpoint hands it out
         app.MapGet("/token", (HttpContext context, IAntiforgery antiforgery) => antiforgery.GetAndStoreTokens(context).RequestToken);
 
@@ -85,6 +92,20 @@ public class PipeFormsLoginTests
         var logout = await client.GetAsync("/account/logout");
         Assert.Equal("/account/login", logout.Headers.Location!.OriginalString);
         Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/ui")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_GivesTheClaimsForMailAndPortalRoles()
+    {
+        await using var app = await StartAsync();
+        var client = Client(app);
+        await LoginAsync(client, "s3cret");
+
+        var claims = (await client.GetStringAsync("/claims")).Split(';');
+
+        Assert.Contains("email=admin@example.com", claims);
+        Assert.Contains("role=hr", claims);
+        Assert.Contains("role=finance", claims);
     }
 
     [Fact]

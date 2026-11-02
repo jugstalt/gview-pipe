@@ -89,7 +89,7 @@ Workflows are sorted into **groups**, shown as tiles on the start page. A workfl
 
 ![The start page with the group Samples](../../images/start-page.png)
 
-Open a group to see its workflows and to create new ones in it. Deleting a group never deletes its workflows. The group dialog (pencil on the tile) sets name, color, and what its workflows inherit: the environment, variables and the error workflow.
+Open a group to see its workflows and to create new ones in it. Deleting a group never deletes its workflows. The group dialog (pencil on the tile) sets name, color, the [portal roles](../admin-guide/portal.md#who-sees-which-workflows) and what its workflows inherit: the environment, variables and the error workflow.
 
 ## Workflow settings
 
@@ -106,5 +106,5 @@ Select no node (click the empty canvas) to see the settings of the workflow:
 | Webhook callers may choose | Environments a webhook caller can pick with `X-Pipe-Environment`. |
 | Variables | Variables of this workflow, one value per environment. |
 | Error workflow | Started when a triggered run fails, see [Error handling](error-handling.md#error-workflows). *Inherit* (the default) takes the group's or the instance's, *None* switches it off. |
-| Publish in portal | Makes the workflow visible to users in the user portal, in the category of its group. Then you choose whether users wait or the run goes to the background, the wait timeout, whether users may switch, whether they may stop the run and whether only one run may go at a time. The form comes from a Form Trigger node, the result from a Result node. Without a Form Trigger the workflow starts without input. See [REST API](../admin-guide/api.md#portal-endpoints). |
+| Publish in portal | Makes the workflow visible to users in the user portal, in the category of its group. Then you choose who may see it (*Only these roles*), whether users wait or the run goes to the background, the wait timeout, whether users may switch, whether they may stop the run and whether only one run may go at a time. The form comes from a Form Trigger node, the result from a Result node. Without a Form Trigger the workflow starts without input. See [REST API](../admin-guide/api.md#portal-endpoints). |
 | Executions | The history of this workflow, see [Executions](executions.md). |

@@ -55,6 +55,10 @@ public sealed class PipePortalTests : IAsyncLifetime
         await workflows.SaveAsync(Greeter("greeter", published: true));
         await workflows.SaveAsync(Greeter("hidden", published: false));
         await workflows.SaveAsync(Failing("failing"));
+        // portal roles (ADR 0030): the group finance, a workflow in it, and one of the group that names hr itself
+        await _app.Services.GetRequiredService<IPipeWorkflowGroupStore>().SaveAsync(new PipeWorkflowGroup { Id = "finance", Name = "Finance", PortalRoles = ["finance"] });
+        await workflows.SaveAsync(Restricted("payroll", roles: null));
+        await workflows.SaveAsync(Restricted("hr-only", roles: ["hr"]));
         // the mail workflow of the admin: receives { to, user, workflow, execution }
         await workflows.SaveAsync(new PipeWorkflowBuilder("Notify", "notify")
             .Node("start", PipeBuiltInNodes.ExecuteWorkflowTrigger)
@@ -93,6 +97,18 @@ public sealed class PipePortalTests : IAsyncLifetime
         })
         .Build();
 
+    /// <summary>A published workflow in the group finance, with roles of its own or those of the group.</summary>
+    static private PipeWorkflow Restricted(string id, List<string>? roles) => new PipeWorkflowBuilder(id, id)
+        .Node("form", PipeBuiltInNodes.FormTrigger, new { fields = Array.Empty<object>() })
+        .Node("result", PipeBuiltInNodes.Result, new { kind = "text", content = "done" })
+        .Connect("form", "result")
+        .Configure(w =>
+        {
+            w.GroupId = "finance";
+            w.Settings.Portal = new PipeWorkflowPortalSettings { Published = true, Roles = roles };
+        })
+        .Build();
+
     /// <summary>Throws in a Code node; the Result node has an own error message.</summary>
     static private PipeWorkflow Failing(string id) => new PipeWorkflowBuilder(id, id)
         .Node("form", PipeBuiltInNodes.FormTrigger, new { fields = Array.Empty<object>() })
@@ -115,13 +131,17 @@ public sealed class PipePortalTests : IAsyncLifetime
         return key;
     }
 
-    private HttpRequestMessage Request(HttpMethod method, string path, string key, string? user, object? body = null)
+    private HttpRequestMessage Request(HttpMethod method, string path, string key, string? user, object? body = null, string? roles = null)
     {
         var request = new HttpRequestMessage(method, path);
         request.Headers.Add(PipeApiAuthenticator.HeaderName, key);
         if (user is not null)
         {
             request.Headers.Add(PipePortalEndpoints.UserHeader, user);
+        }
+        if (roles is not null)
+        {
+            request.Headers.Add(PipePortalEndpoints.RolesHeader, roles);
         }
         if (body is not null)
         {
@@ -130,9 +150,9 @@ public sealed class PipePortalTests : IAsyncLifetime
         return request;
     }
 
-    private async Task<JsonNode> SendAsync(HttpMethod method, string path, string key, string? user, HttpStatusCode expected, object? body = null)
+    private async Task<JsonNode> SendAsync(HttpMethod method, string path, string key, string? user, HttpStatusCode expected, object? body = null, string? roles = null)
     {
-        var response = await _client.SendAsync(Request(method, path, key, user, body));
+        var response = await _client.SendAsync(Request(method, path, key, user, body, roles));
         var text = await response.Content.ReadAsStringAsync();
         Assert.True(expected == response.StatusCode, $"{method} {path}: {(int)response.StatusCode} {text}");
         return text.Length > 0 ? JsonNode.Parse(text)! : new JsonObject();
@@ -314,6 +334,46 @@ public sealed class PipePortalTests : IAsyncLifetime
         Assert.True((bool)old["expired"]!);
         Assert.Null(old["result"]);
         Assert.Null(old["values"]);
+    }
+
+    private async Task<string[]> ListedAsync(string key, string user, string? roles)
+        => ((JsonArray)await SendAsync(HttpMethod.Get, "/api/v1/portal/workflows", key, user, HttpStatusCode.OK, roles: roles))
+            .Select(w => (string)w!["id"]!).Order().ToArray();
+
+    [Fact]
+    public async Task Roles_decide_which_workflows_the_user_sees()
+    {
+        var key = await KeyAsync(PipeApiRights.Portal);
+
+        // no roles: only what has none (greeter, failing)
+        Assert.Equal(["failing", "greeter"], await ListedAsync(key, "anna", null));
+        // finance: the group's workflow, not the one that names hr
+        Assert.Equal(["failing", "greeter", "payroll"], await ListedAsync(key, "anna", "finance"));
+        // hr: only the workflow that names it; roles are sent percent-encoded and compared ignoring case
+        Assert.Equal(["failing", "greeter", "hr-only"], await ListedAsync(key, "anna", "HR"));
+        Assert.Equal(["failing", "greeter", "hr-only", "payroll"], await ListedAsync(key, "anna", "hr,finance"));
+        Assert.Equal(["failing", "greeter"], await ListedAsync(key, "anna", "caf%C3%A9"));
+    }
+
+    [Fact]
+    public async Task A_user_without_the_role_cannot_run_or_look_at_the_workflow()
+    {
+        var key = await KeyAsync(PipeApiRights.Portal);
+
+        await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/payroll/run", key, "anna", HttpStatusCode.NotFound, new { values = new { } });
+        await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/payroll/run", key, "anna", HttpStatusCode.NotFound, new { values = new { } }, roles: "hr");
+
+        var done = await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/payroll/run", key, "anna", HttpStatusCode.OK, new { values = new { } }, roles: "finance");
+        var path = $"/api/v1/portal/executions/payroll/{(string)done["executionId"]!}";
+        await SendAsync(HttpMethod.Get, path, key, "anna", HttpStatusCode.OK, roles: "finance");
+
+        // the role is gone: the run is not shown, neither in the list nor in detail, and can't be stopped
+        await SendAsync(HttpMethod.Get, path, key, "anna", HttpStatusCode.NotFound);
+        await SendAsync(HttpMethod.Post, path + "/cancel", key, "anna", HttpStatusCode.NotFound);
+        var runs = (JsonArray)await SendAsync(HttpMethod.Get, "/api/v1/portal/executions", key, "anna", HttpStatusCode.OK);
+        Assert.DoesNotContain(runs, r => (string?)r!["workflowId"] == "payroll");
+        var withRole = (JsonArray)await SendAsync(HttpMethod.Get, "/api/v1/portal/executions", key, "anna", HttpStatusCode.OK, roles: "finance");
+        Assert.Contains(withRole, r => (string?)r!["workflowId"] == "payroll");
     }
 
     [Fact]

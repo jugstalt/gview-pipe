@@ -33,7 +33,15 @@ Settings are read from `appsettings.json`, from `portal.config.json` next to the
 
 The name of the signed-in user goes to the backend with every request. Runs show `portal:<name>` as the starter in the history of the editor, and users see and stop only their own runs.
 
-Start it like the Shell: `dotnet run --project src/gView.Pipe.Portal` (port 5250 in development).
+Start it like the Shell: `dotnet run --project src/gView.Pipe.Portal` (port 5250 in development, `--launch-profile https` for https on 7250).
+
+For the forms mode create the hash of a password with the portal itself:
+
+```bash
+dotnet gView.Pipe.Portal.dll --hash-password "my password"
+```
+
+and put it into `PasswordHash` of the user (see [Authentication](authentication.md#forms-fixed-users)). With OpenID Connect the client of the portal needs the redirect URIs `<portal address>/signin-oidc` and `<portal address>/signout-callback-oidc`. The portal needs https for it, behind a proxy with `Portal:Auth:UseForwardedHeaders`. It asks for the scopes `openid profile role email` unless you set `Portal:Auth:Oidc:Scopes`; `email` brings the address for the mail when a run is done, so the client must be allowed this scope.
 
 ## What users can do
 
@@ -42,6 +50,19 @@ Start it like the Shell: `dotnet run --project src/gView.Pipe.Portal` (port 5250
 - **Wait or background**: the author sets the default and whether users may switch. A run the user waits for goes on in the background when the wait timeout has passed.
 - **My runs**: the runs of the user with their status. Running runs have a *Stop* button, unless the workflow forbids it. Finished runs have *Run again*, which opens the form with the values of that run (passwords are never kept).
 - **Result**: text, Markdown (without raw HTML) or a table, as defined by the Result node. Users never see raw items or the details of errors.
+
+## Who sees which workflows
+
+Without further settings every signed-in user sees all published workflows. To show some of them to some people only, use **portal roles**:
+
+1. Give the users roles at the login of the portal. With OpenID Connect these are the claims of the role claim type of the provider (`Portal:Auth:Oidc:RoleClaimType`, default `role`). In the forms mode add `Roles` to the users in `Portal:Auth:Users`:
+
+    ```json
+    { "Name": "ada", "PasswordHash": "…", "Roles": [ "hr", "finance" ] }
+    ```
+2. In the editor name the roles that may see a workflow (*Only these roles* in its portal settings) or all published workflows of a group (*Portal roles* in the group dialog). The roles of a workflow count before those of its group. Without roles everybody sees it.
+
+A user needs one of the roles; case is ignored. A workflow the roles don't allow is not listed, can't be started and its runs aren't shown. These roles are not the roles viewer to admin of the editor, and they are checked by the backend, not by the portal. Roles come from the login, so a change applies at the next sign-in.
 
 ## Mail when a run is done
 

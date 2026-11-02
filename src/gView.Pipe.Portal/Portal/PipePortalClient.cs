@@ -1,6 +1,7 @@
 using gView.Pipe.Abstraction.Portal;
 using gView.Pipe.Abstraction.Serialization;
 using gView.Pipe.Abstraction.Workflows;
+using gView.Pipe.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Net;
 using System.Text;
@@ -98,15 +99,18 @@ public sealed class PipePortalClient
 {
     public const string KeyHeader = "X-Pipe-Api-Key";
     public const string UserHeader = "X-Pipe-On-Behalf-Of";
+    public const string RolesHeader = "X-Pipe-On-Behalf-Of-Roles";
     public const string AnonymousUser = "anonymous";
 
     private readonly HttpClient _http;
     private readonly AuthenticationStateProvider _authentication;
+    private readonly PipeAuthenticationOptions _options;
 
-    public PipePortalClient(HttpClient http, AuthenticationStateProvider authentication)
+    public PipePortalClient(HttpClient http, AuthenticationStateProvider authentication, PipeAuthenticationOptions options)
     {
         _http = http;
         _authentication = authentication;
+        _options = options;
     }
 
     public async Task<PortalInfo> GetInfoAsync(CancellationToken cancellationToken = default)
@@ -144,10 +148,26 @@ public sealed class PipePortalClient
         return user.Identity is { IsAuthenticated: true, Name: { Length: > 0 } name } ? name : AnonymousUser;
     }
 
+    /// <summary>
+    /// The portal roles of the user (ADR 0030): the claims <c>role</c> of the forms login, or those of the claim type
+    /// of the identity provider. The backend decides which workflows they let the user see.
+    /// </summary>
+    private async Task<string?> RolesAsync()
+    {
+        var user = (await _authentication.GetAuthenticationStateAsync()).User;
+        var claimType = _options.Mode == PipeAuthenticationMode.Oidc ? _options.Oidc.RoleClaimType : "role";
+        var roles = user.FindAll(claimType).Select(c => c.Value).Where(r => !string.IsNullOrWhiteSpace(r)).Distinct().ToList();
+        return roles.Count == 0 ? null : string.Join(",", roles.Select(Uri.EscapeDataString));
+    }
+
     private async Task<T?> SendAsync<T>(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(method, path);
         request.Headers.Add(UserHeader, await UserAsync());
+        if (await RolesAsync() is { } roles)
+        {
+            request.Headers.Add(RolesHeader, roles);
+        }
         if (body is not null)
         {
             request.Content = new StringContent(PipeJson.Serialize(body), Encoding.UTF8, "application/json");

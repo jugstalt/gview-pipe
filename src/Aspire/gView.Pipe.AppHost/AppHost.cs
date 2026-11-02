@@ -2,6 +2,8 @@
 #define ADD_MAILPIT
 #define ADD_GITEA
 #define ADD_IDENTITYSERVER
+// the portal signs users in with the IdentityServer (needs ADD_IDENTITYSERVER); without it the portal has no login
+#define PORTAL_OIDC
 
 using System.Security.Cryptography;
 
@@ -59,13 +61,29 @@ var identityServer = builder.AddIdentityServerNET("is-net-dev", httpsPort: 8443)
        .WithMigrations(migrations =>
             migrations
                .AddAdminPassword("admin")
-               .AddIdentityResources(["openid", "profile", "role"])
+               .AddIdentityResources(["openid", "profile", "role", "email"])
                .AddClient(ClientType.WebApplication,
                           "local-gview-pipe", "secret",
                           "https://localhost:7240",
                           [
                               "openid", "profile", "role"
                           ])
+               // the portal (https://localhost:7250): redirect URIs <portal>/signin-oidc and <portal>/signout-callback-oidc
+               .AddClient(ClientType.WebApplication,
+                          "local-gview-pipe-portal", "secret",
+                          "https://localhost:7250",
+                          [
+                              // email: the address for the mail when a run is done
+                              "openid", "profile", "role", "email"
+                          ])
+               // roles: gview-pipe lets a user into the Shell (RequiredRoles); the pipe-* roles are mapped to the roles
+               // viewer, editor and admin of the Shell below; portal-demo is a portal role (ADR 0030)
+               .AddUserRoles(["gview-pipe", "pipe-viewers", "pipe-editors", "pipe-admins", "portal-demo"])
+               // users to try them with; the name is an address, so it is the email of the user as well
+               .WithUser("pipe-viewer@is.net", "viewer", ["gview-pipe", "pipe-viewers"])
+               .WithUser("pipe-editor@is.net", "editor", ["gview-pipe", "pipe-editors"])
+               .WithUser("pipe-admin@is.net", "admin", ["gview-pipe", "pipe-admins"])
+               .WithUser("portal@is.net", "portal", ["portal-demo"])
        )
        .Build()
        // the image of 7.26.2902 has a certificate that expired on 2026-08-26; drop this once the package catches up
@@ -84,9 +102,24 @@ var portalKey = builder.AddParameter("portal-key", () => "pipe_" + Convert.ToBas
 var shell = builder.AddProject<Projects.gView_Pipe_Shell>("gview-pipe")
        .WithEnvironment("Pipe__DevPortalKey", portalKey);
 
-builder.AddProject<Projects.gView_Pipe_Portal>("gview-pipe-portal")
+#if ADD_IDENTITYSERVER
+// the roles of the users above for the OIDC mode of the Shell (_config/auth.config: "Mode": "oidc"); unused in other modes
+shell.WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-viewers", "viewer")
+     .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-editors", "editor")
+     .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-admins", "admin");
+#endif
+
+var portal = builder.AddProject<Projects.gView_Pipe_Portal>("gview-pipe-portal")
        .WithEnvironment("Portal__BackendUrl", shell.GetEndpoint("https"))
        .WithEnvironment("Portal__ApiKey", portalKey)
        .WaitFor(shell);
+
+#if PORTAL_OIDC && ADD_IDENTITYSERVER
+// users of the IdentityServer sign in; the role claim "role" gives them the portal roles (ADR 0030) and "email" their address
+portal.WithEnvironment("Portal__Auth__Mode", "Oidc")
+      .WithEnvironment("Portal__Auth__Oidc__Authority", "https://localhost:8443")
+      .WithEnvironment("Portal__Auth__Oidc__ClientId", "local-gview-pipe-portal")
+      .WithEnvironment("Portal__Auth__Oidc__ClientSecret", "secret");
+#endif
 
 builder.Build().Run();

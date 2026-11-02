@@ -79,6 +79,10 @@
                              Value="portal.AllowCancel" ValueChanged="v => ChangeAsync(() => portal.AllowCancel = v)" />
                 <MudCheckBox T="bool" Color="Color.Primary" Label="Only one run at a time"
                              Value="portal.SingleRun" ValueChanged="v => ChangeAsync(() => portal.SingleRun = v)" />
+                <MudTextField T="string" Label="Only these roles" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              HelperText="Portal roles, separated by commas. Empty: the roles of the group, and without those everybody"
+                              Value="@string.Join(", ", portal.Roles ?? [])"
+                              ValueChanged="v => ChangeAsync(() => portal.Roles = gView.Pipe.Abstraction.Portal.PipePortalAccess.Parse(v))" />
             </MudStack>
         }
     </div>
