@@ -38,3 +38,8 @@
 | **Credential** | Stored, encrypted secret data (API key, password, …) referenced by nodes via its id. | `PipeCredential` |
 | **Credential type** | POCO class with `[PipeCredentialType("guid", …)]` describing the fields of a credential; `[Secret]` marks sensitive fields. | `PipeCredentialTypeDescriptor` |
 | **Plugin** | An assembly with node types, credential types and optionally an `IPipePluginStartup`. Built-in plugins are loaded from the app folder, external ones from `plugins/<Name>/<Name>.dll` in their own load context. | `PipePluginCatalog` |
+| **Portal** | The web app for users (not admins or editors): lists published workflows by category, offers their forms, shows the user's own runs and lets them stop them. A standalone Blazor Server host that reaches the backend only through the portal endpoints. | `/api/v1/portal` |
+| **Published workflow** | A workflow with the switch *Publish in portal*; only these are visible to portal users. Its group is the category. | `PipeWorkflowSettings` |
+| **Form Trigger** | Trigger node that declares the input fields of a workflow (text, number, boolean, date, choice) for the portal and emits their values as one item. | `IPipeTriggerNode` |
+| **Result node** | Node that defines what a portal user sees at the end of a run (text, table or file download, own error message). Without it only the status is shown. | |
+| **Delegation** | A key with the right `portal` may name the user it acts for (`X-Pipe-On-Behalf-Of`); the run is stored as started by `portal:<user>` and lists and cancel are filtered by it. | `PipeApiRights` |
