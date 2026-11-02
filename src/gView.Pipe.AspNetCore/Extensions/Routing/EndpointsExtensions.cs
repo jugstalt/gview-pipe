@@ -1,3 +1,4 @@
+using gView.Pipe.AspNetCore.Api;
 using gView.Pipe.AspNetCore.Authentication;
 using gView.Pipe.AspNetCore.Webhooks;
 using Microsoft.AspNetCore.Builder;
@@ -40,6 +41,17 @@ static public class EndpointsExtensions
         endpoints.MapGet(PipeAuthentication.ChallengePath, PipeAuthenticationEndpoints.Challenge).AllowAnonymous();
         endpoints.MapGet(PipeAuthentication.LogoutPath, PipeAuthenticationEndpoints.LogoutAsync).AllowAnonymous();
 
+        return endpoints;
+    }
+
+    /// <summary>
+    /// Maps the REST API under <c>/api/v1</c> and its OpenAPI document <c>/api/v1/openapi.json</c> (ADR 0020).
+    /// The API checks its own keys and never uses the login of the UI. Requires <c>AddPipeApi()</c>.
+    /// </summary>
+    static public IEndpointRouteBuilder MapPipeApi(this IEndpointRouteBuilder endpoints)
+    {
+        PipeApiEndpoints.Map(endpoints);
+        endpoints.MapOpenApi("/api/{documentName}/openapi.json").AllowAnonymous();
         return endpoints;
     }
 

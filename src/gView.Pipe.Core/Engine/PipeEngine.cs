@@ -71,6 +71,7 @@ internal sealed class PipeEngine : IPipeEngine
             ParentWorkflowId = request.ParentWorkflowId,
             Depth = request.Depth,
             ReplayOfExecutionId = request.ReplayOf?.Id,
+            StartedBy = request.StartedBy,
             Status = PipeExecutionStatus.Running,
             StartedAt = DateTimeOffset.UtcNow
         };

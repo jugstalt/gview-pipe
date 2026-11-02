@@ -102,7 +102,7 @@
                     </MudStack>
                 </MudTd>
                 <MudTd DataLabel="Started by">
-                    @ModeText(context.Mode)
+                    <span title="@context.StartedBy">@ModeText(context.Mode)@(context.StartedBy is { } by && by.StartsWith("api:") ? $" · {by[4..]}" : "")</span>
                     @if (context.ReplayOfExecutionId is not null)
                     {
                         <MudTooltip Text="Replay of an earlier execution">
@@ -267,6 +267,7 @@
     {
         PipeExecutionMode.SubWorkflow => "Sub-workflow",
         PipeExecutionMode.Error => "Error workflow",
+        PipeExecutionMode.Api => "API",
         _ => mode.ToString()
     };
 

@@ -2,7 +2,7 @@
 
 Backlog of possible features. Internal, not part of the docs site. Larger items get an ADR before they are built.
 
-Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: the REST API.
+Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: finer roles (viewer, editor, admin per group), then the audit log.
 
 ## Operations and reliability
 
@@ -39,7 +39,8 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 
 - [ ] Database store (SQLite or Postgres) as an alternative to the file store, for many runs.
 - [ ] Plugin packaging: install plugins as NuGet packages from the UI.
-- [ ] REST API or CLI: start, list and deploy workflows from outside.
+- [x] REST API with API keys: run, read executions, deploy workflows (ADR 0020).
+- [ ] CLI on top of the REST API (e.g. `pipe deploy`, `pipe run`).
 
 ## GIS (last)
 

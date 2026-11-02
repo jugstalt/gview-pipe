@@ -19,6 +19,7 @@ public sealed class PipeExecutionSummary
 
     public string? ParentExecutionId { get; set; }
     public string? ReplayOfExecutionId { get; set; }
+    public string? StartedBy { get; set; }
     public bool DataSaved { get; set; } = true;
 
     static public PipeExecutionSummary From(PipeExecution execution) => new()
@@ -36,6 +37,7 @@ public sealed class PipeExecutionSummary
         ErrorNodeName = execution.ErrorNodeId is { } nodeId ? execution.NodeRuns.GetValueOrDefault(nodeId)?.NodeName : null,
         ParentExecutionId = execution.ParentExecutionId,
         ReplayOfExecutionId = execution.ReplayOfExecutionId,
+        StartedBy = execution.StartedBy,
         DataSaved = execution.DataSaved
     };
 

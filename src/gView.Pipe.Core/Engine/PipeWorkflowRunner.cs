@@ -114,7 +114,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         {
             // replays wait without limit; triggered runs only with room in the queue (ADR 0016)
             var queueLimit = waitForSlot ? (int?)null
-                : request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.Error ? workflow.Settings.MaxQueuedRuns : 0;
+                : request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.Error or PipeExecutionMode.Api ? workflow.Settings.MaxQueuedRuns : 0;
             if (queueLimit <= 0)
             {
                 _logger.LogWarning("Workflow {WorkflowName} already runs {MaxRuns} time(s); run skipped", workflow.Name, maxRuns);
@@ -166,7 +166,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
                     // the caller reports it, unless it catches the failure (ADR 0017)
                     _failedSubRuns[callerId] = execution;
                 }
-                else if (request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.Replay)
+                else if (request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.Replay or PipeExecutionMode.Api)
                 {
                     await RunErrorWorkflowAsync(workflow, execution);
                 }

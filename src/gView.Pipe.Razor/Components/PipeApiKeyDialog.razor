@@ -1,0 +1,115 @@
+@using gView.Pipe.Abstraction.Security
+@using gView.Pipe.Abstraction.Users
+@inject IPipeApiKeyStore KeyStore
+@inject IPipeWorkflowGroupStore GroupStore
+@inject IPipeUserContext User
+@inject PipeEditorClipboard Clipboard
+@inject ISnackbar Snackbar
+
+@* Creates an API key (ADR 0020) and shows it once; only its hash is stored. Closes with true when a key was created. *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_created is null)
+        {
+            <MudStack Spacing="3">
+                <MudTextField T="string" @bind-Value="_name" Label="Name *" Variant="Variant.Outlined" Margin="Margin.Dense" AutoFocus="true"
+                              HelperText="Who or what uses it, e.g. CI Deploy; runs show it as started by api:Name" />
+                <div>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Rights</MudText>
+                    <MudStack Row="true" Spacing="2">
+                        <MudCheckBox T="bool" @bind-Value="_read" Label="Read" Color="Color.Primary" />
+                        <MudCheckBox T="bool" @bind-Value="_run" Label="Run" Color="Color.Primary" />
+                        <MudCheckBox T="bool" @bind-Value="_deploy" Label="Deploy" Color="Color.Primary" />
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Read: workflows, executions, groups. Run: start, stop, replay. Deploy: create, change, delete, activate workflows.</MudText>
+                </div>
+                <MudSelect T="string" Label="Only these groups" Dense="true" Variant="Variant.Outlined" MultiSelection="true" Clearable="true"
+                           HelperText="Empty: all workflows. Limited keys don't see workflows outside of their groups."
+                           SelectedValues="_groups" SelectedValuesChanged="v => _groups = v.ToList()">
+                    @foreach (var group in _allGroups)
+                    {
+                        <MudSelectItem Value="@group.Id">@group.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker Label="Expires" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" @bind-Date="_expires"
+                               HelperText="Empty: never" MinDate="DateTime.Today.AddDays(1)" />
+                @if (_error is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+                }
+            </MudStack>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">Copy the key now. It is shown only once; later only its first characters are known.</MudAlert>
+            <MudTextField T="string" Value="_created" Label="API key" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Class="gview-pipe-api-key-value"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy" AdornmentAriaLabel="Copy key" OnAdornmentClick="CopyAsync" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Send it as header X-Pipe-Api-Key, or as Authorization: Bearer.</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_created is null)
+        {
+            <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAsync">Create key</MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="() => Dialog.Close(true)">Done</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
+    private string _name = "";
+    private bool _read = true, _run, _deploy;
+    private IReadOnlyCollection<string> _groups = [];
+    private DateTime? _expires;
+    private string? _error;
+    private string? _created;
+    private IReadOnlyList<PipeWorkflowGroup> _allGroups = [];
+
+    protected override async Task OnInitializedAsync() => _allGroups = await GroupStore.ListAsync();
+
+    private async Task CreateAsync()
+    {
+        var rights = (_read ? PipeApiRights.Read : 0) | (_run ? PipeApiRights.Run : 0) | (_deploy ? PipeApiRights.Deploy : 0);
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "The key needs a name";
+            return;
+        }
+        if (rights == PipeApiRights.None)
+        {
+            _error = "Choose at least one right";
+            return;
+        }
+        if ((await KeyStore.ListAsync()).Any(k => string.Equals(k.Name, _name.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            _error = $"A key named '{_name.Trim()}' exists already";
+            return;
+        }
+
+        var key = PipeApiKeys.Generate();
+        await KeyStore.SaveAsync(new PipeApiKey
+        {
+            Name = _name.Trim(),
+            Hash = PipeApiKeys.Hash(key),
+            Prefix = PipeApiKeys.PrefixOf(key),
+            Rights = rights,
+            Groups = _groups.Any() ? _groups.ToList() : null,
+            // the end of the chosen day, in the browser's sense of "day" is unknown on the server: take UTC
+            ExpiresAt = _expires is { } date ? new DateTimeOffset(date.Date.AddDays(1), TimeSpan.Zero) : null,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = User.IsAuthenticated ? User.DisplayName : null
+        });
+        _created = key;
+    }
+
+    private async Task CopyAsync()
+        => Snackbar.Add(await Clipboard.TryWriteTextAsync(_created!) ? "Key copied" : "Copy it from the field", Severity.Info);
+}

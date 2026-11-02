@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using gView.Pipe.AspNetCore.Api;
 using gView.Pipe.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -7,11 +8,33 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace gView.Pipe.AspNetCore.Extensions.DependencyInjection;
 
 static public class ServicesExtensions
 {
+    /// <summary>
+    /// Registers the REST API (ADR 0020): the API key check and the OpenAPI document. Pair it with <c>app.MapPipeApi()</c>.
+    /// Requires <c>AddPipeCore()</c>.
+    /// </summary>
+    static public IServiceCollection AddPipeApi(this IServiceCollection services)
+    {
+        services.TryAddSingleton<PipeApiAuthenticator>();
+        services.AddOpenApi(PipeApiEndpoints.DocumentName, openApi =>
+        {
+            // only the API, not the webhooks or the login
+            openApi.ShouldInclude = description => description.GroupName == PipeApiEndpoints.DocumentName;
+            openApi.AddDocumentTransformer((document, _, _) =>
+            {
+                document.Info.Title = "gView.Pipe API";
+                document.Info.Description = "Send an API key as X-Pipe-Api-Key or Authorization: Bearer. Keys are created on the page API keys.";
+                return Task.CompletedTask;
+            });
+        });
+        return services;
+    }
+
     /// <summary>
     /// Registers the login of the UI (ADR 0014): none, a form with configured users, or OpenID Connect.
     /// Pair it with <c>app.UsePipeAuthentication()</c>, <c>app.MapPipeAuthentication()</c> and

@@ -8,7 +8,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - No UI dependencies, and it must stay small: plugins share it with the host.
 - `gView.Pipe.Core`: engine, plugin catalog/loader, expression evaluator, scheduler, trigger manager, memory and file stores.
   - Headless, no Blazor.
-- `gView.Pipe.AspNetCore`: ASP.NET Core integration. `app.MapPipeWebhooks()` maps the webhook route (see ADR 0008). `AddPipeAuthentication()`, `UsePipeAuthentication()`, `MapPipeAuthentication()` and `RequirePipeAuthorization()` add the login of the UI (none, forms or OIDC, see ADR 0014); the static pages `/account/login` and `/account/denied` live in the Shell. This is the only place with HTTP types; Core stays free of ASP.NET.
+- `gView.Pipe.AspNetCore`: ASP.NET Core integration. `app.MapPipeWebhooks()` maps the webhook route (see ADR 0008). `AddPipeApi()` and `app.MapPipeApi()` add the REST API under `/api/v1` with its own API keys and `/api/v1/openapi.json` (see ADR 0020). `AddPipeAuthentication()`, `UsePipeAuthentication()`, `MapPipeAuthentication()` and `RequirePipeAuthorization()` add the login of the UI (none, forms or OIDC, see ADR 0014); the static pages `/account/login` and `/account/denied` live in the Shell. This is the only place with HTTP types; Core stays free of ASP.NET.
 - `gView.Pipe.Plugins`: the built-in nodes and credential types.
   - They use only the Abstraction contracts, exactly like external plugins.
   - Ids are in `PipeBuiltIn.cs` and must never change.

@@ -39,6 +39,15 @@ Starte die App unter einem Konto (oder in einem Container), das nur tun darf, wa
 
 Gib jedem Webhook, der von außen erreichbar ist, ein Credential. Siehe [Betrieb](operations.md#webhooks-im-betrieb).
 
+## REST API
+
+Die [REST API](api.md) unter `/api/v1` akzeptiert nur API-Schlüssel, nie das Anmelde-Cookie der UI.
+
+- Gib jedem Skript und jeder Pipeline einen eigenen Schlüssel mit nur den nötigen Rechten, beschränkt auf seine Gruppen und mit Ablaufdatum. Lösche Schlüssel, die nicht mehr gebraucht werden; die Seite zeigt, wann jeder zuletzt benutzt wurde.
+- Gespeichert wird nur der SHA-256 eines Schlüssels in `data/api-keys.json`; eine Kopie des Datenordners verrät keine Schlüssel.
+- Wer die UI öffnen kann, kann Schlüssel anlegen. Nutze eine [Anmeldung](authentication.md), wenn andere die UI erreichen.
+- Schicke Schlüssel nur über HTTPS.
+
 ## Plugins
 
 Ein Plugin läuft mit den vollen Rechten der App. Installiere nur Plugins aus Quellen, denen du vertraust.

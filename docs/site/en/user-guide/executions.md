@@ -13,7 +13,7 @@ Click a run to **watch** it in the editor, live. In the editor you can also **st
 
 ## History
 
-The workflow panel of the editor (select no node) lists the **executions** of the workflow, newest first, with status, start time, [environment](variables.md), how it was started (Manual, Trigger for Cron and Webhook, Sub-workflow, Error workflow) and the duration. The field above the list filters by environment. The last 50 are kept, unless the workflow panel (**Executions kept**, **Days kept**) or the [configuration](../admin-guide/configuration.md) says otherwise.
+The workflow panel of the editor (select no node) lists the **executions** of the workflow, newest first, with status, start time, [environment](variables.md), how it was started (Manual, Trigger for Cron and Webhook, Sub-workflow, Error workflow, Replay, API with the name of the [API key](../admin-guide/api.md)) and the duration. The field above the list filters by environment. The last 50 are kept, unless the workflow panel (**Executions kept**, **Days kept**) or the [configuration](../admin-guide/configuration.md) says otherwise.
 
 Click an execution to open it on the canvas: every node shows its state and counts, and you can open each node's **Run** tab to see the input, output and logs of that run. A note appears when the workflow was changed since the run, because some nodes may no longer exist.
 

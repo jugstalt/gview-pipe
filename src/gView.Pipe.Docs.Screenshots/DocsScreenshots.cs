@@ -35,6 +35,7 @@ internal sealed class DocsScreenshots
         await ExecutionsAsync();
         await ErrorMailAsync();
         await CredentialsAsync();
+        await ApiKeysAsync();
         await VariablesAsync();
         await EditorEnvironmentAsync();
     }
@@ -176,6 +177,22 @@ internal sealed class DocsScreenshots
         await _page.WaitForTimeoutAsync(300);
         await ShotAsync("expression-autocomplete");
         await value.PressAsync("Escape");
+    }
+
+    /// <summary>The page API keys with one key, created through its dialog.</summary>
+    private async Task ApiKeysAsync()
+    {
+        await LowAsync();
+        await OpenAsync("/api-keys");
+        await _page.GetByRole(AriaRole.Button, new() { Name = "New key" }).ClickAsync();
+        await _page.GetByLabel("Name *").FillAsync("CI Deploy");
+        await _page.GetByLabel("Run").CheckAsync();
+        await _page.GetByLabel("Deploy").CheckAsync();
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Create key" }).ClickAsync();
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Done" }).ClickAsync();
+        await _page.GetByText("CI Deploy").First.WaitForAsync();
+        await _page.WaitForTimeoutAsync(300);
+        await ShotAsync("api-keys");
     }
 
     /// <summary>The history of all workflows, with the runs the earlier pictures made.</summary>

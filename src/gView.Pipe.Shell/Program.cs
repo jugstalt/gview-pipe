@@ -76,6 +76,9 @@ builder.Services
     })
     .AddPipeRazor();
 
+// REST API with its own keys (ADR 0020)
+builder.Services.AddPipeApi();
+
 // login of the UI (ADR 0014), from _config/auth.config
 builder.Services.AddPipeAuthentication(options =>
 {
@@ -114,6 +117,7 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapPipeWebhooks();
+app.MapPipeApi();
 app.MapPipeAuthentication();
 docs.Map(app);
 

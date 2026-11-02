@@ -27,6 +27,9 @@ public sealed class PipeExecution
     /// <summary>Nesting level of sub-workflow calls; 0 for top-level executions.</summary>
     public int Depth { get; set; }
 
+    /// <summary>Who started it when known, e.g. <c>api:CI Deploy</c> for an API key.</summary>
+    public string? StartedBy { get; set; }
+
     /// <summary>The execution this one replays (mode <see cref="PipeExecutionMode.Replay"/>).</summary>
     public string? ReplayOfExecutionId { get; set; }
 
@@ -78,7 +81,10 @@ public enum PipeExecutionMode
     Error,
 
     /// <summary>Runs a stored execution again with the current workflow; behaves like <see cref="Trigger"/>.</summary>
-    Replay
+    Replay,
+
+    /// <summary>Started through the REST API (ADR 0020); behaves like <see cref="Trigger"/>.</summary>
+    Api
 }
 
 public enum PipeExecutionStatus

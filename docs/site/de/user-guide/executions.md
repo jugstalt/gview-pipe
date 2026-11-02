@@ -13,7 +13,7 @@ Klicke einen Lauf an, um ihn im Editor **live zu verfolgen**. Im Editor kannst d
 
 ## Historie
 
-Das Workflow-Panel des Editors (ohne gewählten Node) listet die **Executions** des Workflows, die neueste zuerst, mit Status, Startzeit, [Environment](variables.md), wie er gestartet wurde (Manual, Trigger für Cron und Webhook, Sub-Workflow, Fehler-Workflow) und der Dauer. Das Feld über der Liste filtert nach Environment. Die letzten 50 bleiben erhalten, sofern das Workflow-Panel (**Executions kept**, **Days kept**) oder die [Konfiguration](../admin-guide/configuration.md) nichts anderes festlegt.
+Das Workflow-Panel des Editors (ohne gewählten Node) listet die **Executions** des Workflows, die neueste zuerst, mit Status, Startzeit, [Environment](variables.md), wie er gestartet wurde (Manual, Trigger für Cron und Webhook, Sub-Workflow, Fehler-Workflow, Replay, API mit dem Namen des [API-Schlüssels](../admin-guide/api.md)) und der Dauer. Das Feld über der Liste filtert nach Environment. Die letzten 50 bleiben erhalten, sofern das Workflow-Panel (**Executions kept**, **Days kept**) oder die [Konfiguration](../admin-guide/configuration.md) nichts anderes festlegt.
 
 Klicke eine Execution an, um sie auf der Arbeitsfläche zu öffnen: Jeder Node zeigt Zustand und Zähler, und im Tab **Run** jedes Nodes siehst du Eingabe, Ausgabe und Logs dieses Laufs. Ein Hinweis erscheint, wenn der Workflow seit dem Lauf geändert wurde, weil manche Nodes dann nicht mehr existieren.
 

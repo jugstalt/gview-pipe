@@ -39,6 +39,15 @@ Run the app under an account (or container) that may do only what your scripts n
 
 Give every webhook that is reachable from outside a credential. See [Operations](operations.md#webhooks-in-production).
 
+## REST API
+
+The [REST API](api.md) under `/api/v1` accepts only API keys, never the login cookie of the UI.
+
+- Give each script or pipeline its own key with only the rights it needs, limited to its groups and with an expiry date. Delete keys that are no longer used; the page shows when each was last used.
+- Only the SHA-256 of a key is stored in `data/api-keys.json`; a copy of the data folder doesn't reveal keys.
+- Anyone who can open the UI can create keys. Use a [login](authentication.md) when the UI is reachable by others.
+- Send keys only over HTTPS.
+
 ## Plugins
 
 A plugin runs with the full rights of the app. Install only plugins from sources you trust.

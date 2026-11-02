@@ -1,0 +1,104 @@
+@using gView.Pipe.Abstraction.Security
+@inject IPipeApiKeyStore KeyStore
+@inject IPipeWorkflowGroupStore GroupStore
+@inject IDialogService DialogService
+
+@* The keys of the REST API (ADR 0020): create, look at, delete. *@
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h6">API keys</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New key</MudButton>
+    </MudStack>
+
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+        Scripts and CI pipelines use the REST API under <code>/api/v1</code> with a key. The key is shown once when it is created; only its hash is stored.
+        The API is described in <code>/api/v1/openapi.json</code>.
+    </MudText>
+
+    @if (_keys is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_keys.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">No keys yet.</MudText>
+    }
+    else
+    {
+        <MudTable T="PipeApiKey" Items="_keys" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Key</MudTh>
+                <MudTh>Rights</MudTh>
+                <MudTh>Groups</MudTh>
+                <MudTh>Expires</MudTh>
+                <MudTh>Last used</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">
+                    @context.Name
+                    @if (context.CreatedBy is { } by)
+                    {
+                        <div class="mud-text-secondary" style="font-size:.75rem">by @by, @context.CreatedAt.LocalDateTime.ToString("d")</div>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Key"><code>@context.Prefix</code></MudTd>
+                <MudTd DataLabel="Rights">
+                    @foreach (var right in new[] { PipeApiRights.Read, PipeApiRights.Run, PipeApiRights.Deploy }.Where(r => context.Rights.HasFlag(r)))
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@right.ToString().ToLowerInvariant()</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Groups">@(context.Groups is { Count: > 0 } groups ? string.Join(", ", groups.Select(g => _groupNames.GetValueOrDefault(g, g))) : "all")</MudTd>
+                <MudTd DataLabel="Expires">
+                    @if (context.ExpiresAt is { } expires)
+                    {
+                        <span class="@(context.IsExpired(DateTimeOffset.UtcNow) ? "mud-error-text" : null)">@expires.LocalDateTime.ToString("d")</span>
+                    }
+                    else
+                    {
+                        <span class="mud-text-secondary">never</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Last used">@(context.LastUsedAt?.LocalDateTime.ToString("g") ?? "never")</MudTd>
+                <MudTd Style="text-align:right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete key" OnClick="() => DeleteAsync(context)" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    private IReadOnlyList<PipeApiKey>? _keys;
+    private Dictionary<string, string> _groupNames = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groupNames = (await GroupStore.ListAsync()).ToDictionary(g => g.Id, g => g.Name);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => _keys = await KeyStore.ListAsync();
+
+    private async Task CreateAsync()
+    {
+        var dialog = await DialogService.ShowAsync<PipeApiKeyDialog>("New API key", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false });
+        await dialog.Result;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(PipeApiKey key)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync("Delete API key",
+            $"Delete the key '{key.Name}'? Scripts that use it can't call the API anymore.", yesText: "Delete", cancelText: "Cancel");
+        if (confirmed == true)
+        {
+            await KeyStore.DeleteAsync(key.Id);
+            await LoadAsync();
+        }
+    }
+}
