@@ -77,12 +77,15 @@ var identityServer = builder.AddIdentityServerNET("is-net-dev", httpsPort: 8443)
                               "openid", "profile", "role", "email"
                           ])
                // roles: gview-pipe lets a user into the Shell (RequiredRoles); the pipe-* roles are mapped to the roles
-               // viewer, editor and admin of the Shell below; portal-demo is a portal role (ADR 0030)
-               .AddUserRoles(["gview-pipe", "pipe-viewers", "pipe-editors", "pipe-admins", "portal-demo"])
+               // viewer, operator, editor and admin of the Shell below; portal-demo is a portal role (ADR 0030)
+               .AddUserRoles(["gview-pipe", "pipe-viewers", "pipe-operators", "pipe-editors", "pipe-admins", "pipe-samples-editors", "portal-demo"])
                // users to try them with; the name is an address, so it is the email of the user as well
                .WithUser("pipe-viewer@is.net", "viewer", ["gview-pipe", "pipe-viewers"])
+               .WithUser("pipe-operator@is.net", "operator", ["gview-pipe", "pipe-operators"])
                .WithUser("pipe-editor@is.net", "editor", ["gview-pipe", "pipe-editors"])
                .WithUser("pipe-admin@is.net", "admin", ["gview-pipe", "pipe-admins"])
+               // viewer in general, editor in the group samples (a role for one group: editor@samples)
+               .WithUser("pipe-samples@is.net", "samples", ["gview-pipe", "pipe-viewers", "pipe-samples-editors"])
                .WithUser("portal@is.net", "portal", ["portal-demo"])
        )
        .Build()
@@ -105,7 +108,9 @@ var shell = builder.AddProject<Projects.gView_Pipe_Shell>("gview-pipe")
 #if ADD_IDENTITYSERVER
 // the roles of the users above for the OIDC mode of the Shell (_config/auth.config: "Mode": "oidc"); unused in other modes
 shell.WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-viewers", "viewer")
+     .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-operators", "operator")
      .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-editors", "editor")
+     .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-samples-editors", "editor@samples")
      .WithEnvironment("Pipe__Auth__Oidc__RoleMappings__pipe-admins", "admin");
 #endif
 

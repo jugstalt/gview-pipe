@@ -115,7 +115,7 @@ The AppHost starts IdentityServer.NET at `https://localhost:8443` (`ADD_IDENTITY
 
 The user with the role can work; the other one sees **No access**.
 
-The AppHost already creates users for this (password in brackets), all with the role `gview-pipe`: `pipe-viewer@is.net` (`viewer`), `pipe-editor@is.net` (`editor`) and `pipe-admin@is.net` (`admin`). It also maps their roles `pipe-viewers`, `pipe-editors` and `pipe-admins` to the [roles](#roles) viewer, editor and admin of the Shell, so you only set `Mode` to `oidc`. The user `portal@is.net` (`portal`) with the role `portal-demo` is for the [portal](portal.md).
+The AppHost already creates users for this (password in brackets), all with the role `gview-pipe`: `pipe-viewer@is.net` (`viewer`), `pipe-operator@is.net` (`operator`), `pipe-editor@is.net` (`editor`) and `pipe-admin@is.net` (`admin`), and `pipe-samples@is.net` (`samples`), who is a viewer in general and an editor in the group *Samples* only. It also maps their roles (`pipe-viewers`, `pipe-operators`, `pipe-editors`, `pipe-admins` and `pipe-samples-editors` as `editor@samples`) to the [roles](#roles) of the Shell, so you only set `Mode` to `oidc`. The user `portal@is.net` (`portal`) with the role `portal-demo` is for the [portal](portal.md).
 
 ## Roles
 
