@@ -1,0 +1,58 @@
+@using Markdig
+@using gView.Pipe.Abstraction.Portal
+
+@* What the Result node of the workflow produced. Markdown is rendered without HTML, so a text with user input can't inject markup. *@
+
+@if (Result is not null)
+{
+    @if (!string.IsNullOrWhiteSpace(Result.Title))
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">@Result.Title</MudText>
+    }
+
+    @switch (Result.Kind)
+    {
+        case "table":
+            @if (Result.Columns is { Count: > 0 } columns && Result.Rows is { } rows)
+            {
+                <MudSimpleTable Dense="true" Hover="true" Striped="true" Style="overflow-x: auto;">
+                    <thead>
+                        <tr>
+                            @foreach (var column in columns)
+                            {
+                                <th>@column</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in rows)
+                        {
+                            <tr>
+                                @foreach (var cell in row)
+                                {
+                                    <td>@cell</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else
+            {
+                <MudText Class="mud-text-secondary">No rows.</MudText>
+            }
+            break;
+
+        case "markdown":
+            <div class="gview-pipe-portal-markdown">@((MarkupString)Pipeline.Render(Result.Text ?? ""))</div>
+            break;
+
+        default:
+            <div class="gview-pipe-portal-result">@Result.Text</div>
+            break;
+    }
+}
+
+@code {
+    [Parameter] public PipeResultView? Result { get; set; }
+}

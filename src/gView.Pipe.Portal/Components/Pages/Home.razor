@@ -1,0 +1,84 @@
+@page "/"
+@inject PipePortalClient Client
+
+<PageTitle>Workflows</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-3" id="top">Workflows</MudText>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_workflows is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_workflows.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">No workflows are available to you yet.</MudAlert>
+}
+else
+{
+    <MudTextField T="string" @bind-Value="_search" Immediate="true" Placeholder="Search" Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" Clearable="true" />
+
+    @foreach (var category in Categories)
+    {
+        <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2 mud-text-secondary">@category.Key</MudText>
+        <MudGrid Spacing="2">
+            @foreach (var workflow in category)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Outlined="true" Class="h-100">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">@workflow.Name</MudText>
+                            @if (!string.IsNullOrWhiteSpace(workflow.Description))
+                            {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">@workflow.Description</MudText>
+                            }
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"run/{Uri.EscapeDataString(workflow.Id)}")" EndIcon="@Icons.Material.Filled.PlayArrow">Open</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    @if (!Categories.Any())
+    {
+        <MudText Class="mud-text-secondary">Nothing found.</MudText>
+    }
+}
+
+@code {
+    private const string NoCategory = "Other";
+
+    private IReadOnlyList<PortalWorkflow>? _workflows;
+    private string? _error;
+    private string? _search;
+
+    /// <summary>The workflows that match the search, by category; workflows without one come last.</summary>
+    private IEnumerable<IGrouping<string, PortalWorkflow>> Categories
+        => (_workflows ?? [])
+            .Where(w => string.IsNullOrWhiteSpace(_search)
+                        || w.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                        || (w.Description?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+                        || (w.Category?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))
+            .GroupBy(w => w.Category ?? NoCategory)
+            .OrderBy(g => g.Key == NoCategory ? 1 : 0)
+            .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _workflows = await Client.GetWorkflowsAsync();
+        }
+        catch (PipePortalException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

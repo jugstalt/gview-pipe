@@ -3,6 +3,8 @@
 #define ADD_GITEA
 #define ADD_IDENTITYSERVER
 
+using System.Security.Cryptography;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 #if ADD_MAILPIT
@@ -74,6 +76,17 @@ var identityServer = builder.AddIdentityServerNET("is-net-dev", httpsPort: 8443)
 #endregion
 #endif
 
-builder.AddProject<Projects.gView_Pipe_Shell>("gview-pipe");
+// the backend, and the user portal in front of it (ADR 0028)
+// the key of the portal is made up on every start (a secret parameter, never in the code); the Shell puts it into its
+// key store in development, so the portal can be tried without the page API keys
+var portalKey = builder.AddParameter("portal-key", () => "pipe_" + Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_'), secret: true);
+
+var shell = builder.AddProject<Projects.gView_Pipe_Shell>("gview-pipe")
+       .WithEnvironment("Pipe__DevPortalKey", portalKey);
+
+builder.AddProject<Projects.gView_Pipe_Portal>("gview-pipe-portal")
+       .WithEnvironment("Portal__BackendUrl", shell.GetEndpoint("https"))
+       .WithEnvironment("Portal__ApiKey", portalKey)
+       .WaitFor(shell);
 
 builder.Build().Run();

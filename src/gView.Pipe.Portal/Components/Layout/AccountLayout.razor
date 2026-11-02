@@ -1,0 +1,15 @@
+@inherits LayoutComponentBase
+@inject PipePortalOptions Options
+
+@* static layout of the account pages: no circuit *@
+<MudThemeProvider Theme="PortalTheme.Default" />
+
+<div class="gview-pipe-account">
+    <div class="gview-pipe-account-card mud-paper mud-elevation-2">
+        <div class="gview-pipe-account-title">
+            <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" />
+            <MudText Typo="Typo.h5">@Options.Title</MudText>
+        </div>
+        @Body
+    </div>
+</div>

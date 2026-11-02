@@ -1,3 +1,4 @@
+using gView.Pipe.Abstraction.Security;
 using gView.Pipe.AspNetCore.Authentication;
 using gView.Pipe.AspNetCore.Extensions.Builder;
 using gView.Pipe.AspNetCore.Extensions.DependencyInjection;
@@ -103,6 +104,30 @@ var docs = PipeDocsSite.Find(builder.Configuration["Pipe:DocsPath"]);
 builder.Services.AddSingleton(docs);
 
 var app = builder.Build();
+
+// development only (the Aspire AppHost): a key for the portal from the environment, so the portal works without the page API keys
+if (app.Environment.IsDevelopment() && builder.Configuration["Pipe:DevPortalKey"] is { Length: > 0 } devPortalKey)
+{
+    var keys = app.Services.GetRequiredService<IPipeApiKeyStore>();
+    var hash = PipeApiKeys.Hash(devPortalKey);
+    if (await keys.FindByHashAsync(hash) is null)
+    {
+        // the key changes with every start of the AppHost: replace the one of the last start
+        foreach (var old in (await keys.ListAsync()).Where(k => k.Name == "portal-dev"))
+        {
+            await keys.DeleteAsync(old.Id);
+        }
+        await keys.SaveAsync(new PipeApiKey
+        {
+            Name = "portal-dev",
+            Hash = hash,
+            Prefix = PipeApiKeys.PrefixOf(devPortalKey),
+            Rights = PipeApiRights.Portal,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "AppHost"
+        });
+    }
+}
 
 app.MapDefaultEndpoints();
 

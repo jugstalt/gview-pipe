@@ -1,0 +1,69 @@
+/* Portal layout; the account pages (login, no access) are static */
+
+html, body {
+    height: 100%;
+}
+
+.gview-pipe-portal-main {
+    box-sizing: border-box;
+    padding-bottom: 32px;
+}
+
+.gview-pipe-portal-result {
+    white-space: pre-wrap;
+}
+
+.gview-pipe-account {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+    background: var(--mud-palette-background-gray);
+}
+
+.gview-pipe-account-card {
+    width: 100%;
+    max-width: 360px;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.gview-pipe-account-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.gview-pipe-account-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .gview-pipe-account-form label {
+        font-size: 0.875rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .gview-pipe-account-form input {
+        font: inherit;
+        padding: 8px 10px;
+        border: 1px solid var(--mud-palette-lines-inputs);
+        border-radius: 4px;
+        background: var(--mud-palette-surface);
+        color: var(--mud-palette-text-primary);
+    }
+
+        .gview-pipe-account-form input:focus {
+            outline: 2px solid var(--mud-palette-primary);
+            outline-offset: -1px;
+        }
+
+.gview-pipe-account-button {
+    margin-top: 8px;
+    width: 100%;
+    text-decoration: none;
+}

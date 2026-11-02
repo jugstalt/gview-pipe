@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\gView.Pipe.Shell\gView.Pipe.Shell.csproj" />
+    <ProjectReference Include="..\..\gView.Pipe.Portal\gView.Pipe.Portal.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,33 @@
+@* The status of a run as a chip. *@
+
+<MudChip T="string" Size="Size.Small" Color="@Colour" Icon="@Icon" Variant="Variant.Outlined">@Text</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public PortalRun Run { get; set; } = default!;
+
+    private string Text => Run.Status switch
+    {
+        "queued" => Run.QueuePosition is { } position ? $"Waiting, number {position}" : "Waiting",
+        "running" => "Running",
+        "success" => "Done",
+        "error" => "Failed",
+        "canceled" => "Stopped",
+        var other => other
+    };
+
+    private Color Colour => Run.Status switch
+    {
+        "success" => Color.Success,
+        "error" => Color.Error,
+        "canceled" => Color.Warning,
+        _ => Color.Info
+    };
+
+    private string Icon => Run.Status switch
+    {
+        "success" => Icons.Material.Filled.CheckCircle,
+        "error" => Icons.Material.Filled.Error,
+        "canceled" => Icons.Material.Filled.StopCircle,
+        _ => Icons.Material.Filled.Autorenew
+    };
+}

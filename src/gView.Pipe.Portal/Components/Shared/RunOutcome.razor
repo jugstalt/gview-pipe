@@ -1,0 +1,35 @@
+@* Status, error and result of a run. *@
+
+<MudStack Spacing="2">
+    <div>
+        <RunStatus Run="Run" />
+        @if (Run.FinishedAt is { } finished && Run.StartedAt is { } started)
+        {
+            <MudText Typo="Typo.caption" Class="ml-2 mud-text-secondary">@(Duration(finished - started))</MudText>
+        }
+    </div>
+
+    @if (Run.Error is { } error)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true">
+            @error
+            <div class="mud-text-secondary" style="font-size:.75rem">Run number @Run.ExecutionId</div>
+        </MudAlert>
+    }
+
+    @if (Run.Result is not null)
+    {
+        <ResultView Result="Run.Result" />
+    }
+    else if (Run.Status == "success")
+    {
+        <MudText Class="mud-text-secondary">The run is done.</MudText>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public PortalRun Run { get; set; } = default!;
+
+    static private string Duration(TimeSpan span)
+        => span.TotalSeconds < 1 ? "less than a second" : span.TotalMinutes < 1 ? $"{span.TotalSeconds:0} s" : $"{span.TotalMinutes:0.#} min";
+}

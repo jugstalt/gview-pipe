@@ -1,6 +1,6 @@
 # 28. Portal: frontend
 
-Date: 2026-11-02 · Status: proposed
+Date: 2026-11-02 · Status: accepted
 
 ## Context
 

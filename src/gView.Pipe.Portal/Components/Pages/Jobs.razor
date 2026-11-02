@@ -1,0 +1,119 @@
+@page "/jobs"
+@implements IDisposable
+@inject PipePortalClient Client
+@inject PipePortalOptions Options
+@inject ISnackbar Snackbar
+
+<PageTitle>My runs</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-3">My runs</MudText>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
+}
+
+@if (_runs is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_runs.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">You haven't started a workflow yet.</MudAlert>
+}
+else
+{
+    <MudTable Items="_runs" Hover="true" Dense="true" Elevation="0" Outlined="true">
+        <HeaderContent>
+            <MudTh>Workflow</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Started</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Workflow">
+                <MudLink Href="@Href(context)">@(context.WorkflowName ?? context.WorkflowId)</MudLink>
+            </MudTd>
+            <MudTd DataLabel="Status"><RunStatus Run="context" /></MudTd>
+            <MudTd DataLabel="Started">@(context.StartedAt?.LocalDateTime.ToString("g"))</MudTd>
+            <MudTd>
+                @if (context.CanCancel && context.IsRunning)
+                {
+                    <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Stop"
+                               OnClick="() => StopAsync(context)">Stop</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private readonly CancellationTokenSource _stopped = new();
+    private IReadOnlyList<PortalRun>? _runs;
+    private string? _error;
+
+    static private string Href(PortalRun run) => $"jobs/{Uri.EscapeDataString(run.WorkflowId)}/{Uri.EscapeDataString(run.ExecutionId)}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        _ = PollAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _runs = await Client.GetRunsAsync(_stopped.Token);
+            _error = null;
+        }
+        catch (PipePortalException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    /// <summary>Reloads while something runs; the list of finished runs doesn't change by itself.</summary>
+    private async Task PollAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(Math.Max(1, Options.PollSeconds) * 2));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_stopped.Token))
+            {
+                if (_runs?.Any(r => r.IsRunning) == true)
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        await LoadAsync();
+                        StateHasChanged();
+                    });
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // the page was left
+        }
+    }
+
+    private async Task StopAsync(PortalRun run)
+    {
+        try
+        {
+            await Client.CancelAsync(run.WorkflowId, run.ExecutionId);
+            Snackbar.Add("Stopping the run...", Severity.Info);
+        }
+        catch (PipePortalException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        await LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        _stopped.Cancel();
+        _stopped.Dispose();
+    }
+}

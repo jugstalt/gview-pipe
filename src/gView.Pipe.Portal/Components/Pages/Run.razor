@@ -1,0 +1,218 @@
+@page "/run/{Id}"
+@using System.Text.Json.Nodes
+@using gView.Pipe.Abstraction.Portal
+@using gView.Pipe.Abstraction.Workflows
+@inject PipePortalClient Client
+@inject NavigationManager Navigation
+
+<PageTitle>@(_workflow?.Name ?? "Workflow")</PageTitle>
+
+<MudBreadcrumbs Items="_crumbs" Class="pa-0 mb-2" />
+
+@if (_error is not null && _workflow is null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_workflow is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h5">@_workflow.Name</MudText>
+    @if (!string.IsNullOrWhiteSpace(_workflow.Description))
+    {
+        <MudText Typo="Typo.body1" Class="mud-text-secondary mb-3">@_workflow.Description</MudText>
+    }
+
+    @if (_run is { IsRunning: false } run)
+    {
+        <MudPaper Outlined="true" Class="pa-4 mb-4">
+            <RunOutcome Run="run" />
+            <MudStack Row="true" Class="mt-3">
+                <MudButton Variant="Variant.Outlined" OnClick="Again">Start again</MudButton>
+                <MudButton Variant="Variant.Text" Href="jobs">My runs</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Outlined="true" Class="pa-4" Style="max-width: 640px;">
+            <MudStack Spacing="3">
+                @foreach (var field in _workflow.Form)
+                {
+                    var name = field.Name;
+                    switch (field.Type)
+                    {
+                        case PipeFormFieldType.Boolean:
+                            <MudSwitch T="bool" Color="Color.Primary" Label="@field.Label" Value='@IsOn(name)'
+                                       ValueChanged='v => Set(name, v ? "true" : "false")' />
+                            break;
+
+                        case PipeFormFieldType.Choice:
+                            <MudSelect T="string" Label="@Label(field)" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="@(!field.Required)"
+                                       HelperText="@field.Description" Error="@(ErrorOf(name) is not null)" ErrorText="@ErrorOf(name)"
+                                       Value="@_values.GetValueOrDefault(name)" ValueChanged="v => Set(name, v)">
+                                @foreach (var option in field.Options)
+                                {
+                                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                                }
+                            </MudSelect>
+                            break;
+
+                        default:
+                            <MudTextField T="string" Label="@Label(field)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          Lines="@(field.Type == PipeFormFieldType.MultilineText ? 4 : 1)"
+                                          InputType="@InputTypeOf(field)" Placeholder="@field.Placeholder"
+                                          HelperText="@field.Description" Error="@(ErrorOf(name) is not null)" ErrorText="@ErrorOf(name)"
+                                          Immediate="false" Value="@_values.GetValueOrDefault(name)" ValueChanged="v => Set(name, v)" />
+                            break;
+                    }
+                }
+
+                @if (_workflow.AllowModeChoice)
+                {
+                    <MudRadioGroup T="PipePortalRunMode" @bind-Value="_mode">
+                        <MudRadio Value="PipePortalRunMode.Wait" Color="Color.Primary">Wait for the result</MudRadio>
+                        <MudRadio Value="PipePortalRunMode.Background" Color="Color.Primary">Run in the background</MudRadio>
+                    </MudRadioGroup>
+                }
+
+                @if (_error is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+                }
+
+                <div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="StartAsync"
+                               StartIcon="@Icons.Material.Filled.PlayArrow">@(_busy ? "Running..." : "Start")</MudButton>
+                </div>
+                @if (_busy)
+                {
+                    <MudProgressLinear Indeterminate="true" />
+                }
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private readonly List<BreadcrumbItem> _crumbs = [new("Workflows", href: "")];
+    private readonly Dictionary<string, string?> _values = new();
+    private readonly HashSet<string> _touched = new();
+    private Dictionary<string, string> _problems = new();
+    private Dictionary<string, string> _serverProblems = new();
+    private PortalWorkflow? _workflow;
+    private PipePortalRunMode _mode;
+    private PortalRun? _run;
+    private string? _error;
+    private bool _busy;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _workflow = null;
+        _run = null;
+        _error = null;
+        _values.Clear();
+        _touched.Clear();
+        _serverProblems = new();
+        try
+        {
+            _workflow = (await Client.GetWorkflowsAsync()).FirstOrDefault(w => w.Id == Id);
+            if (_workflow is null)
+            {
+                _error = "This workflow isn't available.";
+                return;
+            }
+            _mode = _workflow.DefaultMode;
+            foreach (var field in _workflow.Form.Where(f => f.Default is not null))
+            {
+                _values[field.Name] = field.Default!.ToString();
+            }
+            _crumbs.RemoveRange(1, _crumbs.Count - 1);
+            _crumbs.Add(new BreadcrumbItem(_workflow.Name, href: null, disabled: true));
+            Validate();
+        }
+        catch (PipePortalException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    static private string Label(PipeFormField field) => field.Required ? field.Label + " *" : field.Label;
+
+    static private InputType InputTypeOf(PipeFormField field) => field.Type switch
+    {
+        PipeFormFieldType.Password => InputType.Password,
+        PipeFormFieldType.Date => InputType.Date,
+        _ => InputType.Text
+    };
+
+    private bool IsOn(string name) => _values.GetValueOrDefault(name) == "true";
+
+    private string? ErrorOf(string name)
+        => _serverProblems.GetValueOrDefault(name) ?? (_touched.Contains(name) ? _problems.GetValueOrDefault(name) : null);
+
+    private void Set(string name, string? value)
+    {
+        _values[name] = value;
+        _touched.Add(name);
+        _serverProblems.Remove(name);
+        Validate();
+    }
+
+    private JsonObject Values()
+    {
+        var values = new JsonObject();
+        foreach (var (name, value) in _values)
+        {
+            values[name] = value;
+        }
+        return values;
+    }
+
+    /// <summary>The same check the server makes, so the user sees problems before sending.</summary>
+    private void Validate()
+        => _problems = new PipeForm { Fields = _workflow!.Form }.Validate(Values()).Problems;
+
+    private async Task StartAsync()
+    {
+        _touched.UnionWith(_workflow!.Form.Select(f => f.Name));
+        Validate();
+        if (_problems.Count > 0)
+        {
+            _error = "Please check the marked fields.";
+            return;
+        }
+
+        _error = null;
+        _busy = true;
+        try
+        {
+            var run = await Client.RunAsync(_workflow.Id, Values(), _workflow.AllowModeChoice ? _mode : null);
+            if (run.IsRunning)
+            {
+                Navigation.NavigateTo($"jobs/{Uri.EscapeDataString(run.WorkflowId)}/{Uri.EscapeDataString(run.ExecutionId)}");
+                return;
+            }
+            _run = run;
+        }
+        catch (PipePortalException ex)
+        {
+            _serverProblems = ex.Fields.ToDictionary(f => f.Key, f => f.Value);
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Again()
+    {
+        _run = null;
+        _error = null;
+    }
+}

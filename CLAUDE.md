@@ -26,6 +26,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - The editor's splitters are dragged in the browser and Ctrl+S is caught there (`wwwroot/js/gview-pipe-editor.js`); .NET only hears the final width and the save.
   - Navigation is the host's job: components raise events like `OnOpen` and `OnClose`.
 - `gView.Pipe.Cli`: the dotnet tool `gview-pipe` (REST API client for deploy, run and executions, see ADR 0026). Depends on nothing else of the solution.
+- `gView.Pipe.Portal`: the user portal (ADR 0028), a standalone Blazor Server app that runs published workflows through the portal endpoints of a backend (`/api/v1/portal`, ADR 0027). Depends only on Abstraction and AspNetCore (for the login), never on Core. Its API key stays on its server; start it with `dotnet run --project src/gView.Pipe.Portal` after setting `Portal:BackendUrl` and `Portal:ApiKey`.
 - `gView.Pipe.Docs`: build tool, generates the node reference of the docs from the node attributes. Not shipped.
 - `gView.Pipe.Docs.Screenshots`: build tool, takes the screenshots of the docs with Playwright. Not shipped.
 - `gView.Pipe.Shell`: the app itself. It contains only layout, routing and service composition (`AddPipeCore().AddPipeFileStore().AddPipeRazor()`).
@@ -87,5 +88,7 @@ The AppHost can start optional containers. They are switched on by uncommenting 
 - `ADD_MAILPIT`: Mailpit for the Send Mail node, with SMTP on `localhost:1025` and the UI at http://localhost:8025.
 - `ADD_GITEA`: Gitea for Run Scripts with Git, at http://localhost:3000 (SSH on port 2222). Login is `gitea`/`gitea`.
 - `ADD_IDENTITYSERVER`: IdentityServer.NET at https://localhost:8443, admin `admin@is.net`/`admin`, image tag pinned in `AppHost.cs`. Client `local-gview-pipe`/`secret` for `https://localhost:7240` serves the OIDC mode (ADR 0014); the role `gview-pipe` and test users are created in its admin UI. Its certificate is self-signed: Windows must trust it.
+
+The AppHost starts the Shell and the portal (`gview-pipe-portal`, ADR 0028) together. It makes up the portal key on every start (the secret parameter `portal-key`, never in the code); the Shell puts it into its key store as `portal-dev` in development (`Pipe:DevPortalKey`), and the portal gets it and the address of the Shell. To try it, publish a workflow (*Publish in portal*) and open the portal from the Aspire dashboard.
 
 Sample workflows live in `samples/workflows/`. They are seeded into an empty `data/workflows/` on first start, and the plugin tests run them too.

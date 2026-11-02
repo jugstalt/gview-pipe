@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <Description>gView.Pipe user portal (ADR 0028): run published workflows through the REST API of a backend. Has no engine and no plugins.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- the contracts and the login only; no Core, so no engine, plugins or tools -->
+    <ProjectReference Include="..\gView.Pipe.Abstraction\gView.Pipe.Abstraction.csproj" />
+    <ProjectReference Include="..\gView.Pipe.AspNetCore\gView.Pipe.AspNetCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MudBlazor" />
+    <PackageReference Include="Markdig" />
+  </ItemGroup>
+
+</Project>
