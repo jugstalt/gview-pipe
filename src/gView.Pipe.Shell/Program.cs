@@ -46,6 +46,9 @@ builder.Services
     .AddPipeCore(options =>
     {
         options.PluginPath = builder.Configuration["Pipe:PluginPath"] ?? "plugins";
+        // executions kept per workflow (ADR 0015); workflows can override both
+        options.ExecutionRetention = builder.Configuration.GetValue("Pipe:ExecutionRetention", options.ExecutionRetention);
+        options.ExecutionRetentionDays = builder.Configuration.GetValue("Pipe:ExecutionRetentionDays", options.ExecutionRetentionDays);
         // folders released for Read File / Write File, by name
         foreach (var root in builder.Configuration.GetSection("Pipe:FileRoots").GetChildren().Where(r => !string.IsNullOrEmpty(r.Value)))
         {

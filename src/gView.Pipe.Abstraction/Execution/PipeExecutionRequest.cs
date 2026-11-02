@@ -42,4 +42,13 @@ public sealed record PipeExecutionRequest
 
     /// <summary>Content for binary references of <see cref="InputItems"/>, moved into the execution's binary store.</summary>
     public IReadOnlyDictionary<string, byte[]>? BinaryContent { get; init; }
+
+    /// <summary>
+    /// Stored execution to replay (see ADR 0015). It starts at the start nodes that ran in it; those take their stored
+    /// outputs instead of running. With <see cref="ReplayFromNodeId"/> every node except that one and its downstream
+    /// nodes takes its stored outputs.
+    /// </summary>
+    public PipeExecution? ReplayOf { get; init; }
+
+    public string? ReplayFromNodeId { get; init; }
 }

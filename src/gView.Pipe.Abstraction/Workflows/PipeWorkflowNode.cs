@@ -38,6 +38,23 @@ public sealed class PipeNodeSettings
 
     public int RetryDelayMs { get; set; } = 1000;
 
+    public PipeRetryBackoff RetryBackoff { get; set; } = PipeRetryBackoff.Fixed;
+
+    /// <summary>Upper limit of the delay with exponential backoff; 0 = no limit.</summary>
+    public int RetryMaxDelayMs { get; set; }
+
+    /// <summary>Delay in ms before retry number <paramref name="retry"/> (1 = first retry).</summary>
+    public int RetryDelayFor(int retry)
+    {
+        if (RetryBackoff == PipeRetryBackoff.Fixed || RetryDelayMs <= 0)
+        {
+            return Math.Max(0, RetryDelayMs);
+        }
+
+        var delay = Math.Min(RetryDelayMs * Math.Pow(2, Math.Max(0, retry - 1)), int.MaxValue);
+        return RetryMaxDelayMs > 0 ? (int)Math.Min(delay, RetryMaxDelayMs) : (int)delay;
+    }
+
     public PipeNodeErrorMode OnError { get; set; } = PipeNodeErrorMode.Stop;
 
     /// <summary>0 = no timeout.</summary>
@@ -57,6 +74,15 @@ public enum PipeNodeErrorMode
 
     /// <summary>Route the input items (with an <c>error</c> field) to the <c>error</c> output port.</summary>
     ErrorOutput
+}
+
+public enum PipeRetryBackoff
+{
+    /// <summary>The same delay before every retry.</summary>
+    Fixed,
+
+    /// <summary>The delay doubles after every failed attempt.</summary>
+    Exponential
 }
 
 public sealed class PipePosition

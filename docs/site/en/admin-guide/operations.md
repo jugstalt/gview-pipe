@@ -22,7 +22,7 @@ How callers see failures is described in [Triggers and webhooks](../user-guide/t
 
 ## Execution history
 
-The latest 50 executions per workflow are kept in `data/executions/`. Switch off **Save item data of executions** in the workflow panel, and only statuses, counts and logs are stored. That is useful when items contain sensitive data.
+The latest 50 executions per workflow are kept in `data/executions/`; `Pipe:ExecutionRetention` and `Pipe:ExecutionRetentionDays` (see [Configuration](configuration.md)) and the workflow panel change that. Switch off **Save item data of executions** in the workflow panel, and only statuses, counts and logs are stored. That is useful when items contain sensitive data.
 
 Executions that are running live in the memory of the process. A restart ends them, and a Wait node that is waiting loses its run.
 

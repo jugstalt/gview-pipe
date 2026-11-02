@@ -39,6 +39,9 @@ public class PipeCoreOptions
     /// <summary>Executions kept per workflow.</summary>
     public int ExecutionRetention { get; set; } = 50;
 
+    /// <summary>Days executions are kept; 0 = no limit. Workflows can override both.</summary>
+    public int ExecutionRetentionDays { get; set; }
+
     /// <summary>
     /// Folders workflows may read and write (Read File, Write File), by name: e.g. <c>"import" → "D:\data\import"</c>.
     /// Nothing outside these folders is reachable. Relative paths are resolved against the current directory.

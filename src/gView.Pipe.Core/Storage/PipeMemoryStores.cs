@@ -82,11 +82,20 @@ internal sealed class PipeMemoryExecutionStore : IPipeExecutionStore
             ? executions.Values.OrderByDescending(e => e.StartedAt).Take(maxCount).Select(PipeJson.Clone).ToList()
             : []);
 
-    public Task PruneAsync(string workflowId, int keep, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<PipeExecutionSummary>> QueryAsync(PipeExecutionQuery query, CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<PipeExecutionSummary>>(_executions.Values
+            .SelectMany(executions => executions.Values)
+            .Select(PipeExecutionSummary.From)
+            .Where(s => s.Matches(query))
+            .OrderByDescending(s => s.StartedAt)
+            .Take(query.MaxCount)
+            .ToList());
+
+    public Task PruneAsync(string workflowId, int keep, DateTimeOffset? olderThan = null, CancellationToken cancellationToken = default)
     {
         if (_executions.TryGetValue(workflowId, out var executions))
         {
-            foreach (var execution in executions.Values.OrderByDescending(e => e.StartedAt).Skip(keep))
+            foreach (var execution in executions.Values.OrderByDescending(e => e.StartedAt).Where((e, i) => i >= keep || e.StartedAt < olderThan))
             {
                 executions.TryRemove(execution.Id, out _);
             }

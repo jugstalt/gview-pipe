@@ -27,6 +27,8 @@ Die Variable `PIPE_CONFIG_PATH` verlegt den Ordner `_config`. Die Startskripte u
 | `Pipe:Environments` | `TEST`, `STAGE`, `PROD` | Environments, die Gruppen und Workflows neben `DEFAULT` wählen können. |
 | `Pipe:Variables` | keine | Instanz-Variablen je Environment. |
 | `Pipe:SecretVariables` | keine | Namen von Instanz-Variablen, die in Logs und Skriptausgaben maskiert werden. |
+| `Pipe:ExecutionRetention` | `50` | Executions, die je Workflow behalten werden. Ein Workflow kann einen eigenen Wert setzen. |
+| `Pipe:ExecutionRetentionDays` | `0` | Tage, die Executions behalten werden; `0` bedeutet keine Grenze. Ein Workflow kann einen eigenen Wert setzen. Ältere Executions werden einmal am Tag und nach jedem Lauf gelöscht. |
 
 Relative Pfade gelten relativ zum Arbeitsordner der App.
 
@@ -94,6 +96,6 @@ Die Startskripte lauschen standardmäßig auf `http://localhost:5100`. Um das zu
 
 ## Grenzen, die nicht in der Konfiguration stehen
 
-Einige Optionen lassen sich nur im Code setzen (`Program.cs` des Shell), zum Beispiel wie viele Executions je Workflow behalten werden (50), wie lange ein Wait-Node höchstens wartet (eine Stunde), die JavaScript-Grenzen und die maximale Body-Größe eines Webhooks (10 MB). Frag deinen Entwickler, wenn du sie ändern willst.
+Einige Optionen lassen sich nur im Code setzen (`Program.cs` des Shell), zum Beispiel wie lange ein Wait-Node höchstens wartet (eine Stunde), die JavaScript-Grenzen und die maximale Body-Größe eines Webhooks (10 MB). Frag deinen Entwickler, wenn du sie ändern willst.
 
 Pro Workflow stellst du die **maximale Zahl gleichzeitiger Läufe** (Vorgabe 1) im Workflow-Panel des Editors ein. Weitere gleichzeitige Läufe werden übersprungen, und ein Webhook-Aufrufer bekommt `429`.

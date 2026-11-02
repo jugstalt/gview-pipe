@@ -22,7 +22,7 @@ Wie Aufrufer Fehler sehen, steht unter [Trigger und Webhooks](../user-guide/trig
 
 ## Execution-Historie
 
-Die letzten 50 Executions je Workflow bleiben in `data/executions/` erhalten. Schaltest du im Workflow-Panel **Save item data of executions** aus, werden nur Status, Zähler und Logs gespeichert. Das ist nützlich, wenn Items sensible Daten enthalten.
+Die letzten 50 Executions je Workflow bleiben in `data/executions/` erhalten; `Pipe:ExecutionRetention` und `Pipe:ExecutionRetentionDays` (siehe [Konfiguration](configuration.md)) und das Workflow-Panel ändern das. Schaltest du im Workflow-Panel **Save item data of executions** aus, werden nur Status, Zähler und Logs gespeichert. Das ist nützlich, wenn Items sensible Daten enthalten.
 
 Laufende Executions liegen im Speicher des Prozesses. Ein Neustart beendet sie, und ein wartender Wait-Node verliert seinen Lauf.
 

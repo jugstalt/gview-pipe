@@ -163,6 +163,18 @@
                         </MudChip>
                         @if (!_running)
                         {
+                            @if (CanReplay)
+                            {
+                                @if (_execution.ErrorNodeId is { } failedNodeId)
+                                {
+                                    <MudTooltip Text="Run the saved workflow again from the failed node, with the data of this run">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Replay" Size="Size.Small" Color="Color.Error" aria-label="Replay from failed node" OnClick="() => ReplayAsync(failedNodeId)" />
+                                    </MudTooltip>
+                                }
+                                <MudTooltip Text="Run the saved workflow again with the trigger data of this run">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Replay" Size="Size.Small" aria-label="Replay" OnClick="() => ReplayAsync(null)" />
+                                </MudTooltip>
+                            }
                             <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" aria-label="Clear run" OnClick="ClearExecution" />
                         }
                     </div>
@@ -181,6 +193,7 @@
                                    OnPinChanged="SetPinData"
                                    OnChanged="NodeChanged"
                                    OnRunToHere="() => RunAsync(_selected.Node.Id)"
+                                   OnReplayFromHere="@(CanReplay && _execution!.NodeRuns.ContainsKey(_selected.Node.Id) ? () => ReplayAsync(_selected.Node.Id) : null)"
                                    OnDuplicate="DuplicateSelectionAsync"
                                    OnCopy="CopySelectionAsync"
                                    OnDelete="DeleteSelected"
@@ -1190,6 +1203,49 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Run failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _running = false;
+            _runCts.Dispose();
+            _runCts = null;
+            _historyVersion++;
+        }
+    }
+
+    /// <summary>A stored execution of this workflow with item data is shown, so it can be replayed (ADR 0015).</summary>
+    private bool CanReplay => _execution is { Status: not PipeExecutionStatus.Running, DataSaved: true } execution
+                              && execution.WorkflowId == _workflow?.Id && !string.IsNullOrEmpty(execution.WorkflowId);
+
+    /// <param name="fromNodeId">Run this node and everything downstream again; null to replay from the start.</param>
+    private async Task ReplayAsync(string? fromNodeId)
+    {
+        if (_execution is not { } replayed || _workflow is null)
+        {
+            return;
+        }
+        if (_dirty)
+        {
+            // a replay runs the saved workflow, like a trigger would
+            Snackbar.Add("Save the workflow first: a replay runs the saved version", Severity.Warning);
+            return;
+        }
+
+        ClearExecution();
+        _liveLines.Clear();
+        _running = true;
+        _runCts = new CancellationTokenSource();
+
+        try
+        {
+            var execution = await Runner.ReplayAsync(_workflow.Id, replayed.Id, fromNodeId, new EditorObserver(this), _runCts.Token);
+            ShowExecution(execution);
+            Snackbar.Add(execution.Status == PipeExecutionStatus.Success ? "Replay finished" : $"Replay {execution.Status}: {execution.Error}",
+                execution.Status == PipeExecutionStatus.Success ? Severity.Success : Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Replay failed: {ex.Message}", Severity.Error);
         }
         finally
         {

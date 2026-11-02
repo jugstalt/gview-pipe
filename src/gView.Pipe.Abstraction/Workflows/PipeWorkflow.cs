@@ -62,6 +62,12 @@ public sealed class PipeWorkflowSettings
     /// <summary>When false, executions are stored without item data (status only).</summary>
     public bool SaveExecutionData { get; set; } = true;
 
+    /// <summary>Executions kept for this workflow; null = the instance setting.</summary>
+    public int? ExecutionRetention { get; set; }
+
+    /// <summary>Days executions are kept for this workflow (0 = no limit); null = the instance setting.</summary>
+    public int? ExecutionRetentionDays { get; set; }
+
     /// <summary>
     /// Workflow (with an <see cref="Triggers.IPipeErrorTrigger"/> node) started when a triggered execution of this
     /// workflow fails. Manual runs don't start it.

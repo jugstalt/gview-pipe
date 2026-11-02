@@ -17,6 +17,12 @@
     <MudTooltip Text="Run to here: execute this node and the nodes it depends on">
         <MudIconButton Icon="@Icons.Material.Filled.PlayCircleOutline" Size="Size.Small" aria-label="Run to here" Disabled="Running" OnClick="() => OnRunToHere.InvokeAsync()" />
     </MudTooltip>
+    @if (OnReplayFromHere is not null)
+    {
+        <MudTooltip Text="Replay from here: run this node and everything after it again, with the data of the shown run">
+            <MudIconButton Icon="@Icons.Material.Filled.Replay" Size="Size.Small" aria-label="Replay from here" Disabled="Running" OnClick="OnReplayFromHere" />
+        </MudTooltip>
+    }
     <MudTooltip Text="Duplicate">
         <MudIconButton Icon="@Icons.Material.Filled.ControlPointDuplicate" Size="Size.Small" aria-label="Duplicate node" OnClick="() => OnDuplicate.InvokeAsync()" />
     </MudTooltip>
@@ -76,6 +82,21 @@
                 <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Retry delay (ms)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Step="500"
                                  Value="Settings.RetryDelayMs" ValueChanged="v => ChangeAsync(() => Settings.RetryDelayMs = v)" />
             </MudStack>
+            @if (Settings.RetryCount > 0)
+            {
+                <MudStack Row="true" Spacing="2">
+                    <MudSelect T="PipeRetryBackoff" Label="Backoff" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                               Value="Settings.RetryBackoff" ValueChanged="v => ChangeAsync(() => Settings.RetryBackoff = v)">
+                        <MudSelectItem Value="PipeRetryBackoff.Fixed">Fixed delay</MudSelectItem>
+                        <MudSelectItem Value="PipeRetryBackoff.Exponential">Exponential (doubles)</MudSelectItem>
+                    </MudSelect>
+                    @if (Settings.RetryBackoff == PipeRetryBackoff.Exponential)
+                    {
+                        <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Max delay (ms, 0 = none)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Step="1000"
+                                         Value="Settings.RetryMaxDelayMs" ValueChanged="v => ChangeAsync(() => Settings.RetryMaxDelayMs = v)" />
+                    }
+                </MudStack>
+            }
             <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Timeout (seconds, 0 = none)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
                              Value="Settings.TimeoutSeconds" ValueChanged="v => ChangeAsync(() => Settings.TimeoutSeconds = v)" />
         </MudStack>
@@ -123,6 +144,9 @@
     [Parameter] public Func<PipeNodeModel, string, bool> IsNameTaken { get; set; } = (_, _) => false;
 
     [Parameter] public EventCallback OnRunToHere { get; set; }
+
+    /// <summary>Set while a stored run of this node is shown that can be replayed from here (ADR 0015).</summary>
+    [Parameter] public Func<Task>? OnReplayFromHere { get; set; }
 
     [Parameter] public EventCallback OnDuplicate { get; set; }
 

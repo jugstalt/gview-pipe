@@ -50,6 +50,91 @@ public class PipeWorkflowRunnerTests
     }
 
     [Fact]
+    public async Task Replay_from_the_failed_node_reuses_the_stored_outputs_before_it()
+    {
+        using var services = PipeTestHost.Create();
+        var runner = services.GetRequiredService<IPipeWorkflowRunner>();
+        var workflow = new PipeWorkflowBuilder()
+            .Node("emit", TestNodeIds.Emit, new { items = new[] { new { n = 1 } } })
+            .Node("fail", TestNodeIds.Fail, new { key = Guid.NewGuid().ToString(), failTimes = 1 })
+            .Connect("emit", "fail")
+            .Build();
+        await services.GetRequiredService<IPipeWorkflowStore>().SaveAsync(workflow);
+
+        var failed = await runner.RunAsync(workflow.Id);
+        Assert.Equal(PipeExecutionStatus.Error, failed!.Status);
+
+        // the emitted items change, but the replay works with those of the failed run
+        workflow.Nodes.Single(n => n.Id == "emit").Parameters["items"] = new JsonArray(new JsonObject { ["n"] = 2 });
+        await services.GetRequiredService<IPipeWorkflowStore>().SaveAsync(workflow);
+
+        var replay = await runner.ReplayAsync(workflow.Id, failed.Id, failed.ErrorNodeId);
+
+        Assert.Equal(PipeExecutionStatus.Success, replay.Status);
+        Assert.Equal(PipeExecutionMode.Replay, replay.Mode);
+        Assert.Equal(failed.Id, replay.ReplayOfExecutionId);
+        Assert.True(replay.NodeRuns["emit"].Pinned);
+        Assert.False(replay.NodeRuns["fail"].Pinned);
+        Assert.Equal(1, replay.NodeRuns["fail"].Outputs!["main"][0].Json["n"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public async Task Replay_from_the_start_runs_the_current_workflow_with_the_stored_trigger_output()
+    {
+        using var services = PipeTestHost.Create();
+        var runner = services.GetRequiredService<IPipeWorkflowRunner>();
+        var workflow = new PipeWorkflowBuilder()
+            .Node("emit", TestNodeIds.Emit, new { items = new[] { new { n = 1 } } })
+            .Node("echo", TestNodeIds.Echo)
+            .Connect("emit", "echo")
+            .Build();
+        await services.GetRequiredService<IPipeWorkflowStore>().SaveAsync(workflow);
+        var original = await runner.RunAsync(workflow.Id);
+
+        workflow.Nodes.Single(n => n.Id == "emit").Parameters["items"] = new JsonArray(new JsonObject { ["n"] = 2 });
+        await services.GetRequiredService<IPipeWorkflowStore>().SaveAsync(workflow);
+        var replay = await runner.ReplayAsync(workflow.Id, original!.Id);
+
+        Assert.True(replay.NodeRuns["emit"].Pinned);
+        Assert.False(replay.NodeRuns["echo"].Pinned);
+        Assert.Equal(1, replay.NodeRuns["echo"].Outputs!["main"][0].Json["n"]!.GetValue<int>());
+        Assert.Equal(original.Environment, replay.Environment);
+    }
+
+    [Fact]
+    public async Task Executions_stored_without_data_cant_be_replayed()
+    {
+        using var services = PipeTestHost.Create();
+        var runner = services.GetRequiredService<IPipeWorkflowRunner>();
+        var workflow = new PipeWorkflowBuilder()
+            .Node("emit", TestNodeIds.Emit)
+            .Configure(w => w.Settings.SaveExecutionData = false)
+            .Build();
+        await services.GetRequiredService<IPipeWorkflowStore>().SaveAsync(workflow);
+        var original = await runner.RunAsync(workflow.Id);
+
+        await Assert.ThrowsAsync<gView.Pipe.Abstraction.PipeException>(() => runner.ReplayAsync(workflow.Id, original!.Id));
+    }
+
+    [Fact]
+    public async Task Replays_wait_for_a_free_slot_instead_of_being_skipped()
+    {
+        using var services = PipeTestHost.Create();
+        var runner = services.GetRequiredService<IPipeWorkflowRunner>();
+        var workflow = new PipeWorkflowBuilder()
+            .Node("slow", TestNodeIds.Slow, new { delayMs = 200 })
+            .Build();
+        await services.GetRequiredService<IPipeWorkflowStore>().SaveAsync(workflow);
+        var original = await runner.RunAsync(workflow.Id);
+
+        var running = runner.RunAsync(workflow.Id);
+        var replay = await runner.ReplayAsync(workflow.Id, original!.Id, "slow");
+
+        Assert.Equal(PipeExecutionStatus.Success, replay.Status);
+        Assert.Equal(PipeExecutionStatus.Success, (await running)!.Status);
+    }
+
+    [Fact]
     public async Task Active_workflow_triggers_are_armed_on_startup_and_start_executions()
     {
         using var services = PipeTestHost.Create();

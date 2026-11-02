@@ -1,0 +1,287 @@
+@inject IPipeExecutionStore ExecutionStore
+@inject IPipeWorkflowStore WorkflowStore
+@inject IPipeWorkflowGroupStore GroupStore
+@inject IPipeWorkflowRunner Runner
+@inject ISnackbar Snackbar
+
+@* The executions of all workflows (ADR 0015), with replay of one or several. *@
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h6">Executions</MudText>
+        <MudSpacer />
+        @if (_selected.Count > 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@_selected.Count selected</MudText>
+            @if (_selected.Any(s => s.ErrorNodeId is not null))
+            {
+                <MudTooltip Text="Failed executions run again from their failed node, the others from the start">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Replay" OnClick="() => ReplayAsync(_selected, fromFailedNode: true)">Replay from failed node</MudButton>
+                </MudTooltip>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Replay" OnClick="() => ReplayAsync(_selected, fromFailedNode: false)">Replay</MudButton>
+        }
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" aria-label="Reload executions" OnClick="ReloadAsync" />
+    </MudStack>
+
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+        A replay runs the current workflow again with the stored data of an execution, in its environment.
+    </MudText>
+
+    <MudGrid Spacing="2" Class="mb-2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" Label="Workflow or group" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true"
+                       Value="_scope" ValueChanged="v => FilterAsync(() => _scope = v)">
+                @foreach (var group in _groups)
+                {
+                    <MudSelectItem Value="@($"group:{group.Id}")">Group: @group.Name</MudSelectItem>
+                }
+                @foreach (var workflow in _workflows.Values.OrderBy(w => w.Name))
+                {
+                    <MudSelectItem Value="@($"workflow:{workflow.Id}")">@workflow.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="PipeExecutionStatus" Label="Status" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" MultiSelection="true"
+                       SelectedValues="_statuses" SelectedValuesChanged="v => FilterAsync(() => _statuses = v.ToList())">
+                @foreach (var status in new[] { PipeExecutionStatus.Error, PipeExecutionStatus.Success, PipeExecutionStatus.Canceled })
+                {
+                    <MudSelectItem Value="status">@status</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="PipeExecutionMode" Label="Started by" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" MultiSelection="true"
+                       SelectedValues="_modes" SelectedValuesChanged="v => FilterAsync(() => _modes = v.ToList())">
+                @foreach (var mode in Enum.GetValues<PipeExecutionMode>())
+                {
+                    <MudSelectItem Value="mode">@ModeText(mode)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="int" Label="Time range" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                       Value="_days" ValueChanged="v => FilterAsync(() => _days = v)">
+                <MudSelectItem Value="1">Last 24 hours</MudSelectItem>
+                <MudSelectItem Value="7">Last 7 days</MudSelectItem>
+                <MudSelectItem Value="30">Last 30 days</MudSelectItem>
+                <MudSelectItem Value="0">All</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    @if (_executions is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_executions.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">No executions match the filters.</MudText>
+    }
+    else
+    {
+        <MudTable T="PipeExecutionSummary" Items="_executions" Dense="true" Hover="true" Elevation="0" MultiSelection="true"
+                  SelectedItems="_selected" SelectedItemsChanged="v => _selected = v" SelectOnRowClick="false"
+                  OnRowClick="args => OnOpen.InvokeAsync(args.Item)" RowClass="gview-pipe-execution-row">
+            <HeaderContent>
+                <MudTh>Workflow</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Started by</MudTh>
+                <MudTh>Environment</MudTh>
+                <MudTh>Start</MudTh>
+                <MudTh>Duration</MudTh>
+                <MudTh>Failed node</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Workflow">@WorkflowName(context)</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@StatusIcon(context.Status)" Color="StatusColor(context.Status)" Size="Size.Small" />
+                        <span>@context.Status</span>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="Started by">
+                    @ModeText(context.Mode)
+                    @if (context.ReplayOfExecutionId is not null)
+                    {
+                        <MudTooltip Text="Replay of an earlier execution">
+                            <MudIcon Icon="@Icons.Material.Filled.Replay" Size="Size.Small" Class="ml-1" Style="vertical-align:middle" />
+                        </MudTooltip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Environment"><PipeEnvironmentBadge Name="@context.Environment" /></MudTd>
+                <MudTd DataLabel="Start">@context.StartedAt.LocalDateTime.ToString("g")</MudTd>
+                <MudTd DataLabel="Duration">@Duration(context)</MudTd>
+                <MudTd DataLabel="Failed node"><span title="@context.Error">@context.ErrorNodeName</span></MudTd>
+                <MudTd Style="text-align:right; white-space:nowrap" @onclick:stopPropagation="true">
+                    @if (context.DataSaved)
+                    {
+                        <MudTooltip Text="Replay">
+                            <MudIconButton Icon="@Icons.Material.Filled.Replay" Size="Size.Small" aria-label="Replay" OnClick="() => ReplayAsync([context], fromFailedNode: false)" />
+                        </MudTooltip>
+                    }
+                    else
+                    {
+                        <MudTooltip Text="Stored without item data: can't be replayed">
+                            <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Small" Class="mud-text-secondary mx-2" />
+                        </MudTooltip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_hasMore)
+        {
+            <MudStack Row="true" Justify="Justify.Center" Class="mt-2">
+                <MudButton Variant="Variant.Text" OnClick="LoadMoreAsync">Load more</MudButton>
+            </MudStack>
+        }
+    }
+</MudPaper>
+
+@code {
+    private const int PageSize = 50;
+
+    /// <summary>A row was clicked; the host opens the execution in the editor.</summary>
+    [Parameter] public EventCallback<PipeExecutionSummary> OnOpen { get; set; }
+
+    private List<PipeExecutionSummary>? _executions;
+    private HashSet<PipeExecutionSummary> _selected = [];
+    private bool _hasMore;
+    private Dictionary<string, PipeWorkflow> _workflows = new();
+    private IReadOnlyList<PipeWorkflowGroup> _groups = [];
+
+    private string? _scope;
+    private IReadOnlyCollection<PipeExecutionStatus> _statuses = [];
+    private IReadOnlyCollection<PipeExecutionMode> _modes = [];
+    private int _days = 7;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groups = await GroupStore.ListAsync();
+        await ReloadAsync();
+    }
+
+    private async Task FilterAsync(Action change)
+    {
+        change();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _workflows = (await WorkflowStore.ListAsync()).ToDictionary(w => w.Id);
+        _selected = [];
+        _executions = null;
+        var page = await QueryAsync(before: null);
+        _executions = page.ToList();
+        _hasMore = page.Count == PageSize;
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        var page = await QueryAsync(before: _executions?.LastOrDefault()?.StartedAt);
+        _executions?.AddRange(page);
+        _hasMore = page.Count == PageSize;
+    }
+
+    private Task<IReadOnlyList<PipeExecutionSummary>> QueryAsync(DateTimeOffset? before)
+        => ExecutionStore.QueryAsync(new PipeExecutionQuery
+        {
+            WorkflowIds = ScopeWorkflowIds(),
+            Statuses = _statuses,
+            Modes = _modes,
+            From = _days > 0 ? DateTimeOffset.UtcNow.AddDays(-_days) : null,
+            Before = before,
+            MaxCount = PageSize
+        });
+
+    /// <summary>Null for all workflows; a group without workflows matches nothing.</summary>
+    private IReadOnlyCollection<string>? ScopeWorkflowIds() => _scope switch
+    {
+        null => null,
+        var s when s.StartsWith("workflow:") => [s["workflow:".Length..]],
+        var s when s.StartsWith("group:") => _workflows.Values.Where(w => w.GroupId == s["group:".Length..]).Select(w => w.Id).DefaultIfEmpty("\0").ToList(),
+        _ => null
+    };
+
+    /// <summary>
+    /// Replays one after the other in the order they originally ran. It runs in the background, so leaving the page
+    /// doesn't stop it.
+    /// </summary>
+    private Task ReplayAsync(IEnumerable<PipeExecutionSummary> executions, bool fromFailedNode)
+    {
+        var all = executions.ToList();
+        var replayable = all.Where(e => e.DataSaved).OrderBy(e => e.StartedAt).ToList();
+        if (replayable.Count < all.Count)
+        {
+            Snackbar.Add($"{all.Count - replayable.Count} execution(s) were stored without item data and are skipped", Severity.Warning);
+        }
+        if (replayable.Count == 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        Snackbar.Add(replayable.Count == 1 ? "Replay started" : $"{replayable.Count} replays started, one after the other", Severity.Info);
+        _selected = [];
+
+        _ = Task.Run(async () =>
+        {
+            var failed = 0;
+            foreach (var execution in replayable)
+            {
+                try
+                {
+                    var replay = await Runner.ReplayAsync(execution.WorkflowId, execution.Id, fromFailedNode ? execution.ErrorNodeId : null);
+                    failed += replay.Status == PipeExecutionStatus.Success ? 0 : 1;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    await InvokeAsync(() => Snackbar.Add($"Replay of {WorkflowName(execution)} failed: {ex.Message}", Severity.Error));
+                }
+            }
+            await InvokeAsync(async () =>
+            {
+                Snackbar.Add(failed == 0 ? "Replay finished" : $"Replay finished, {failed} of {replayable.Count} failed",
+                    failed == 0 ? Severity.Success : Severity.Warning);
+                await ReloadAsync();
+                StateHasChanged();
+            });
+        });
+        return Task.CompletedTask;
+    }
+
+    private string WorkflowName(PipeExecutionSummary execution)
+        => _workflows.TryGetValue(execution.WorkflowId, out var workflow) ? workflow.Name : execution.WorkflowName;
+
+    static private string Duration(PipeExecutionSummary execution)
+        => execution.FinishedAt is { } finished ? DurationText(finished - execution.StartedAt) : "";
+
+    static private string DurationText(TimeSpan duration) => duration.TotalSeconds < 1
+        ? $"{duration.TotalMilliseconds:0} ms"
+        : duration.TotalMinutes < 1 ? $"{duration.TotalSeconds:0.0} s" : $"{duration:h\\:mm\\:ss}";
+
+    static public string ModeText(PipeExecutionMode mode) => mode switch
+    {
+        PipeExecutionMode.SubWorkflow => "Sub-workflow",
+        PipeExecutionMode.Error => "Error workflow",
+        _ => mode.ToString()
+    };
+
+    static private string StatusIcon(PipeExecutionStatus status) => status switch
+    {
+        PipeExecutionStatus.Success => Icons.Material.Filled.CheckCircle,
+        PipeExecutionStatus.Error => Icons.Material.Filled.Error,
+        PipeExecutionStatus.Canceled => Icons.Material.Filled.Cancel,
+        _ => Icons.Material.Filled.Pending
+    };
+
+    static private Color StatusColor(PipeExecutionStatus status) => status switch
+    {
+        PipeExecutionStatus.Success => Color.Success,
+        PipeExecutionStatus.Error => Color.Error,
+        _ => Color.Default
+    };
+}

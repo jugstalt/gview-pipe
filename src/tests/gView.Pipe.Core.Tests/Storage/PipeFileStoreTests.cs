@@ -137,6 +137,44 @@ public sealed class PipeFileStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Executions_older_than_the_limit_are_pruned()
+    {
+        var store = _services.GetRequiredService<IPipeExecutionStore>();
+        var now = DateTimeOffset.UtcNow;
+
+        await store.SaveAsync(new PipeExecution { Id = "old", WorkflowId = "wf", StartedAt = now.AddDays(-10) });
+        await store.SaveAsync(new PipeExecution { Id = "new", WorkflowId = "wf", StartedAt = now.AddDays(-1) });
+
+        await store.PruneAsync("wf", keep: 50, olderThan: now.AddDays(-5));
+
+        Assert.Equal(["new"], (await store.ListAsync("wf")).Select(e => e.Id));
+        Assert.Equal(["new"], (await store.QueryAsync(new PipeExecutionQuery())).Select(s => s.Id));
+    }
+
+    [Fact]
+    public async Task Executions_of_all_workflows_are_queried_newest_first_with_filters()
+    {
+        var store = _services.GetRequiredService<IPipeExecutionStore>();
+        var start = DateTimeOffset.UtcNow.AddMinutes(-10);
+
+        await store.SaveAsync(new PipeExecution { Id = "a1", WorkflowId = "a", StartedAt = start, Status = PipeExecutionStatus.Error, ErrorNodeId = "n",
+            NodeRuns = { ["n"] = new PipeNodeRun { NodeId = "n", NodeName = "HTTP" } } });
+        await store.SaveAsync(new PipeExecution { Id = "b1", WorkflowId = "b", StartedAt = start.AddMinutes(1), Status = PipeExecutionStatus.Success });
+        await store.SaveAsync(new PipeExecution { Id = "a2", WorkflowId = "a", StartedAt = start.AddMinutes(2), Status = PipeExecutionStatus.Success, Mode = PipeExecutionMode.Trigger });
+
+        Assert.Equal(["a2", "b1", "a1"], (await store.QueryAsync(new PipeExecutionQuery())).Select(s => s.Id));
+        Assert.Equal(["a2", "a1"], (await store.QueryAsync(new PipeExecutionQuery { WorkflowIds = ["a"] })).Select(s => s.Id));
+        Assert.Equal(["a2"], (await store.QueryAsync(new PipeExecutionQuery { Modes = [PipeExecutionMode.Trigger] })).Select(s => s.Id));
+
+        var failed = Assert.Single(await store.QueryAsync(new PipeExecutionQuery { Statuses = [PipeExecutionStatus.Error] }));
+        Assert.Equal("HTTP", failed.ErrorNodeName);
+
+        // paging: the next page starts before the last row of the previous one
+        var page = await store.QueryAsync(new PipeExecutionQuery { MaxCount = 2 });
+        Assert.Equal(["a1"], (await store.QueryAsync(new PipeExecutionQuery { Before = page[^1].StartedAt })).Select(s => s.Id));
+    }
+
+    [Fact]
     public async Task Credentials_are_encrypted_at_rest()
     {
         var store = _services.GetRequiredService<IPipeCredentialStore>();

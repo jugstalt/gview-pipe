@@ -160,6 +160,17 @@ public class PipeEngineTests
         Assert.Equal(3, execution.NodeRuns["fail"].Attempts);
     }
 
+    [Theory]
+    [InlineData(PipeRetryBackoff.Fixed, 0, new[] { 500, 500, 500, 500 })]
+    [InlineData(PipeRetryBackoff.Exponential, 0, new[] { 500, 1000, 2000, 4000 })]
+    [InlineData(PipeRetryBackoff.Exponential, 1500, new[] { 500, 1000, 1500, 1500 })]
+    public void Retry_delay_follows_the_backoff(PipeRetryBackoff backoff, int maxDelay, int[] expected)
+    {
+        var settings = new PipeNodeSettings { RetryDelayMs = 500, RetryBackoff = backoff, RetryMaxDelayMs = maxDelay };
+
+        Assert.Equal(expected, Enumerable.Range(1, 4).Select(settings.RetryDelayFor));
+    }
+
     [Fact]
     public async Task Error_mode_stop_fails_the_execution()
     {

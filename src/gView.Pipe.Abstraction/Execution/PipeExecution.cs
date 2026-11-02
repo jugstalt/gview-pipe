@@ -27,6 +27,9 @@ public sealed class PipeExecution
     /// <summary>Nesting level of sub-workflow calls; 0 for top-level executions.</summary>
     public int Depth { get; set; }
 
+    /// <summary>The execution this one replays (mode <see cref="PipeExecutionMode.Replay"/>).</summary>
+    public string? ReplayOfExecutionId { get; set; }
+
     /// <summary>False when the workflow is configured not to store item data.</summary>
     public bool DataSaved { get; set; } = true;
 
@@ -72,7 +75,10 @@ public enum PipeExecutionMode
     SubWorkflow,
 
     /// <summary>Error workflow, started because another execution failed.</summary>
-    Error
+    Error,
+
+    /// <summary>Runs a stored execution again with the current workflow; behaves like <see cref="Trigger"/>.</summary>
+    Replay
 }
 
 public enum PipeExecutionStatus

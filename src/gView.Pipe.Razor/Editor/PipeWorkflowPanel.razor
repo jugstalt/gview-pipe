@@ -20,6 +20,14 @@
                      Value="Workflow.Settings.MaxConcurrentRuns" ValueChanged="v => ChangeAsync(() => Workflow.Settings.MaxConcurrentRuns = v)" />
     <MudSwitch T="bool" Label="Save item data of executions" Color="Color.Primary"
                Value="Workflow.Settings.SaveExecutionData" ValueChanged="v => ChangeAsync(() => Workflow.Settings.SaveExecutionData = v)" />
+    <MudStack Row="true" Spacing="2">
+        <MudNumericField T="int?" Immediate="true" DebounceInterval="300" Label="Executions kept" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1"
+                         HelperText="Empty: the instance setting" Clearable="true"
+                         Value="Workflow.Settings.ExecutionRetention" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ExecutionRetention = v)" />
+        <MudNumericField T="int?" Immediate="true" DebounceInterval="300" Label="Days kept" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
+                         HelperText="0: no limit; empty: the instance setting" Clearable="true"
+                         Value="Workflow.Settings.ExecutionRetentionDays" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ExecutionRetentionDays = v)" />
+    </MudStack>
     <PipeWorkflowGroupSelect HelperText="Shown in this group on the start page"
                              Value="@Workflow.GroupId" ValueChanged="v => ChangeAsync(() => Workflow.GroupId = v)" />
     <PipeEnvironmentSelect InheritText="@InheritText" HelperText="Where the workflow runs when triggered; the Run button can choose another"

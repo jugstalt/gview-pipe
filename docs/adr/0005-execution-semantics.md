@@ -16,7 +16,7 @@ Date: 2026-10-29 · Status: accepted
 - **Sub-workflows:** the Execute Workflow node runs another workflow through `IPipeNodeContext.ExecuteWorkflowAsync`: once for all items, per item or per batch, one call after the other. The sub-workflow starts at its Execute Workflow Trigger (`IPipeSubWorkflowTrigger`), runs through the runner (history, concurrency limit) in mode `SubWorkflow` with `ParentExecutionId` and `Depth`, and shares the caller's binary store, so binaries go in and come back. The output is the items of its last finished node. A failed sub-workflow fails the calling node, where `OnError` applies. Nesting is limited by `PipeCoreOptions.MaxSubWorkflowDepth` (10).
 - **Error workflows:** when a run in mode `Trigger` or `SubWorkflow` fails, the runner starts the workflow in `PipeWorkflowSettings.ErrorWorkflowId` at its Error Trigger (`IPipeErrorTrigger`), with one item `{ workflow, execution, node }`. Manual runs don't; failures of the error workflow itself are only logged.
 - **Loops and waiting:** there are no cycles. Repetition is done by calling a sub-workflow per item or batch. The Wait node pauses in memory, up to `PipeWaitOptions.MaxWait` (default one hour); a host restart ends a waiting execution. Resumable waits need persisted executions and come later.
-- **Errors:** each node has `RetryCount`, `RetryDelayMs` and `TimeoutSeconds`, plus one of three `OnError` modes:
+- **Errors:** each node has `RetryCount`, `RetryDelayMs` and `TimeoutSeconds`, plus one of three `OnError` modes. `RetryBackoff` `exponential` doubles the delay after each attempt, up to `RetryMaxDelayMs` (see [ADR 0015](0015-execution-history-and-replay.md)).
   - `Stop` (default): fails the execution and cancels running nodes.
   - `Continue`: passes the input on.
   - `ErrorOutput`: routes the input items to the `error` port, each with an `error` field.
@@ -31,7 +31,7 @@ Date: 2026-10-29 · Status: accepted
 - **Running executions:** `PipeExecutionMonitor` (Core, `IPipeRunningExecutions`) observes every execution of the process, whatever started it, and keeps its node runs, the last 2000 live output lines and the cancellation the runner registers per run; finished runs stay visible for 60 seconds. The UI uses it for "Running now" on the start page, the "n running" indicator, and to watch or stop a run in the editor (`/workflows/{id}?execution={executionId}`). It only knows this process.
 - **Concurrency and history:**
   - `MaxConcurrentRuns` applies per workflow (default 1). Surplus runs are skipped.
-  - The last 50 executions per workflow are kept. With `SaveExecutionData = false`, only statuses, counts and logs are stored, without input or output items.
+  - The last 50 executions per workflow are kept; count and age are configurable per instance and workflow (see [ADR 0015](0015-execution-history-and-replay.md)). With `SaveExecutionData = false`, only statuses, counts and logs are stored, without input or output items.
 - **Schedules:** cron triggers use Cronos (5 or 6 fields) with a timer loop per registration.
 
 ## Consequences

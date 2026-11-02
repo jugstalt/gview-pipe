@@ -1,0 +1,8 @@
+@page "/executions"
+@inject NavigationManager Navigation
+
+<PageTitle>gView.Pipe · Executions</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pt-6">
+    <PipeExecutionList OnOpen="@(e => Navigation.NavigateTo($"workflows/{Uri.EscapeDataString(e.WorkflowId)}?execution={Uri.EscapeDataString(e.Id)}"))" />
+</MudContainer>

@@ -11,6 +11,7 @@ Ein Node kann fehlschlagen: Ein Skript endet mit einem Exit-Code ungleich 0, ein
 | Einstellung | Bedeutung |
 |---|---|
 | Retries, Retry delay (ms) | Der Node wird nach einem Fehler bis zu so oft wiederholt. |
+| Backoff, Max delay (ms) | **Fixed delay** wartet vor jeder Wiederholung gleich lang. **Exponential** verdoppelt die Wartezeit nach jedem Fehlversuch (1 s, 2 s, 4 s, …), bis zur maximalen Wartezeit (0 = keine Grenze). Erscheint, wenn Retries größer als 0 ist. |
 | Timeout (seconds) | Der Node wird nach dieser Zeit abgebrochen. 0 bedeutet kein Timeout. |
 | **On error** | Was der Workflow tut, wenn der Node trotzdem fehlschlägt (siehe unten). |
 

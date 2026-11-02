@@ -27,6 +27,8 @@ The variable `PIPE_CONFIG_PATH` moves the `_config` folder. The start scripts an
 | `Pipe:Environments` | `TEST`, `STAGE`, `PROD` | Environments groups and workflows can choose, besides `DEFAULT`. |
 | `Pipe:Variables` | none | Instance variables per environment. |
 | `Pipe:SecretVariables` | none | Names of instance variables that are masked in logs and script output. |
+| `Pipe:ExecutionRetention` | `50` | Executions kept per workflow. A workflow can set its own value. |
+| `Pipe:ExecutionRetentionDays` | `0` | Days executions are kept; `0` means no limit. A workflow can set its own value. Older executions are deleted once a day and after each run. |
 
 Relative paths are resolved against the working directory of the app.
 
@@ -94,6 +96,6 @@ The start scripts listen on `http://localhost:5100` by default. To change it, fo
 
 ## Limits that are not in the configuration
 
-A few options can only be set in code (`Program.cs` of the Shell), for example how many executions are kept per workflow (50), how long a Wait node may wait (one hour), the JavaScript limits and the maximum body size of a webhook (10 MB). Ask your developer if you need to change them.
+A few options can only be set in code (`Program.cs` of the Shell), for example how long a Wait node may wait (one hour), the JavaScript limits and the maximum body size of a webhook (10 MB). Ask your developer if you need to change them.
 
 Per workflow you can set the **maximum concurrent runs** (default 1) in the workflow panel of the editor. More runs at the same time are skipped, and a webhook caller gets `429`.

@@ -11,6 +11,7 @@ Open a node and switch to the **Settings** tab.
 | Setting | Meaning |
 |---|---|
 | Retries, Retry delay (ms) | The node is run again after a failure, up to this many times. |
+| Backoff, Max delay (ms) | **Fixed delay** waits the same time before every retry. **Exponential** doubles it after every failed attempt (1 s, 2 s, 4 s, …), up to the max delay (0 = no limit). Shown when Retries is above 0. |
 | Timeout (seconds) | The node is canceled after this time. 0 means no timeout. |
 | **On error** | What the workflow does when the node still fails (see below). |
 

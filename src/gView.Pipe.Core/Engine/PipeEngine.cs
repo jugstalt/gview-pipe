@@ -70,6 +70,7 @@ internal sealed class PipeEngine : IPipeEngine
             ParentExecutionId = request.ParentExecutionId,
             ParentWorkflowId = request.ParentWorkflowId,
             Depth = request.Depth,
+            ReplayOfExecutionId = request.ReplayOf?.Id,
             Status = PipeExecutionStatus.Running,
             StartedAt = DateTimeOffset.UtcNow
         };
@@ -139,8 +140,44 @@ internal sealed class PipeEngine : IPipeEngine
         {
             roots.IntersectWith(graph.AncestorsOf(request.TargetNodeId));
         }
+        if (request.ReplayOf is { } replayed)
+        {
+            // only the trigger that fired in the replayed run, not every trigger of the workflow
+            var ranBefore = roots.Where(replayed.NodeRuns.ContainsKey).ToHashSet();
+            if (ranBefore.Count > 0)
+            {
+                roots = ranBefore;
+            }
+        }
         return roots.Count > 0 ? roots : throw new PipeException("Workflow has no start node");
     }
+
+    /// <summary>Nodes of a replay that take their stored outputs: the start nodes, or all but the replay node and its downstream nodes.</summary>
+    static private HashSet<string> ResolveReplayedNodes(PipeWorkflowGraph graph, HashSet<string> startNodeIds, PipeExecutionRequest request)
+    {
+        if (request.ReplayOf is null)
+        {
+            return [];
+        }
+        if (request.ReplayFromNodeId is not { } fromNodeId)
+        {
+            return [.. startNodeIds];
+        }
+        if (!graph.Nodes.ContainsKey(fromNodeId))
+        {
+            throw new PipeException($"Node '{fromNodeId}' to replay from not found");
+        }
+
+        var rerun = graph.ReachableFrom([fromNodeId]);
+        return graph.Nodes.Keys.Where(id => !rerun.Contains(id)).ToHashSet();
+    }
+
+    /// <summary>The stored outputs of a node in a replay, or null when it has none (it then runs).</summary>
+    static private PortItems? ReplayedOutputs(PipeExecutionRequest request, HashSet<string> replayedNodeIds, string nodeId)
+        => replayedNodeIds.Contains(nodeId)
+           && request.ReplayOf?.NodeRuns.GetValueOrDefault(nodeId) is { Outputs: { } outputs, Status: PipeNodeRunStatus.Success or PipeNodeRunStatus.Skipped or PipeNodeRunStatus.Disabled }
+            ? outputs.ToDictionary(p => p.Key, p => (IReadOnlyList<PipeItem>)p.Value.Select(i => i.Clone()).ToList())
+            : null;
 
     /// <summary>Nodes that take part in the run: reachable from the start nodes and, for "run to here", leading to the target.</summary>
     static private HashSet<string> ResolveActiveNodes(PipeWorkflowGraph graph, HashSet<string> startNodeIds, PipeExecutionRequest request)
@@ -173,6 +210,7 @@ internal sealed class PipeEngine : IPipeEngine
     {
         var graph = state.Graph;
         var reachable = ResolveActiveNodes(graph, startNodeIds, request);
+        var replayedNodeIds = ResolveReplayedNodes(graph, startNodeIds, request);
         var pending = new HashSet<string>(reachable);
         var running = new Dictionary<Task<NodeOutcome>, string>();
 
@@ -210,9 +248,18 @@ internal sealed class PipeEngine : IPipeEngine
                             state.Outputs[nodeId] = passThrough;
                             await FinishRunAsync(state, run, PipeNodeRunStatus.Disabled, passThrough, observer);
                         }
-                        else if (PinnedOutputs(state, request, nodeId) is { } pinned)
+                        else if ((PinnedOutputs(state, request, nodeId) ?? ReplayedOutputs(request, replayedNodeIds, nodeId)) is { } pinned)
                         {
                             run.Pinned = true;
+                            if (request.ReplayOf is not null)
+                            {
+                                run.Logs.Add(new PipeLogEntry(DateTimeOffset.UtcNow, LogLevel.Information, "Output taken from the replayed execution"));
+                                if (pinned.Values.Any(items => items.Any(i => i.Binary.Count > 0)))
+                                {
+                                    run.Logs.Add(new PipeLogEntry(DateTimeOffset.UtcNow, LogLevel.Warning,
+                                        "The stored items reference binaries that are no longer available; nodes reading them will fail"));
+                                }
+                            }
                             state.Outputs[nodeId] = pinned;
                             await FinishRunAsync(state, run, PipeNodeRunStatus.Success, pinned, observer);
                         }
@@ -341,11 +388,12 @@ internal sealed class PipeEngine : IPipeEngine
                     break;
                 }
 
+                var delay = settings.RetryDelayFor(attempt);
                 runLogger.LogWarning("Node {NodeName}: attempt {Attempt} failed, retrying in {Delay} ms: {Error}",
-                    node.Name, attempt, settings.RetryDelayMs, lastError.Message);
-                if (settings.RetryDelayMs > 0)
+                    node.Name, attempt, delay, lastError.Message);
+                if (delay > 0)
                 {
-                    await Task.Delay(settings.RetryDelayMs, cancellationToken);
+                    await Task.Delay(delay, cancellationToken);
                 }
             }
         }

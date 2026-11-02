@@ -30,6 +30,7 @@ internal sealed class DocsScreenshots
         await CodeFieldAsync();
         await WebhookTriggerAsync();
         await ErrorOutputAsync();
+        await ExecutionsAsync();
         await CredentialsAsync();
         await VariablesAsync();
         await EditorEnvironmentAsync();
@@ -139,6 +140,15 @@ internal sealed class DocsScreenshots
         }
         """;
 
+    /// <summary>The history of all workflows, with the runs the earlier pictures made.</summary>
+    private async Task ExecutionsAsync()
+    {
+        await LowAsync();
+        await OpenAsync("/executions");
+        await _page.Locator("tr.gview-pipe-execution-row").First.WaitForAsync();
+        await ShotAsync("executions");
+    }
+
     private async Task CredentialsAsync()
     {
         await LowAsync();
@@ -153,8 +163,12 @@ internal sealed class DocsScreenshots
         await HighAsync();
         await OpenAsync("/variables");
         await _page.Locator(".gview-pipe-variable").First.WaitForAsync();
+        var names = _page.GetByPlaceholder("NAME");
+        var before = await names.CountAsync();
         await _page.GetByRole(AriaRole.Button, new() { Name = "Add variable" }).ClickAsync();
-        var name = _page.GetByPlaceholder("NAME").Last;
+        // wait for the new row; until then the last field is a read-only one from the configuration
+        await names.Nth(before).WaitForAsync();
+        var name = names.Last;
         await name.FillAsync("REPORT_SHARE");
         await name.PressAsync("Tab");
         await _page.GetByLabel("DEFAULT").Last.FillAsync(@"\\files-test\reports");

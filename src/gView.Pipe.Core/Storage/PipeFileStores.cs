@@ -7,6 +7,7 @@ using gView.Pipe.Abstraction.Serialization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 using System.Text.Json.Nodes;
 
 namespace gView.Pipe.Core.Storage;
@@ -212,11 +213,14 @@ internal sealed class PipeFileWorkflowGroupStore : IPipeWorkflowGroupStore
 }
 
 /// <summary>
-/// One JSON file per execution: <c>{root}/executions/{workflowId}/{startedAt}_{executionId}.json</c>.
-/// The timestamp prefix keeps listing and pruning cheap.
+/// One JSON file per execution: <c>{root}/executions/{workflowId}/{startedAt}_{executionId}.json</c>, and next to it
+/// a small <c>….summary.json</c> for the history of all workflows. The timestamp prefix keeps listing and pruning cheap.
 /// </summary>
 internal sealed class PipeFileExecutionStore : IPipeExecutionStore
 {
+    private const string SummarySuffix = ".summary.json";
+    private const string TimestampFormat = "yyyyMMddHHmmssfff";
+
     private readonly string _folder;
 
     public PipeFileExecutionStore(IOptions<PipeFileStoreOptions> options)
@@ -224,10 +228,54 @@ internal sealed class PipeFileExecutionStore : IPipeExecutionStore
         _folder = Path.Combine(Path.GetFullPath(options.Value.RootPath), "executions");
     }
 
-    public Task SaveAsync(PipeExecution execution, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(PipeExecution execution, CancellationToken cancellationToken = default)
     {
-        var path = Path.Combine(FolderOf(execution.WorkflowId), $"{execution.StartedAt.UtcDateTime:yyyyMMddHHmmssfff}_{PipeStoreIds.Validate(execution.Id)}.json");
-        return PipeFiles.WriteAtomicAsync(path, PipeJson.Serialize(execution), cancellationToken);
+        var stem = Path.Combine(FolderOf(execution.WorkflowId), $"{execution.StartedAt.UtcDateTime.ToString(TimestampFormat, CultureInfo.InvariantCulture)}_{PipeStoreIds.Validate(execution.Id)}");
+        await PipeFiles.WriteAtomicAsync(stem + ".json", PipeJson.Serialize(execution), cancellationToken);
+        await PipeFiles.WriteAtomicAsync(stem + SummarySuffix, PipeJson.Serialize(PipeExecutionSummary.From(execution)), cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<PipeExecutionSummary>> QueryAsync(PipeExecutionQuery query, CancellationToken cancellationToken = default)
+    {
+        if (!Directory.Exists(_folder))
+        {
+            return [];
+        }
+
+        var folders = query.WorkflowIds is { Count: > 0 } ids
+            ? ids.Select(FolderOf).Where(Directory.Exists)
+            : Directory.GetDirectories(_folder);
+        // the file name starts with the UTC start time, so most filters on time need no file read
+        var before = query.Before?.UtcDateTime.ToString(TimestampFormat, CultureInfo.InvariantCulture);
+        var from = query.From?.UtcDateTime.ToString(TimestampFormat, CultureInfo.InvariantCulture);
+        var files = folders
+            .SelectMany(folder => Directory.GetFiles(folder, "*" + SummarySuffix))
+            .Select(file => (File: file, Name: Path.GetFileName(file)))
+            .Where(f => (before is null || string.CompareOrdinal(f.Name, before) < 0)
+                        && (from is null || string.CompareOrdinal(f.Name, from) >= 0))
+            .OrderByDescending(f => f.Name, StringComparer.Ordinal);
+
+        var summaries = new List<PipeExecutionSummary>();
+        foreach (var (file, _) in files)
+        {
+            if (summaries.Count >= query.MaxCount)
+            {
+                break;
+            }
+            try
+            {
+                if (PipeJson.Deserialize<PipeExecutionSummary>(await File.ReadAllTextAsync(file, cancellationToken)) is { } summary
+                    && summary.Matches(query))
+                {
+                    summaries.Add(summary);
+                }
+            }
+            catch (IOException)
+            {
+                // pruned while listing
+            }
+        }
+        return summaries;
     }
 
     public async Task<PipeExecution?> GetAsync(string workflowId, string executionId, CancellationToken cancellationToken = default)
@@ -253,11 +301,17 @@ internal sealed class PipeFileExecutionStore : IPipeExecutionStore
         return executions;
     }
 
-    public Task PruneAsync(string workflowId, int keep, CancellationToken cancellationToken = default)
+    public Task PruneAsync(string workflowId, int keep, DateTimeOffset? olderThan = null, CancellationToken cancellationToken = default)
     {
-        foreach (var file in FilesNewestFirst(workflowId).Skip(keep))
+        var limit = olderThan?.UtcDateTime.ToString(TimestampFormat, CultureInfo.InvariantCulture);
+        var index = 0;
+        foreach (var file in FilesNewestFirst(workflowId))
         {
-            File.Delete(file);
+            if (index++ >= keep || (limit is not null && string.CompareOrdinal(Path.GetFileName(file), limit) < 0))
+            {
+                File.Delete(file);
+                File.Delete(file[..^".json".Length] + SummarySuffix);
+            }
         }
         return Task.CompletedTask;
     }
@@ -266,7 +320,9 @@ internal sealed class PipeFileExecutionStore : IPipeExecutionStore
     {
         var folder = FolderOf(workflowId);
         return Directory.Exists(folder)
-            ? Directory.GetFiles(folder, "*.json").OrderByDescending(Path.GetFileName, StringComparer.Ordinal)
+            ? Directory.GetFiles(folder, "*.json")
+                .Where(f => !f.EndsWith(SummarySuffix, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(Path.GetFileName, StringComparer.Ordinal)
             : [];
     }
 

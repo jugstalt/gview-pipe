@@ -13,7 +13,7 @@ Klicke einen Lauf an, um ihn im Editor **live zu verfolgen**. Im Editor kannst d
 
 ## Historie
 
-Das Workflow-Panel des Editors (ohne gewählten Node) listet die **Executions** des Workflows, die neueste zuerst, mit Status, Startzeit, [Environment](variables.md), wie er gestartet wurde (Manual, Trigger für Cron und Webhook, Sub-Workflow, Fehler-Workflow) und der Dauer. Das Feld über der Liste filtert nach Environment. Die letzten 50 bleiben erhalten.
+Das Workflow-Panel des Editors (ohne gewählten Node) listet die **Executions** des Workflows, die neueste zuerst, mit Status, Startzeit, [Environment](variables.md), wie er gestartet wurde (Manual, Trigger für Cron und Webhook, Sub-Workflow, Fehler-Workflow) und der Dauer. Das Feld über der Liste filtert nach Environment. Die letzten 50 bleiben erhalten, sofern das Workflow-Panel (**Executions kept**, **Days kept**) oder die [Konfiguration](../admin-guide/configuration.md) nichts anderes festlegt.
 
 Klicke eine Execution an, um sie auf der Arbeitsfläche zu öffnen: Jeder Node zeigt Zustand und Zähler, und im Tab **Run** jedes Nodes siehst du Eingabe, Ausgabe und Logs dieses Laufs. Ein Hinweis erscheint, wenn der Workflow seit dem Lauf geändert wurde, weil manche Nodes dann nicht mehr existieren.
 
@@ -25,6 +25,35 @@ Klicke eine Execution an, um sie auf der Arbeitsfläche zu öffnen: Jeder Node z
 | Running | Läuft noch. |
 
 Klicke auf das **x** neben dem Ergebnis über der Arbeitsfläche, um die Anzeige zu löschen und zum einfachen Workflow zurückzukehren.
+
+## Alle Executions
+
+**Executions** in der Navigation listet die Executions aller Workflows, die neueste zuerst: Workflow, Status, wie er gestartet wurde, Environment, Start, Dauer und der fehlgeschlagene Node. Filtern kannst du nach Workflow oder Gruppe, Status, Startart und Zeitraum (zu Beginn die letzten 7 Tage); **Load more** lädt ältere nach. Ein Klick auf eine Zeile öffnet die Execution im Editor.
+
+![Die Executions aller Workflows](../../images/executions.png)
+
+## Replay
+
+Ein **Replay** führt eine gespeicherte Execution erneut aus, etwa nachdem du die Ursache eines Fehlers behoben hast:
+
+- Es läuft der **gespeicherte, aktuelle** Workflow, nicht der Stand des ursprünglichen Laufs.
+- Es nutzt die gespeicherten Daten des ursprünglichen Laufs und läuft in dessen **Environment**.
+- Es verhält sich wie ein getriggerter Lauf: Pin Data wird ignoriert, und der [Fehler-Workflow](error-handling.md) startet, wenn es fehlschlägt.
+- Es erscheint mit der Startart **Replay** und dem Replay-Symbol.
+
+Wo du es startest:
+
+| Wo | Was erneut läuft |
+|---|---|
+| Replay-Knopf einer Zeile oder mehrere gewählte Zeilen auf der Seite Executions | Der ganze Workflow, mit der Trigger-Ausgabe des ursprünglichen Laufs. Mehrere Replays laufen nacheinander, das älteste zuerst. |
+| **Replay from failed node** auf der Seite Executions | Fehlgeschlagene Executions ab ihrem fehlgeschlagenen Node, die anderen von vorne. |
+| Replay-Symbol neben dem Ergebnis im Editor | Der ganze Workflow; das rote Symbol daneben startet ab dem fehlgeschlagenen Node. |
+| **Replay from here** in der Werkzeugleiste eines gewählten Nodes, während ein Lauf angezeigt wird | Dieser Node und alles danach. Alle anderen Nodes übernehmen ihre Ausgaben aus dem angezeigten Lauf. |
+
+Ein Replay wartet, bis der Workflow einen freien Platz hat (**Max concurrent runs**), statt übersprungen zu werden. Speichere im Editor zuerst deine Änderungen: Das Replay führt den gespeicherten Workflow aus.
+
+!!! warning
+    Executions ohne gespeicherte Item-Daten (**Save item data of executions** ausgeschaltet) lassen sich nicht wiederholen. Dateien eines Laufs (Binärdaten) werden nach dessen Ende nicht aufbewahrt: Ein Node, der eine solche Datei im Replay liest, schlägt fehl.
 
 ## Sensible Daten
 

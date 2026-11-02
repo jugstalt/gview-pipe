@@ -41,8 +41,13 @@ public interface IPipeExecutionStore
     /// <summary>Most recent executions first.</summary>
     Task<IReadOnlyList<PipeExecution>> ListAsync(string workflowId, int maxCount = 50, CancellationToken cancellationToken = default);
 
-    /// <summary>Deletes all but the <paramref name="keep"/> most recent executions.</summary>
-    Task PruneAsync(string workflowId, int keep, CancellationToken cancellationToken = default);
+    /// <summary>Summaries of the executions of all workflows, most recent first.</summary>
+    Task<IReadOnlyList<PipeExecutionSummary>> QueryAsync(PipeExecutionQuery query, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes all but the <paramref name="keep"/> most recent executions, and those started before <paramref name="olderThan"/>.
+    /// </summary>
+    Task PruneAsync(string workflowId, int keep, DateTimeOffset? olderThan = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>The variables of the instance level edited in the UI; they override those of the configuration.</summary>
