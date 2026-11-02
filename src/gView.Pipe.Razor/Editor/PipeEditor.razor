@@ -236,6 +236,8 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await UpdateCompletionsAsync();
+
         // the body appears once the workflow is loaded
         // renders can follow each other while the module loads: start it only once
         if (_editorScriptStarted || string.IsNullOrEmpty(_body.Id))
@@ -808,6 +810,44 @@
     }
 
     /// <summary>Writes positions and links back into the workflow.</summary>
+    private string? _completionKey;
+
+    /// <summary>
+    /// Sends the expression completions of the selected node to the browser (ADR 0019) when what they depend on changed:
+    /// the selection, the shown run, connections, pin data or the environment.
+    /// </summary>
+    private async Task UpdateCompletionsAsync()
+    {
+        if (_editorScript is null || _workflow is null)
+        {
+            return;
+        }
+
+        var nodeId = _selected?.Node.Id;
+        var key = string.Join('|', nodeId, _execution?.Id, _execution?.Status, _execution?.NodeRuns.Count, _diagram.Links.Count,
+            _workflow.PinData?.Sum(p => p.Value.Sum(port => port.Value.Count)), _runEnvironment);
+        if (key == _completionKey)
+        {
+            return;
+        }
+        _completionKey = key;
+
+        try
+        {
+            if (nodeId is null)
+            {
+                await _editorScript.InvokeVoidAsync("setCompletions", (object?)null);
+                return;
+            }
+            var workflow = BuildWorkflow();
+            var environment = _runEnvironment ?? (await Environments.ResolveAsync(workflow)).Name;
+            var variables = await Environments.ResolveVariablesAsync(workflow, environment);
+            await _editorScript.InvokeVoidAsync("setCompletions", PipeCompletionCatalog.Build(workflow, nodeId, _execution, variables));
+        }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+    }
+
     private PipeWorkflow BuildWorkflow()
     {
         var workflow = _workflow!;

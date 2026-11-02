@@ -31,6 +31,7 @@ internal sealed class DocsScreenshots
         await WebhookTriggerAsync();
         await ErrorOutputAsync();
         await DataToolsAsync();
+        await ExpressionAutocompleteAsync();
         await ExecutionsAsync();
         await ErrorMailAsync();
         await CredentialsAsync();
@@ -160,6 +161,21 @@ internal sealed class DocsScreenshots
         await SelectNodeAsync("Read CSV");
         await SelectTabAsync("Run");
         await ShotAsync("data-tools");
+    }
+
+    /// <summary>Autocomplete in an expression field: Data Tools after its run, typing $json. in the Checksum node.</summary>
+    private async Task ExpressionAutocompleteAsync()
+    {
+        await SelectNodeAsync("Checksum");
+        var value = _page.GetByLabel("Value", new() { Exact = true });
+        await value.ClickAsync();
+        await value.PressAsync("End");
+        await value.PressSequentiallyAsync(" {{");
+        await value.PressSequentiallyAsync(" $json.", new() { Delay = 30 });
+        await _page.Locator(".gview-pipe-completion:not([hidden])").WaitForAsync();
+        await _page.WaitForTimeoutAsync(300);
+        await ShotAsync("expression-autocomplete");
+        await value.PressAsync("Escape");
     }
 
     /// <summary>The history of all workflows, with the runs the earlier pictures made.</summary>

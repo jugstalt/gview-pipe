@@ -60,7 +60,19 @@ Values are copied into the expression: changing `$json` inside an expression doe
 
 ### The editor helps
 
-In the **Run** tab of a node, click a field of the input to put the matching expression into the parameter you edited last. That is the quickest way to get the path right.
+**Autocomplete:** inside `{{ }}` the field suggests what you can write: the fields of the node's input (`$json.…`), the output of earlier nodes (`$node["Name"].json.…`), the [variables](variables.md) of the environment (`$vars.…`, secret ones without their value) and the global names (`$now`, `$workflow`, …). Each suggestion shows its type and a sample value from the last run.
+
+- The list opens after `{{`, `.` and `["`, or with **Ctrl+Space**.
+- **↑ ↓** choose, **Enter** or **Tab** inserts, **Esc** closes.
+- Typing `{{` adds the closing `}}`.
+- The fields come from the run shown in the editor, or from pinned data. Without one, run the workflow once or use *Run to here* on the node before.
+- Code fields (the Code node) offer the same, plus `items[0].…` in *All items* mode.
+
+![Suggestions for $json while typing an expression](../../images/expression-autocomplete.png)
+
+Below the field, `= …` shows the value of the expression for the first input item of the last run.
+
+In the **Run** tab of a node, click a field of the input to put the matching expression into the parameter you edited last.
 
 ## The Code node
 

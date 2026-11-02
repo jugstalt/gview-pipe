@@ -4,6 +4,9 @@
 // - catches Ctrl+S before the browser opens its save dialog
 // - marks {{ }} expressions in expression fields: a mirror of the text lies behind the input and
 //   tints the expressions, the input itself stays a normal field
+// - suggests paths inside {{ }} while typing (gview-pipe-completion.js)
+
+import { attach as attachCompletion, setCompletions } from './gview-pipe-completion.js';
 
 const minWidths = { palette: 160, panel: 240 };
 const maxShare = 0.6;
@@ -65,14 +68,17 @@ export function init(body, dotNet) {
     };
 
     const stopHighlighting = highlightExpressions(body);
+    const stopCompletion = attachCompletion(body);
 
     body.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     return {
+        setCompletions: completions => setCompletions(completions),
         dispose: () => {
             body.removeEventListener('pointerdown', onPointerDown);
             document.removeEventListener('keydown', onKeyDown);
             stopHighlighting();
+            stopCompletion();
         }
     };
 }

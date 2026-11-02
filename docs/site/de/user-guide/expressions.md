@@ -60,7 +60,19 @@ Werte werden in den Ausdruck kopiert: Wenn du `$json` im Ausdruck änderst, änd
 
 ### Der Editor hilft
 
-Im Tab **Run** eines Nodes klickst du ein Feld der Eingabe an, um den passenden Ausdruck in den zuletzt bearbeiteten Parameter einzufügen. So kommst du am schnellsten zum richtigen Pfad.
+**Autovervollständigung:** Innerhalb von `{{ }}` schlägt das Feld vor, was du schreiben kannst: die Felder der Eingabe des Nodes (`$json.…`), die Ausgabe früherer Nodes (`$node["Name"].json.…`), die [Variablen](variables.md) des Environments (`$vars.…`, geheime ohne ihren Wert) und die globalen Namen (`$now`, `$workflow`, …). Jeder Vorschlag zeigt seinen Typ und einen Beispielwert aus dem letzten Lauf.
+
+- Die Liste öffnet sich nach `{{`, `.` und `["` oder mit **Strg+Leertaste**.
+- **↑ ↓** wählen, **Enter** oder **Tab** fügt ein, **Esc** schließt.
+- Tippst du `{{`, wird `}}` ergänzt.
+- Die Felder stammen aus dem im Editor angezeigten Lauf oder aus angehefteten Daten. Ohne beides lass den Workflow einmal laufen oder nutze *Run to here* am Node davor.
+- Code-Felder (der Code-Node) bieten dasselbe, im Modus *All items* zusätzlich `items[0].…`.
+
+![Vorschläge für $json beim Tippen eines Ausdrucks](../../images/expression-autocomplete.png)
+
+Unter dem Feld zeigt `= …` den Wert des Ausdrucks für das erste Eingangs-Item des letzten Laufs.
+
+Im Tab **Run** eines Nodes klickst du ein Feld der Eingabe an, um den passenden Ausdruck in den zuletzt bearbeiteten Parameter einzufügen.
 
 ## Der Code-Node
 

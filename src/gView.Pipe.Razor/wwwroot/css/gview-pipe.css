@@ -932,3 +932,64 @@ div.gview-pipe-json-tree {
 .gview-pipe-saved-marker {
     color: var(--mud-palette-text-secondary);
 }
+
+/* autocomplete for {{ }} expressions (gview-pipe-completion.js); appended to the body, so it floats above panels */
+.gview-pipe-completion {
+    position: fixed;
+    z-index: 2000;
+    max-width: 520px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 4px 0;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 6px;
+    box-shadow: var(--mud-elevation-8);
+    font-size: .8125rem;
+}
+
+.gview-pipe-completion-item {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 3px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+    .gview-pipe-completion-item.selected,
+    .gview-pipe-completion-item:hover {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .gview-pipe-completion-item.selected {
+        box-shadow: inset 3px 0 0 var(--mud-palette-primary);
+    }
+
+.gview-pipe-completion-label {
+    font-family: Consolas, "Cascadia Mono", monospace;
+}
+
+.gview-pipe-completion-type {
+    color: var(--mud-palette-text-secondary);
+    font-size: .75rem;
+}
+
+.gview-pipe-completion-sample {
+    margin-left: auto;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--mud-palette-text-secondary);
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: .75rem;
+}
+
+.gview-pipe-completion-hint {
+    padding: 4px 10px 2px;
+    border-top: 1px solid var(--mud-palette-lines-default);
+    color: var(--mud-palette-text-secondary);
+    font-size: .75rem;
+    white-space: normal;
+}
