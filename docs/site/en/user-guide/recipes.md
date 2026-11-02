@@ -53,9 +53,16 @@ The shortest webhook: `POST /webhook/demo` answers with a greeting. The trigger 
 
 Writes orders as a CSV file into the released folder `files` (`exports/orders-<date>.csv`) and reads the file back as items. The folder name `files` has to be released by the administrator (`Pipe:FileRoots`), see the [Admin Guide](../admin-guide/configuration.md).
 
+## Data Tools
+
+*Code → Date & Time → Date & Time → Crypto → Convert to File → Compression (zip) → Compression (unzip) → Extract from File.* [Download](../../downloads/workflows/data-tools.json)
+
+Builds two orders, adds a due date 14 days later and formats it for Vienna, adds a SHA-256 checksum, writes the orders as a CSV attachment, zips and unzips it and reads the CSV back. No folder is involved: the files exist only as attachments of the run. See [Files and data](data.md).
+
 ## Build your own
 
 - **Call an API on a schedule:** Cron Trigger → HTTP Request → Code or Set → Send Email.
 - **React to a webhook and answer:** Webhook Trigger (*Using respond node*) → your nodes → Respond to Webhook, with an error output for failures ([Error handling](error-handling.md#answering-a-webhook-after-a-failure)).
 - **Run a script nightly and get a mail on failure:** Cron Trigger → Run Script, with an error workflow that sends the mail.
+- **Accept a CSV upload and mail it back as Excel:** Webhook Trigger → Extract from File (CSV) → your nodes → Convert to File (Excel) → Send Email with the attachment `data`.
 - **Copy rows between databases:** Cron Trigger → SQL (select) → SQL (insert, once per item).

@@ -7,7 +7,8 @@ namespace gView.Pipe.Razor.Forms;
 /// <summary>Conversions between JSON parameter values and the text shown in input fields.</summary>
 static public class PipeJsonText
 {
-    static private readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+    // shown to people: + < > & and non-ASCII stay as they are instead of \uXXXX; still valid JSON (Blazor escapes the HTML)
+    static private readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     /// <summary>Strings are shown raw, everything else as JSON.</summary>
     static public string ToText(JsonNode? value)

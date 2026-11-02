@@ -3,6 +3,7 @@ using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Files;
 using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Plugins.Common;
+using gView.Pipe.Plugins.Common.Formats;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -116,18 +117,14 @@ public sealed class ReadFileNode : IPipeNode<ReadFileNodeParameters>, IPipeNodeH
                 return [new PipeItem(fileJson)];
 
             case ReadFileFormat.Json:
-                var node = JsonNode.Parse(await File.ReadAllTextAsync(path, cancellationToken));
-                return node switch
-                {
-                    JsonObject obj => [new PipeItem(obj)],
-                    // items are always objects: other values are wrapped
-                    JsonArray array => array.Select(e => new PipeItem(e as JsonObject ?? new JsonObject { ["value"] = e?.DeepClone() })).ToList(),
-                    _ => [new PipeItem(new JsonObject { ["value"] = node?.DeepClone() })]
-                };
-
             case ReadFileFormat.Csv:
-                var rows = PipeCsv.Parse(await File.ReadAllTextAsync(path, cancellationToken), PipeCsv.Delimiter(parameters.CsvDelimiter));
-                return rows.Select(row => new PipeItem(row)).ToList();
+                // the same formats as Extract from File (ADR 0018)
+                IPipeFileFormat format = parameters.Format == ReadFileFormat.Json ? new PipeJsonFileFormat() : new PipeCsvFileFormat();
+                await using (var stream = File.OpenRead(path))
+                {
+                    var objects = await format.ReadAsync(stream, new PipeFileFormatOptions { Delimiter = parameters.CsvDelimiter }, cancellationToken);
+                    return objects.Select(o => new PipeItem(o)).ToList();
+                }
 
             default:
                 await using (var stream = File.OpenRead(path))
@@ -155,7 +152,8 @@ static internal class PipeMimeTypes
     {
         [".txt"] = "text/plain", [".csv"] = "text/csv", [".json"] = "application/json", [".xml"] = "application/xml",
         [".html"] = "text/html", [".pdf"] = "application/pdf", [".png"] = "image/png", [".jpg"] = "image/jpeg",
-        [".jpeg"] = "image/jpeg", [".gif"] = "image/gif", [".zip"] = "application/zip"
+        [".jpeg"] = "image/jpeg", [".gif"] = "image/gif", [".zip"] = "application/zip", [".gz"] = "application/gzip",
+        [".xlsx"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     };
 
     static public string FromFileName(string fileName)

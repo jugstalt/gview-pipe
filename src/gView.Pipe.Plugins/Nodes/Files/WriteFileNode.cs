@@ -2,7 +2,7 @@ using gView.Pipe.Abstraction;
 using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Files;
 using gView.Pipe.Abstraction.Nodes;
-using gView.Pipe.Plugins.Common;
+using gView.Pipe.Plugins.Common.Formats;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
@@ -125,16 +125,15 @@ public sealed class WriteFileNode : IPipeNode<WriteFileNodeParameters>, IPipeNod
             {
                 throw new PipeException("Appending isn't possible for JSON; overwrite the file or write CSV");
             }
-            var json = new JsonArray(items.Select(i => (JsonNode)i.Json.DeepClone()).ToArray())
-                .ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-            return await WriteBytesAsync(parameters, Utf8.GetBytes(json), cancellationToken);
+            return await WriteAsync(parameters, stream => new PipeJsonFileFormat().WriteAsync(
+                stream, items.Select(i => i.Json).ToList(), new PipeFileFormatOptions(), cancellationToken));
         }
 
         // appending to an existing CSV file adds rows only
         var path = _roots.Resolve(parameters.Folder, parameters.Path);
         var header = !(parameters.IfExists == WriteFileIfExists.Append && File.Exists(path) && new FileInfo(path).Length > 0);
-        var csv = PipeCsv.Write(items.Select(i => i.Json), PipeCsv.Delimiter(parameters.CsvDelimiter), header);
-        return await WriteBytesAsync(parameters, Utf8.GetBytes(csv), cancellationToken);
+        return await WriteAsync(parameters, stream => new PipeCsvFileFormat().WriteAsync(
+            stream, items.Select(i => i.Json).ToList(), new PipeFileFormatOptions { Delimiter = parameters.CsvDelimiter, Header = header }, cancellationToken));
     }
 
     private Task<JsonObject> WriteBytesAsync(WriteFileNodeParameters parameters, byte[] content, CancellationToken cancellationToken)

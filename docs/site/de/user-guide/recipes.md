@@ -53,9 +53,16 @@ Der kürzeste Webhook: `POST /webhook/demo` antwortet mit einer Begrüßung. Der
 
 Schreibt Bestellungen als CSV-Datei in den freigegebenen Ordner `files` (`exports/orders-<Datum>.csv`) und liest die Datei als Items wieder ein. Der Ordnername `files` muss vom Administrator freigegeben sein (`Pipe:FileRoots`), siehe [Administratorhandbuch](../admin-guide/configuration.md).
 
+## Data Tools
+
+*Code → Date & Time → Date & Time → Crypto → Convert to File → Compression (zip) → Compression (unzip) → Extract from File.* [Herunterladen](../../downloads/workflows/data-tools.json)
+
+Erzeugt zwei Bestellungen, setzt ein Fälligkeitsdatum 14 Tage später und formatiert es für Wien, ergänzt eine SHA-256-Prüfsumme, schreibt die Bestellungen als CSV-Anhang, packt und entpackt ihn als ZIP und liest das CSV wieder ein. Kein Ordner ist beteiligt: Die Dateien existieren nur als Anhänge des Laufs. Siehe [Dateien und Daten](data.md).
+
 ## Selbst bauen
 
 - **Eine API nach Zeitplan aufrufen:** Cron Trigger → HTTP Request → Code oder Set → Send Email.
 - **Auf einen Webhook reagieren und antworten:** Webhook Trigger (*Using respond node*) → deine Nodes → Respond to Webhook, mit einem Fehlerausgang für Fehlschläge ([Fehlerbehandlung](error-handling.md#einen-webhook-nach-einem-fehler-beantworten)).
 - **Nachts ein Skript ausführen und bei einem Fehler eine Mail bekommen:** Cron Trigger → Run Script, mit einem Fehler-Workflow, der die Mail sendet.
+- **Einen CSV-Upload annehmen und als Excel zurückschicken:** Webhook Trigger → Extract from File (CSV) → deine Nodes → Convert to File (Excel) → Send Email mit dem Anhang `data`.
 - **Zeilen zwischen Datenbanken kopieren:** Cron Trigger → SQL (select) → SQL (insert, einmal pro Item).

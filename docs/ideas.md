@@ -2,7 +2,7 @@
 
 Backlog of possible features. Internal, not part of the docs site. Larger items get an ADR before they are built.
 
-Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: the data nodes.
+Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: autocomplete in the expression editor, then the REST API.
 
 ## Operations and reliability
 
@@ -15,7 +15,8 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 
 ## Nodes
 
-- [ ] Data and formats: CSV, XML and Excel read/write, JSON path or mapping, date and time, crypto/hash, ZIP.
+- [x] Data and formats: Extract from File / Convert to File (CSV, JSON, XML, Text, Excel via the Office plugin), Date & Time, Crypto, Compression (ADR 0018).
+- [ ] More formats through `IPipeFileFormat`: e.g. YAML, fixed-width text, PDF text extraction.
 - [ ] Flow: loop / split in batches, rate limit or throttle, sub-workflow with return value (check what Execute Workflow already covers).
 - [ ] Integrations: FTP/SFTP, S3 or Azure Blob, Teams/Slack webhook, REST with an OAuth2 credential, MQTT or RabbitMQ.
 - [ ] Triggers: file watcher (folder), incoming mail (IMAP), queue trigger.

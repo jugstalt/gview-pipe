@@ -28,6 +28,11 @@ static public class PipeBuiltInNodes
     public const string ReadFile = "26912bb1-7982-47e7-b6ae-73937b3e83f9";
     public const string WriteFile = "def4eb54-c93e-40d1-9d27-49dfe8f19b41";
     public const string SendEmail = "fafaca25-a6f7-49bd-a689-c3a7f01b1c7a";
+    public const string ExtractFromFile = "949aacbc-db66-4cad-a5f3-e6ce66a046bd";
+    public const string ConvertToFile = "6a294702-510c-4788-8e62-e5a4489e4875";
+    public const string DateTime = "3776167c-16a8-441b-8c44-318c58f59288";
+    public const string Crypto = "0cfe2067-05cc-4d62-9922-e380979ed6f4";
+    public const string Compression = "4d279dad-5d3a-488b-80d4-5c95cebb0269";
 }
 
 /// <summary>Ids of the built-in credential types.</summary>

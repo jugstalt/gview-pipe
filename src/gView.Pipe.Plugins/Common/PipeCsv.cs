@@ -13,8 +13,35 @@ static public class PipeCsv
             : setting is @"\t" or "tab" or "\t" ? '\t'
             : setting[0];
 
-    /// <summary>One object per data row; the first row holds the column names. All values are strings.</summary>
-    static public List<JsonObject> Parse(string text, char delimiter = ',')
+    /// <summary>The most frequent of , ; tab and | outside quotes in the first line; a comma if none occurs.</summary>
+    static public char DetectDelimiter(string text)
+    {
+        var counts = new Dictionary<char, int> { [','] = 0, [';'] = 0, ['\t'] = 0, ['|'] = 0 };
+        var quoted = false;
+        foreach (var c in text)
+        {
+            if (c == '"')
+            {
+                quoted = !quoted;
+            }
+            else if (!quoted && c is '\r' or '\n')
+            {
+                break;
+            }
+            else if (!quoted && counts.ContainsKey(c))
+            {
+                counts[c]++;
+            }
+        }
+        var best = counts.MaxBy(p => p.Value);
+        return best.Value > 0 ? best.Key : ',';
+    }
+
+    /// <summary>
+    /// One object per data row. With <paramref name="header"/> the first row holds the column names, otherwise the
+    /// columns are <c>column1</c>, <c>column2</c>, … All values are strings.
+    /// </summary>
+    static public List<JsonObject> Parse(string text, char delimiter = ',', bool header = true)
     {
         var rows = ReadRows(text, delimiter);
         if (rows.Count == 0)
@@ -22,9 +49,11 @@ static public class PipeCsv
             return [];
         }
 
-        var header = rows[0].Select((name, i) => string.IsNullOrWhiteSpace(name) ? $"column{i + 1}" : name.Trim()).ToList();
+        var names = header
+            ? rows[0].Select((name, i) => string.IsNullOrWhiteSpace(name) ? $"column{i + 1}" : name.Trim()).ToList()
+            : [];
         var result = new List<JsonObject>();
-        foreach (var row in rows.Skip(1))
+        foreach (var row in rows.Skip(header ? 1 : 0))
         {
             // a trailing empty line is not a row
             if (row.Count == 1 && row[0].Length == 0)
@@ -33,9 +62,9 @@ static public class PipeCsv
             }
 
             var json = new JsonObject();
-            for (var i = 0; i < Math.Max(header.Count, row.Count); i++)
+            for (var i = 0; i < Math.Max(names.Count, row.Count); i++)
             {
-                json[i < header.Count ? header[i] : $"column{i + 1}"] = i < row.Count ? row[i] : "";
+                json[i < names.Count ? names[i] : $"column{i + 1}"] = i < row.Count ? row[i] : "";
             }
             result.Add(json);
         }

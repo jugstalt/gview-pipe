@@ -5,6 +5,7 @@ All nodes come from plugins. The built-in nodes (`gView.Pipe.Plugins.dll`) are a
 | Plugin | Nodes | Why separate |
 |---|---|---|
 | `gView.Pipe.Plugins.Database` | SQL | SQL Server, PostgreSQL and SQLite drivers. |
+| `gView.Pipe.Plugins.Office` | none; adds the format *Excel* to Extract from File and Convert to File | The Excel library (MiniExcel). |
 | `gView.Pipe.Plugins.Scripts` | Run Script, Run Scripts Folder, Run Scripts Repo | Runs scripts on the server. Not installing it means no script execution. |
 
 The ZIP and the Docker image contain both. Remove a plugin folder to switch it off.

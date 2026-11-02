@@ -63,10 +63,13 @@
                 break;
 
             default:
-                _lines.Add(new Line(depth, label, path, (node?.ToJsonString() ?? "null") + comma, false));
+                _lines.Add(new Line(depth, label, path, (node?.ToJsonString(Display) ?? "null") + comma, false));
                 break;
         }
     }
+
+    // for reading only: shows + < > & and non-ASCII as they are, not as \uXXXX (Blazor escapes the HTML)
+    static private readonly JsonSerializerOptions Display = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     static private readonly Regex Identifier = new("^[A-Za-z_$][A-Za-z0-9_$]*$", RegexOptions.Compiled);
 

@@ -49,6 +49,7 @@ plugins:
             Triggers and webhooks: Trigger und Webhooks
             Error handling: Fehlerbehandlung
             Failure notifications: Benachrichtigung bei Fehlern
+            Files and data: Dateien und Daten
             Node reference: Node-Referenz
             The editor: Der Editor
             Items and expressions: Items und Ausdrücke
@@ -79,6 +80,7 @@ nav:
       - Triggers and webhooks: user-guide/triggers.md
       - Variables and environments: user-guide/variables.md
       - Credentials: user-guide/credentials.md
+      - Files and data: user-guide/data.md
       - Error handling: user-guide/error-handling.md
       - Failure notifications: user-guide/notifications.md
       - Executions: user-guide/executions.md

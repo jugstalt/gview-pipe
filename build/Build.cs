@@ -59,6 +59,7 @@ class Build : NukeBuild
     static readonly RelativePath[] PluginProjects =
     {
         (RelativePath)"src/gView.Pipe.Plugins.Database/gView.Pipe.Plugins.Database.csproj",
+        (RelativePath)"src/gView.Pipe.Plugins.Office/gView.Pipe.Plugins.Office.csproj",
         (RelativePath)"src/gView.Pipe.Plugins.Scripts/gView.Pipe.Plugins.Scripts.csproj",
     };
 

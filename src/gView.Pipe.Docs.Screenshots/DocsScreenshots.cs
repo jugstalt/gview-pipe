@@ -30,6 +30,7 @@ internal sealed class DocsScreenshots
         await CodeFieldAsync();
         await WebhookTriggerAsync();
         await ErrorOutputAsync();
+        await DataToolsAsync();
         await ExecutionsAsync();
         await ErrorMailAsync();
         await CredentialsAsync();
@@ -148,6 +149,17 @@ internal sealed class DocsScreenshots
         await OpenEditorAsync("error-mail");
         await SelectNodeAsync("Send Mail");
         await ShotAsync("error-mail");
+    }
+
+    /// <summary>The Data Tools sample after a run, with the CSV read back from the unzipped attachment.</summary>
+    private async Task DataToolsAsync()
+    {
+        await HighAsync();
+        await OpenEditorAsync("data-tools");
+        await RunAsync();
+        await SelectNodeAsync("Read CSV");
+        await SelectTabAsync("Run");
+        await ShotAsync("data-tools");
     }
 
     /// <summary>The history of all workflows, with the runs the earlier pictures made.</summary>

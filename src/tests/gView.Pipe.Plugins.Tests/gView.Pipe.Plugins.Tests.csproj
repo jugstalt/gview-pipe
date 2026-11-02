@@ -11,6 +11,8 @@
     <ProjectReference Include="..\..\gView.Pipe.Core\gView.Pipe.Core.csproj" />
     <ProjectReference Include="..\..\gView.Pipe.Plugins\gView.Pipe.Plugins.csproj" />
     <ProjectReference Include="..\..\gView.Pipe.AspNetCore\gView.Pipe.AspNetCore.csproj" />
+    <!-- the Excel format: referenced directly here, the Shell loads it from its plugin folder -->
+    <ProjectReference Include="..\..\gView.Pipe.Plugins.Office\gView.Pipe.Plugins.Office.csproj" AdditionalProperties="InstallPipePlugin=false" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "data-tools",
+  "name": "Data Tools",
+  "description": "Sample: dates, hashes and files without a folder. Builds orders, sets a due date, writes them as CSV into an attachment, zips it, unzips it and reads the CSV back.",
+  "groupId": "samples",
+  "active": false,
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "3f6c1a52-9d0e-4b7a-8c11-0a5e2f7d9b01",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "orders",
+      "name": "Orders",
+      "type": "8e9f0a1b-2c3d-4e5f-9a6b-7c8d9e0f1a11",
+      "typeVersion": 1,
+      "parameters": {
+        "mode": "allItems",
+        "code": "return [\n  { id: 'A-1', customer: 'Ada', amount: 120.5, orderedAt: '2026-11-02T09:15:00+01:00' },\n  { id: 'A-2', customer: 'Grace', amount: 80, orderedAt: '2026-11-03T14:40:00+01:00' }\n];"
+      },
+      "position": { "x": 240, "y": 0 }
+    },
+    {
+      "id": "due",
+      "name": "Due Date",
+      "type": "3776167c-16a8-441b-8c44-318c58f59288",
+      "typeVersion": 1,
+      "parameters": { "operation": "add", "value": "{{ $json.orderedAt }}", "amount": 14, "unit": "days", "targetField": "dueAt" },
+      "position": { "x": 480, "y": 0 }
+    },
+    {
+      "id": "label",
+      "name": "Due Label",
+      "type": "3776167c-16a8-441b-8c44-318c58f59288",
+      "typeVersion": 1,
+      "parameters": { "operation": "format", "value": "{{ $json.dueAt }}", "pattern": "dddd, d. MMMM yyyy", "culture": "en-US", "timeZone": "Europe/Vienna", "targetField": "dueLabel" },
+      "position": { "x": 720, "y": 0 }
+    },
+    {
+      "id": "hash",
+      "name": "Checksum",
+      "type": "0cfe2067-05cc-4d62-9922-e380979ed6f4",
+      "typeVersion": 1,
+      "parameters": { "operation": "hash", "algorithm": "sha256", "value": "{{ $json.id }}|{{ $json.amount }}", "targetField": "checksum" },
+      "position": { "x": 0, "y": 160 }
+    },
+    {
+      "id": "csv",
+      "name": "To CSV",
+      "type": "6a294702-510c-4788-8e62-e5a4489e4875",
+      "typeVersion": 1,
+      "parameters": { "format": "csv", "delimiter": ";", "fileName": "orders.csv" },
+      "position": { "x": 240, "y": 160 }
+    },
+    {
+      "id": "zip",
+      "name": "Zip",
+      "type": "4d279dad-5d3a-488b-80d4-5c95cebb0269",
+      "typeVersion": 1,
+      "parameters": { "operation": "zip", "fileName": "orders.zip" },
+      "position": { "x": 480, "y": 160 }
+    },
+    {
+      "id": "unzip",
+      "name": "Unzip",
+      "type": "4d279dad-5d3a-488b-80d4-5c95cebb0269",
+      "typeVersion": 1,
+      "parameters": { "operation": "unzip" },
+      "position": { "x": 720, "y": 160 }
+    },
+    {
+      "id": "read",
+      "name": "Read CSV",
+      "type": "949aacbc-db66-4cad-a5f3-e6ce66a046bd",
+      "typeVersion": 1,
+      "parameters": { "format": "csv" },
+      "position": { "x": 0, "y": 320 }
+    }
+  ],
+  "connections": [
+    { "sourceNodeId": "start", "sourcePort": "main", "targetNodeId": "orders", "targetPort": "main" },
+    { "sourceNodeId": "orders", "sourcePort": "main", "targetNodeId": "due", "targetPort": "main" },
+    { "sourceNodeId": "due", "sourcePort": "main", "targetNodeId": "label", "targetPort": "main" },
+    { "sourceNodeId": "label", "sourcePort": "main", "targetNodeId": "hash", "targetPort": "main" },
+    { "sourceNodeId": "hash", "sourcePort": "main", "targetNodeId": "csv", "targetPort": "main" },
+    { "sourceNodeId": "csv", "sourcePort": "main", "targetNodeId": "zip", "targetPort": "main" },
+    { "sourceNodeId": "zip", "sourcePort": "main", "targetNodeId": "unzip", "targetPort": "main" },
+    { "sourceNodeId": "unzip", "sourcePort": "main", "targetNodeId": "read", "targetPort": "main" }
+  ]
+}

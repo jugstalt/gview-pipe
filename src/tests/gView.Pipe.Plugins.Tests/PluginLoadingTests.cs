@@ -82,6 +82,7 @@ public sealed class PluginLoadingTests : IDisposable
     [InlineData("error-slack.json")]
     [InlineData("api-demo.json")]
     [InlineData("file-export.json")]
+    [InlineData("data-tools.json")]
     public async Task Every_sample_workflow_runs_manually(string file)
     {
         // all samples are stored, so samples calling others (sub-workflows) find them
