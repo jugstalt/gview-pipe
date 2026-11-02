@@ -93,6 +93,7 @@ nav:
       - Configuration: admin-guide/configuration.md
       - Authentication: admin-guide/authentication.md
       - REST API: admin-guide/api.md
+      - Command line: admin-guide/cli.md
       - Plugins: admin-guide/plugins.md
       - Running scripts: admin-guide/scripts.md
       - Operations: admin-guide/operations.md

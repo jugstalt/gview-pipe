@@ -41,7 +41,7 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 - [ ] Database store (SQLite or Postgres) as an alternative to the file store, for many runs.
 - [ ] Plugin packaging: install plugins as NuGet packages from the UI.
 - [x] REST API with API keys: run, read executions, deploy workflows (ADR 0020).
-- [ ] CLI on top of the REST API (e.g. `pipe deploy`, `pipe run`).
+- [x] CLI on top of the REST API: `pipe` tool (ADR 0026); profiles and `--delete-missing` are not part of it.
 
 ## GIS (last)
 

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Command line client of the gView.Pipe REST API: deploy, run and inspect workflows from scripts and CI.</Description>
+    <OutputType>Exe</OutputType>
+    <PackageId>gView.Pipe.Cli</PackageId>
+    <AssemblyName>gView.Pipe.Cli</AssemblyName>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>pipe</ToolCommandName>
+  </PropertyGroup>
+
+</Project>

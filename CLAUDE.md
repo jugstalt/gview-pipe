@@ -25,6 +25,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - Code fields use Monaco (`PipeCodeField`, BlazorMonaco). Hosts load `_content/BlazorMonaco/jsInterop.js`, `.../lib/monaco-editor/min/vs/loader.js` and `.../vs/editor/editor.main.js` before the Blazor script, as in the Shell's `App.razor`. A dark host cascades `true` named `PipeDarkMode` and sets `data-mud-theme="dark"` around the components for the dark variables of `gview-pipe.css`; the Shell's `MainLayout` does both (system, light or dark, kept in localStorage).
   - The editor's splitters are dragged in the browser and Ctrl+S is caught there (`wwwroot/js/gview-pipe-editor.js`); .NET only hears the final width and the save.
   - Navigation is the host's job: components raise events like `OnOpen` and `OnClose`.
+- `gView.Pipe.Cli`: the dotnet tool `pipe` (REST API client for deploy, run and executions, see ADR 0026). Depends on nothing else of the solution.
 - `gView.Pipe.Docs`: build tool, generates the node reference of the docs from the node attributes. Not shipped.
 - `gView.Pipe.Docs.Screenshots`: build tool, takes the screenshots of the docs with Playwright. Not shipped.
 - `gView.Pipe.Shell`: the app itself. It contains only layout, routing and service composition (`AddPipeCore().AddPipeFileStore().AddPipeRazor()`).
