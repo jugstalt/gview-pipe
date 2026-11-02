@@ -6,7 +6,7 @@
     <PackageId>gView.Pipe.Cli</PackageId>
     <AssemblyName>gView.Pipe.Cli</AssemblyName>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>pipe</ToolCommandName>
+    <ToolCommandName>gview-pipe</ToolCommandName>
   </PropertyGroup>
 
 </Project>

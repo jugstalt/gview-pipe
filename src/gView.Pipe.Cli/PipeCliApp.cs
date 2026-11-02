@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace gView.Pipe.Cli;
 
 /// <summary>
-/// The commands of <c>pipe</c> (ADR 0026). Exit code 0: done; 1: the run of <c>pipe run --wait</c> failed;
+/// The commands of <c>gview-pipe</c> (ADR 0026). Exit code 0: done; 1: the run of <c>gview-pipe run --wait</c> failed;
 /// 2: wrong call, or the server refused it.
 /// </summary>
 static public class PipeCliApp
@@ -14,22 +14,22 @@ static public class PipeCliApp
     public const int Success = 0, RunFailed = 1, Failure = 2;
 
     private const string Usage = """
-        Usage: pipe <command> [options]
+        Usage: gview-pipe <command> [options]
 
         Connection (all commands): --url <address> (or PIPE_URL), --key <api key> (or PIPE_API_KEY)
 
-        pipe workflows list [--json]
-        pipe workflows get <id>
-        pipe workflows export <id> [--out <file|folder>]
-        pipe workflows deploy <file|folder>... [--dry-run] [--force]
-        pipe workflows delete <id>
-        pipe workflows activate <id>
-        pipe workflows deactivate <id>
-        pipe run <id> [--wait] [--input <file|->] [--environment <name>] [--timeout <seconds>] [--json]
-        pipe executions list [--workflow <id>] [--status <status>] [--limit <n>] [--json]
-        pipe executions get <workflowId> <id>
-        pipe executions cancel <workflowId> <id>
-        pipe executions replay <workflowId> <id> [--from <nodeId>]
+        gview-pipe workflows list [--json]
+        gview-pipe workflows get <id>
+        gview-pipe workflows export <id> [--out <file|folder>]
+        gview-pipe workflows deploy <file|folder>... [--dry-run] [--force]
+        gview-pipe workflows delete <id>
+        gview-pipe workflows activate <id>
+        gview-pipe workflows deactivate <id>
+        gview-pipe run <id> [--wait] [--input <file|->] [--environment <name>] [--timeout <seconds>] [--json]
+        gview-pipe executions list [--workflow <id>] [--status <status>] [--limit <n>] [--json]
+        gview-pipe executions get <workflowId> <id>
+        gview-pipe executions cancel <workflowId> <id>
+        gview-pipe executions replay <workflowId> <id> [--from <nodeId>]
         """;
 
     static private readonly HashSet<string> Flags = ["json", "wait", "dry-run", "force", "help"];
@@ -103,7 +103,7 @@ static public class PipeCliApp
             ("executions", "get") => ExecutionAsync(c, "", get: true),
             ("executions", "cancel") => ExecutionAsync(c, "cancel", get: false),
             ("executions", "replay") => ExecutionAsync(c, "replay", get: false),
-            _ => throw new PipeCliException($"Unknown command '{string.Join(' ', p.Take(2))}'. Run 'pipe --help'.")
+            _ => throw new PipeCliException($"Unknown command '{string.Join(' ', p.Take(2))}'. Run 'gview-pipe --help'.")
         };
     }
 
