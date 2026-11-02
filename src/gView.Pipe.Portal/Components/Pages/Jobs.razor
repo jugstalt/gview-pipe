@@ -42,6 +42,11 @@ else
                     <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Stop"
                                OnClick="() => StopAsync(context)">Stop</MudButton>
                 }
+                else if (!context.IsRunning)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Replay"
+                               Href="@AgainHref(context)">Run again</MudButton>
+                }
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -51,6 +56,8 @@ else
     private readonly CancellationTokenSource _stopped = new();
     private IReadOnlyList<PortalRun>? _runs;
     private string? _error;
+
+    static private string AgainHref(PortalRun run) => $"run/{Uri.EscapeDataString(run.WorkflowId)}?from={Uri.EscapeDataString(run.ExecutionId)}";
 
     static private string Href(PortalRun run) => $"jobs/{Uri.EscapeDataString(run.WorkflowId)}/{Uri.EscapeDataString(run.ExecutionId)}";
 

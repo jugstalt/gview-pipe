@@ -125,4 +125,13 @@ Welche Workflows erscheinen, stellst du in den [Workflow-Einstellungen](../user-
 
 Jedes Feld des Formulars hat einen Namen, einen Typ (Text, mehrzeiliger Text, Zahl, Ja/Nein, Datum, Auswahl, Passwort), ein Label, eine Beschreibung, einen Platzhalter, einen Standardwert und *Required*. Textfelder können ein **Muster** haben, einen regulären Ausdruck, auf den der Text als Ganzes passen muss (z. B. `[A-Z]{1,2}-\d{1,5}`), mit der Meldung, die sonst erscheint. Das Portal kann es schon beim Tippen prüfen; das Backend prüft es bei jedem Start nochmal. Beschränke Muster auf das, was .NET und JavaScript gemeinsam verstehen.
 
-Ein Anwender darf `Pipe:Portal:MaxRunsPerUser` Läufe gleichzeitig haben (Standard 3, 0 = unbegrenzt); weitere beantwortet das Backend mit `429`.
+Einstellungen des Backends für das Portal (Abschnitt `Pipe:Portal`):
+
+| Einstellung | Bedeutung |
+|---|---|
+| `MaxRunsPerUser` | Läufe, die ein Anwender gleichzeitig haben darf (Standard 3, 0 = unbegrenzt); weitere werden mit `429` beantwortet. |
+| `HistoryDays` | Tage, die Ergebnis und eingegebene Werte eines Laufs für den Anwender aufbewahrt werden (Standard 30, 0 = immer); danach wird nur noch der Status gezeigt. |
+| `NotifyWorkflowId` | Der Workflow, der die [Mail bei Fertigstellung](portal.md#mail-wenn-ein-lauf-fertig-ist) sendet. Ohne ihn bietet das Portal keine Mail an. |
+| `PublicUrl` | Die Adresse des Portals, für den Link in dieser Mail. |
+
+`GET /api/v1/portal/info` sagt dem Portal, ob eine Mail gesendet werden kann (`mailWhenDone`), und die aufbewahrten Tage (`historyDays`). `notifyEmail` im Body eines Laufs verlangt die Mail.

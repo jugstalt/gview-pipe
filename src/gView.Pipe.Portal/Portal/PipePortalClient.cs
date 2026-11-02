@@ -54,9 +54,26 @@ public sealed class PortalRun
     public int? QueuePosition { get; set; }
     public bool CanCancel { get; set; }
     public PipeResultView? Result { get; set; }
+
+    /// <summary>What the user entered (without passwords); null when it isn't kept (anymore).</summary>
+    public JsonObject? Values { get; set; }
+
+    /// <summary>The result and the values are not kept any longer; only the status is shown.</summary>
+    public bool Expired { get; set; }
+
     public string? Error { get; set; }
 
     public bool IsRunning => Status is "queued" or "running";
+}
+
+/// <summary>What the backend offers the portal.</summary>
+public sealed class PortalInfo
+{
+    /// <summary>A mail can be sent when a run is done.</summary>
+    public bool MailWhenDone { get; set; }
+
+    /// <summary>Days results and values are kept.</summary>
+    public int HistoryDays { get; set; }
 }
 
 /// <summary>The backend refused a request; <see cref="Fields"/> holds the problems of a form (422).</summary>
@@ -90,6 +107,17 @@ public sealed class PipePortalClient
     {
         _http = http;
         _authentication = authentication;
+    }
+
+    public async Task<PortalInfo> GetInfoAsync(CancellationToken cancellationToken = default)
+        => await SendAsync<PortalInfo>(HttpMethod.Get, "api/v1/portal/info", null, cancellationToken) ?? new PortalInfo();
+
+    /// <summary>The address of the user from the login (claim <c>email</c>), or null.</summary>
+    public async Task<string?> GetEmailAsync()
+    {
+        var user = (await _authentication.GetAuthenticationStateAsync()).User;
+        var email = user.FindFirst("email")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        return string.IsNullOrWhiteSpace(email) ? null : email;
     }
 
     public async Task<IReadOnlyList<PortalWorkflow>> GetWorkflowsAsync(CancellationToken cancellationToken = default)

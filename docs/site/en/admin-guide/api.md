@@ -125,4 +125,13 @@ Which workflows appear is set in the [workflow settings](../user-guide/editor.md
 
 Each field of the form has a name, a type (text, multiline text, number, yes/no, date, choice, password), a label, a description, a placeholder, a default and *Required*. Text fields can have a **pattern**, a regular expression the text must match as a whole (e.g. `[A-Z]{1,2}-\d{1,5}`), with the message shown otherwise. The portal can check it while the user types; the backend checks it again on every start. Keep patterns to what .NET and JavaScript share.
 
-A user may have `Pipe:Portal:MaxRunsPerUser` runs at the same time (default 3, 0 = no limit); more are answered with `429`.
+Settings of the backend for the portal (section `Pipe:Portal`):
+
+| Setting | Meaning |
+|---|---|
+| `MaxRunsPerUser` | Runs a user may have at the same time (default 3, 0 = no limit); more are answered with `429`. |
+| `HistoryDays` | Days the result and the entered values of a run are kept for the user (default 30, 0 = always); after that only the status is shown. |
+| `NotifyWorkflowId` | The workflow that sends the [mail when a run is done](portal.md#mail-when-a-run-is-done). Without it the portal offers no mail. |
+| `PublicUrl` | The address of the portal, for the link in that mail. |
+
+`GET /api/v1/portal/info` tells the portal whether a mail can be sent (`mailWhenDone`) and the days kept (`historyDays`). `notifyEmail` in the body of a run asks for the mail.

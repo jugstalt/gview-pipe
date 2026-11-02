@@ -43,6 +43,9 @@ public class PipeFormsUser
     /// <summary>Plain text; logs a warning on start. <see cref="PasswordHash"/> wins when both are set.</summary>
     public string? Password { get; set; }
 
+    /// <summary>Address for mails to the user, e.g. when a portal run is done (ADR 0029). Becomes the claim <c>email</c>.</summary>
+    public string? Email { get; set; }
+
     /// <summary>Created with <c>--hash-password</c>, see <see cref="PipePasswordHasher"/>.</summary>
     public string? PasswordHash { get; set; }
 

@@ -48,6 +48,8 @@ On the first start the app creates `_config/auth.config` from the prototype `_se
     ```
 
 - `Password` in plain text works too, but logs a warning on every start. If both are set, the hash counts.
+- `Email` (optional) is the address for mails to the user, e.g. when a run of the [portal](portal.md#mail-when-a-run-is-done) is done.
+- `Email` (optional) is the address for mails to the user, e.g. when a run of the [portal](portal.md#mail-when-a-run-is-done) is done.
 - User names are not case sensitive.
 - After a wrong password the app waits a second; the number of attempts per address is limited.
 

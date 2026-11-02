@@ -21,14 +21,41 @@
     {
         <ResultView Result="Run.Result" />
     }
+    else if (Run.Expired)
+    {
+        <MudText Class="mud-text-secondary">The result is not kept any longer.</MudText>
+    }
     else if (Run.Status == "success")
     {
         <MudText Class="mud-text-secondary">The run is done.</MudText>
+    }
+
+    @if (Run.Values is { Count: > 0 } values)
+    {
+        <div>
+            <MudText Typo="Typo.subtitle2">Entered values</MudText>
+            <MudSimpleTable Dense="true" Elevation="0" Outlined="true">
+                <tbody>
+                    @foreach (var (name, value) in values)
+                    {
+                        <tr>
+                            <td>@LabelOf(name)</td>
+                            <td>@value?.ToString()</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
     }
 </MudStack>
 
 @code {
     [Parameter, EditorRequired] public PortalRun Run { get; set; } = default!;
+
+    /// <summary>The form of the workflow, for the labels of the values.</summary>
+    [Parameter] public IReadOnlyList<gView.Pipe.Abstraction.Portal.PipeFormField>? Form { get; set; }
+
+    private string LabelOf(string name) => Form?.FirstOrDefault(f => f.Name == name)?.Label ?? name;
 
     static private string Duration(TimeSpan span)
         => span.TotalSeconds < 1 ? "less than a second" : span.TotalMinutes < 1 ? $"{span.TotalSeconds:0} s" : $"{span.TotalMinutes:0.#} min";

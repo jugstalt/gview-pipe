@@ -1,3 +1,4 @@
+using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Security;
 using gView.Pipe.Abstraction.Serialization;
 using gView.Pipe.Abstraction.Storage;
@@ -11,6 +12,7 @@ using gView.Pipe.Plugins.Nodes.Utility;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -37,6 +39,11 @@ public sealed class PipePortalTests : IAsyncLifetime
             options.PluginAssemblies.Add(typeof(NoOpNode).Assembly);
         });
         builder.Services.AddPipeApi();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Pipe:Portal:NotifyWorkflowId"] = "notify",
+            ["Pipe:Portal:PublicUrl"] = "https://portal.example.com/"
+        });
 
         _app = builder.Build();
         _app.MapPipeApi();
@@ -48,6 +55,12 @@ public sealed class PipePortalTests : IAsyncLifetime
         await workflows.SaveAsync(Greeter("greeter", published: true));
         await workflows.SaveAsync(Greeter("hidden", published: false));
         await workflows.SaveAsync(Failing("failing"));
+        // the mail workflow of the admin: receives { to, user, workflow, execution }
+        await workflows.SaveAsync(new PipeWorkflowBuilder("Notify", "notify")
+            .Node("start", PipeBuiltInNodes.ExecuteWorkflowTrigger)
+            .Node("noop", PipeBuiltInNodes.NoOp)
+            .Connect("start", "noop")
+            .Build());
     }
 
     public async ValueTask DisposeAsync()
@@ -65,6 +78,7 @@ public sealed class PipePortalTests : IAsyncLifetime
                 new { name = "name", label = "Your name", type = "text", required = true },
                 new { name = "age", type = "number" },
                 new { name = "size", type = "choice", options = new[] { "small", "large" } },
+                new { name = "secret", type = "password" },
                 new { name = "plate", type = "text", placeholder = "WL-123", pattern = @"[A-Z]{1,2}-\d{1,5}", patternMessage = "Like WL-123" }
             }
         })
@@ -135,10 +149,10 @@ public sealed class PipePortalTests : IAsyncLifetime
         Assert.DoesNotContain(list, w => (string?)w!["id"] == "hidden");
         var greeter = list.First(w => (string?)w!["id"] == "greeter")!;
         Assert.Equal("Office", (string?)greeter["category"]);
-        Assert.Equal(["name", "age", "size", "plate"], ((JsonArray)greeter["form"]!).Select(f => (string?)f!["name"]).ToArray());
+        Assert.Equal(["name", "age", "size", "secret", "plate"], ((JsonArray)greeter["form"]!).Select(f => (string?)f!["name"]).ToArray());
         Assert.True((bool)greeter["form"]![0]!["required"]!);
-        Assert.Equal("WL-123", (string?)greeter["form"]![3]!["placeholder"]);
-        Assert.Equal("Like WL-123", (string?)greeter["form"]![3]!["patternMessage"]);
+        Assert.Equal("WL-123", (string?)greeter["form"]![4]!["placeholder"]);
+        Assert.Equal("Like WL-123", (string?)greeter["form"]![4]!["patternMessage"]);
     }
 
     [Fact]
@@ -184,6 +198,122 @@ public sealed class PipePortalTests : IAsyncLifetime
 
         await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/greeter/run", key, "anna", HttpStatusCode.OK,
             new { values = new { name = "Anna", plate = "WL-123" } });
+    }
+
+    private async Task<IReadOnlyList<PipeExecutionSummary>> NotificationsAsync(int expected)
+    {
+        var store = _app.Services.GetRequiredService<IPipeExecutionStore>();
+        for (var i = 0; i < 50; i++)
+        {
+            var found = await store.QueryAsync(new PipeExecutionQuery { WorkflowIds = ["notify"] });
+            if (found.Count >= expected)
+            {
+                return found;
+            }
+            await Task.Delay(100);
+        }
+        return await store.QueryAsync(new PipeExecutionQuery { WorkflowIds = ["notify"] });
+    }
+
+    [Fact]
+    public async Task The_info_says_whether_a_mail_can_be_sent()
+    {
+        var key = await KeyAsync(PipeApiRights.Portal);
+
+        var info = await SendAsync(HttpMethod.Get, "/api/v1/portal/info", key, "anna", HttpStatusCode.OK);
+        Assert.True((bool)info["mailWhenDone"]!);
+        Assert.Equal(30, (int)info["historyDays"]!);
+
+        _app.Configuration["Pipe:Portal:NotifyWorkflowId"] = "";
+        info = await SendAsync(HttpMethod.Get, "/api/v1/portal/info", key, "anna", HttpStatusCode.OK);
+        Assert.False((bool)info["mailWhenDone"]!);
+        // without a notification workflow a mail is refused
+        await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/greeter/run", key, "anna", HttpStatusCode.BadRequest,
+            new { values = new { name = "Anna" }, notifyEmail = "anna@example.com" });
+    }
+
+    [Fact]
+    public async Task A_background_run_starts_the_notification_workflow_when_it_has_ended()
+    {
+        var key = await KeyAsync(PipeApiRights.Portal);
+
+        var started = await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/greeter/run", key, "anna", HttpStatusCode.Accepted,
+            new { values = new { name = "Anna" }, mode = "background", notifyEmail = "anna@example.com" });
+
+        var notification = Assert.Single(await NotificationsAsync(1));
+        var stored = await _app.Services.GetRequiredService<IPipeExecutionStore>().GetAsync("notify", notification.Id);
+        var item = stored!.NodeRuns["start"].Outputs!["main"][0].Json;
+        Assert.Equal("anna@example.com", (string?)item["to"]);
+        Assert.Equal("anna", (string?)item["user"]);
+        Assert.Equal("greeter", (string?)item["workflow"]!["name"]);
+        Assert.Equal("success", (string?)item["execution"]!["status"]);
+        Assert.Equal($"https://portal.example.com/jobs/greeter/{(string?)started["executionId"]}", (string?)item["execution"]!["url"]);
+        // never the result of the run
+        Assert.DoesNotContain("Hello", item.ToJsonString());
+        Assert.Equal("portal-mail", stored.StartedBy);
+    }
+
+    [Fact]
+    public async Task No_mail_when_the_user_got_the_result_while_waiting()
+    {
+        var key = await KeyAsync(PipeApiRights.Portal);
+
+        await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/greeter/run", key, "anna", HttpStatusCode.OK,
+            new { values = new { name = "Anna" }, mode = "wait", notifyEmail = "anna@example.com" });
+
+        await Task.Delay(300);
+        Assert.Empty(await _app.Services.GetRequiredService<IPipeExecutionStore>().QueryAsync(new PipeExecutionQuery { WorkflowIds = ["notify"] }));
+    }
+
+    [Fact]
+    public async Task A_wrong_address_for_the_mail_is_refused()
+    {
+        var key = await KeyAsync(PipeApiRights.Portal);
+
+        await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/greeter/run", key, "anna", HttpStatusCode.BadRequest,
+            new { values = new { name = "Anna" }, notifyEmail = "Anna <anna@example.com>" });
+        await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/greeter/run", key, "anna", HttpStatusCode.BadRequest,
+            new { values = new { name = "Anna" }, notifyEmail = "not an address" });
+    }
+
+    [Fact]
+    public async Task A_run_shows_the_values_without_passwords_for_running_it_again()
+    {
+        var key = await KeyAsync(PipeApiRights.Portal);
+        var done = await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/greeter/run", key, "anna", HttpStatusCode.OK,
+            new { values = new { name = "Anna", age = "41", secret = "hunter2" } });
+
+        var detail = await SendAsync(HttpMethod.Get, $"/api/v1/portal/executions/greeter/{(string)done["executionId"]!}", key, "anna", HttpStatusCode.OK);
+
+        var values = detail["values"]!;
+        Assert.Equal("Anna", (string?)values["name"]);
+        Assert.Equal(41, (int?)values["age"]);
+        Assert.Null(values["secret"]);
+        Assert.DoesNotContain("hunter2", detail.ToJsonString());
+    }
+
+    [Fact]
+    public async Task After_the_days_of_the_history_only_the_status_is_shown()
+    {
+        var key = await KeyAsync(PipeApiRights.Portal);
+        var done = await SendAsync(HttpMethod.Post, "/api/v1/portal/workflows/greeter/run", key, "anna", HttpStatusCode.OK,
+            new { values = new { name = "Anna" } });
+        Assert.NotNull((await SendAsync(HttpMethod.Get, $"/api/v1/portal/executions/greeter/{(string)done["executionId"]!}", key, "anna", HttpStatusCode.OK))["result"]);
+
+        // the same run, 40 days ago (a run of the last minute is still in memory, so it gets an id of its own)
+        var store = _app.Services.GetRequiredService<IPipeExecutionStore>();
+        var execution = PipeJson.Clone((await store.GetAsync("greeter", (string)done["executionId"]!))!);
+        execution.Id = Guid.NewGuid().ToString("N");
+        execution.StartedAt = DateTimeOffset.UtcNow.AddDays(-40).AddSeconds(-5);
+        execution.FinishedAt = DateTimeOffset.UtcNow.AddDays(-40);
+        await store.SaveAsync(execution);
+        var path = $"/api/v1/portal/executions/greeter/{execution.Id}";
+
+        var old = await SendAsync(HttpMethod.Get, path, key, "anna", HttpStatusCode.OK);
+        Assert.Equal("success", (string?)old["status"]);
+        Assert.True((bool)old["expired"]!);
+        Assert.Null(old["result"]);
+        Assert.Null(old["values"]);
     }
 
     [Fact]

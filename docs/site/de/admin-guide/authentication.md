@@ -48,6 +48,7 @@ Beim ersten Start legt die App `_config/auth.config` aus der Vorlage `_setup/pro
     ```
 
 - `Password` im Klartext geht auch, schreibt aber bei jedem Start eine Warnung ins Log. Sind beide gesetzt, zählt der Hash.
+- `Email` (optional) ist die Adresse für Mails an den Benutzer, z. B. wenn ein Lauf des [Portals](portal.md#mail-wenn-ein-lauf-fertig-ist) fertig ist.
 - Bei Benutzernamen spielt Groß-/Kleinschreibung keine Rolle.
 - Nach einem falschen Passwort wartet die App eine Sekunde; die Zahl der Versuche pro Adresse ist begrenzt.
 

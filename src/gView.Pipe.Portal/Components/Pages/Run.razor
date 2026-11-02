@@ -78,6 +78,12 @@ else
                     </MudRadioGroup>
                 }
 
+                @if (_email is not null)
+                {
+                    <MudCheckBox T="bool" @bind-Value="_notify" Color="Color.Primary" Dense="true"
+                                 Label="@($"Mail me at {_email} when it is done")" />
+                }
+
                 @if (_error is not null)
                 {
                     <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
@@ -99,6 +105,9 @@ else
 @code {
     [Parameter] public string Id { get; set; } = "";
 
+    /// <summary>A run to start again: its values fill the form.</summary>
+    [SupplyParameterFromQuery(Name = "from")] public string? From { get; set; }
+
     private readonly List<BreadcrumbItem> _crumbs = [new("Workflows", href: "")];
     private readonly Dictionary<string, string?> _values = new();
     private readonly HashSet<string> _touched = new();
@@ -108,6 +117,8 @@ else
     private PipePortalRunMode _mode;
     private PortalRun? _run;
     private string? _error;
+    private string? _email;
+    private bool _notify;
     private bool _busy;
 
     protected override async Task OnParametersSetAsync()
@@ -133,11 +144,34 @@ else
             }
             _crumbs.RemoveRange(1, _crumbs.Count - 1);
             _crumbs.Add(new BreadcrumbItem(_workflow.Name, href: null, disabled: true));
+            if (!string.IsNullOrEmpty(From))
+            {
+                await PrefillAsync(From);
+            }
             Validate();
+            // a mail needs the backend to offer it and an address in the login
+            _email = (await Client.GetInfoAsync()).MailWhenDone ? await Client.GetEmailAsync() : null;
         }
         catch (PipePortalException ex)
         {
             _error = ex.Message;
+        }
+    }
+
+    /// <summary>The values of an earlier run, where the form still has the field; what is gone or wrong the user fixes.</summary>
+    private async Task PrefillAsync(string executionId)
+    {
+        try
+        {
+            var earlier = await Client.GetRunAsync(Id, executionId);
+            foreach (var field in _workflow!.Form.Where(f => earlier.Values?[f.Name] is not null))
+            {
+                _values[field.Name] = earlier.Values![field.Name]!.ToString();
+            }
+        }
+        catch (PipePortalException)
+        {
+            // not there anymore: an empty form
         }
     }
 
@@ -191,7 +225,7 @@ else
         _busy = true;
         try
         {
-            var run = await Client.RunAsync(_workflow.Id, Values(), _workflow.AllowModeChoice ? _mode : null);
+            var run = await Client.RunAsync(_workflow.Id, Values(), _workflow.AllowModeChoice ? _mode : null, _notify ? _email : null);
             if (run.IsRunning)
             {
                 Navigation.NavigateTo($"jobs/{Uri.EscapeDataString(run.WorkflowId)}/{Uri.EscapeDataString(run.ExecutionId)}");

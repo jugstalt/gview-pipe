@@ -37,7 +37,12 @@ static internal class PipeAuthenticationEndpoints
             return Results.Redirect($"{context.Request.PathBase}{PipeAuthentication.LoginPath}?error=1&returnUrl={Uri.EscapeDataString(returnUrl)}");
         }
 
-        var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, user.Name)], CookieAuthenticationDefaults.AuthenticationScheme);
+        var claims = new List<Claim> { new(ClaimTypes.Name, user.Name) };
+        if (!string.IsNullOrWhiteSpace(user.Email))
+        {
+            claims.Add(new Claim("email", user.Email));
+        }
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
         return Results.Redirect($"{context.Request.PathBase}{returnUrl}");
     }

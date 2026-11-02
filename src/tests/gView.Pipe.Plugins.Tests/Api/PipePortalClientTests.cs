@@ -72,11 +72,11 @@ public sealed class PipePortalClientTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync() => await _app.DisposeAsync();
 
-    private PipePortalClient ClientFor(string user)
+    private PipePortalClient ClientFor(string user, string? email = null)
     {
         var http = _app.GetTestClient();
         http.DefaultRequestHeaders.Add(PipePortalClient.KeyHeader, _key);
-        return new PipePortalClient(http, new FixedUser(user));
+        return new PipePortalClient(http, new FixedUser(user, email));
     }
 
     [Fact]
@@ -122,6 +122,29 @@ public sealed class PipePortalClientTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_client_knows_the_address_of_the_user_and_whether_the_backend_can_mail()
+    {
+        Assert.Equal("anna@example.com", await ClientFor("anna", "anna@example.com").GetEmailAsync());
+        Assert.Null(await ClientFor("anna").GetEmailAsync());
+        // the backend of this test has no notification workflow
+        Assert.False((await ClientFor("anna").GetInfoAsync()).MailWhenDone);
+        Assert.Equal(30, (await ClientFor("anna").GetInfoAsync()).HistoryDays);
+    }
+
+    [Fact]
+    public async Task A_run_comes_back_with_the_values_to_run_it_again()
+    {
+        var anna = ClientFor("anna");
+        var run = await anna.RunAsync("greeter", new JsonObject { ["name"] = "Anna", ["plate"] = "WL-7" }, PipePortalRunMode.Wait);
+
+        var again = await anna.GetRunAsync("greeter", run.ExecutionId);
+
+        Assert.Equal("Anna", (string?)again.Values?["name"]);
+        Assert.Equal("WL-7", (string?)again.Values?["plate"]);
+        Assert.False(again.Expired);
+    }
+
+    [Fact]
     public async Task Without_a_login_the_user_is_anonymous()
     {
         var run = await ClientFor("").RunAsync("greeter", new JsonObject { ["name"] = "Nobody" }, PipePortalRunMode.Wait);
@@ -131,11 +154,18 @@ public sealed class PipePortalClientTests : IAsyncLifetime
     }
 
     /// <summary>A signed-in user, or nobody for an empty name.</summary>
-    private sealed class FixedUser(string name) : AuthenticationStateProvider
+    private sealed class FixedUser(string name, string? email = null) : AuthenticationStateProvider
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
-            => Task.FromResult(new AuthenticationState(name.Length == 0
+        {
+            var claims = new List<Claim> { new(ClaimTypes.Name, name) };
+            if (email is not null)
+            {
+                claims.Add(new Claim("email", email));
+            }
+            return Task.FromResult(new AuthenticationState(name.Length == 0
                 ? new ClaimsPrincipal(new ClaimsIdentity())
-                : new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, name)], "test"))));
+                : new ClaimsPrincipal(new ClaimsIdentity(claims, "test"))));
+        }
     }
 }

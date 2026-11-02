@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -62,10 +63,12 @@ static public class PipePortalEndpoints
     public const string UserHeader = "X-Pipe-On-Behalf-Of";
     public const string UserPrefix = "portal:";
     public const int DefaultMaxRunsPerUser = 3;
+    public const int DefaultHistoryDays = 30;
 
     static internal void Map(RouteGroupBuilder api)
     {
         var portal = api.MapGroup("/portal").WithMetadata(new PipeApiRightMetadata(PipeApiRights.Portal));
+        portal.MapGet("/info", (Delegate)InfoAsync).WithSummary("What the portal may offer: mail when done, how long results are kept");
         portal.MapGet("/workflows", (Delegate)ListWorkflowsAsync).WithSummary("Lists the published workflows with their forms");
         portal.MapPost("/workflows/{id}/run", RunAsync).WithSummary("Starts a run for the user; the form values are checked");
         portal.MapGet("/executions", (Delegate)ListExecutionsAsync).WithSummary("Lists the runs of the user, newest first");
@@ -117,6 +120,17 @@ static public class PipePortalEndpoints
         var workflow = await PipeApiEndpoints.Services<IPipeWorkflowStore>(context).GetAsync(id, context.RequestAborted);
         return workflow is { Settings.Portal.Published: true } && PipeApiEndpoints.Key(context).Covers(workflow.GroupId) ? workflow : null;
     }
+
+    static private string? NotifyWorkflowId(HttpContext context)
+        => PipeApiEndpoints.Services<IConfiguration>(context)["Pipe:Portal:NotifyWorkflowId"] is { Length: > 0 } id ? id : null;
+
+    static private int HistoryDays(HttpContext context)
+        => PipeApiEndpoints.Services<IConfiguration>(context).GetValue("Pipe:Portal:HistoryDays", DefaultHistoryDays);
+
+    static private Task<IResult> InfoAsync(HttpContext context)
+        => Task.FromResult(User(context) is null
+            ? NoUser()
+            : PipeApiEndpoints.Json(new { MailWhenDone = NotifyWorkflowId(context) is not null, HistoryDays = HistoryDays(context) }));
 
     static private async Task<IResult> ListWorkflowsAsync(HttpContext context)
     {
@@ -177,6 +191,21 @@ static public class PipePortalEndpoints
             return PipeApiEndpoints.Problem(StatusCodes.Status422UnprocessableEntity, "The values don't fit the form", problems);
         }
 
+        string? notifyEmail = null;
+        if (!string.IsNullOrWhiteSpace(body.NotifyEmail))
+        {
+            if (NotifyWorkflowId(context) is null)
+            {
+                return PipeApiEndpoints.Problem(StatusCodes.Status400BadRequest, "Mails when a run is done are not set up (Pipe:Portal:NotifyWorkflowId)");
+            }
+            var wanted = body.NotifyEmail.Trim();
+            if (!System.Net.Mail.MailAddress.TryCreate(wanted, out var address) || address.Address != wanted || wanted.Length > 254)
+            {
+                return PipeApiEndpoints.Problem(StatusCodes.Status400BadRequest, "The address for the mail is not valid");
+            }
+            notifyEmail = wanted;
+        }
+
         var settings = workflow.Settings.Portal!;
         var startedBy = UserPrefix + user;
         var running = PipeApiEndpoints.Services<IPipeRunningExecutions>(context).List().Where(r => r.IsRunning).ToList();
@@ -215,8 +244,13 @@ static public class PipePortalEndpoints
             var timeout = TimeSpan.FromSeconds(Math.Clamp(settings.WaitTimeoutSeconds, 1, 3600));
             if (await Task.WhenAny(run, Task.Delay(timeout, context.RequestAborted)) == run && await run is { } finished)
             {
+                // the user has the result already: no mail
                 return PipeApiEndpoints.Json(View(workflow, finished, context));
             }
+        }
+        if (notifyEmail is not null)
+        {
+            NotifyWhenDone(run, workflow, user, notifyEmail, context);
         }
         return PipeApiEndpoints.Json(new { ExecutionId = executionId, WorkflowId = workflow.Id, Status = ticket.State == PipeQueueState.Queued ? "queued" : "running" },
             StatusCodes.Status202Accepted);
@@ -227,7 +261,11 @@ static public class PipePortalEndpoints
     {
         var resultNodes = workflow is null ? [] : ResultNodes(workflow, context).ToList();
         PipeResultView? result = null;
-        if (execution.Status == PipeExecutionStatus.Success)
+        // results and values are kept for a while; after that only the status is shown (ADR 0029)
+        var days = HistoryDays(context);
+        var expired = days > 0 && execution.FinishedAt is { } ended && DateTimeOffset.UtcNow - ended > TimeSpan.FromDays(days);
+        var values = workflow is null || expired || !execution.DataSaved ? null : ValuesOf(workflow, execution.NodeRuns, context);
+        if (execution.Status == PipeExecutionStatus.Success && !expired)
         {
             var run = resultNodes
                 .Select(n => execution.NodeRuns.GetValueOrDefault(n.Id))
@@ -258,8 +296,83 @@ static public class PipePortalEndpoints
             execution.StartedAt,
             execution.FinishedAt,
             Result = result,
+            Values = values,
+            Expired = expired,
             Error = error
         };
+    }
+
+    /// <summary>
+    /// Starts the notification workflow (Pipe:Portal:NotifyWorkflowId, ADR 0029) when the run has ended. It gets one item
+    /// <c>{ to, user, workflow: { id, name }, execution: { id, status, startedAt, finishedAt, url? } }</c>, never the result.
+    /// A mail that cannot be sent does not affect the run. Lost when the app restarts before the run ends.
+    /// </summary>
+    static private void NotifyWhenDone(Task<PipeExecution?> run, PipeWorkflow workflow, string user, string email, HttpContext context)
+    {
+        var notifyId = NotifyWorkflowId(context);
+        var publicUrl = PipeApiEndpoints.Services<IConfiguration>(context)["Pipe:Portal:PublicUrl"]?.TrimEnd('/');
+        var store = PipeApiEndpoints.Services<IPipeWorkflowStore>(context);
+        var runner = PipeApiEndpoints.Services<IPipeWorkflowRunner>(context);
+        var logger = PipeApiEndpoints.Services<ILoggerFactory>(context).CreateLogger("gView.Pipe.Portal");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                if (await run is not { } execution || await store.GetAsync(notifyId!) is not { } notify)
+                {
+                    logger.LogWarning("The mail for a portal run of {Workflow} was not sent: the run was skipped or the notification workflow '{Notify}' does not exist", workflow.Id, notifyId);
+                    return;
+                }
+                var item = new JsonObject
+                {
+                    ["to"] = email,
+                    ["user"] = user,
+                    ["workflow"] = new JsonObject { ["id"] = workflow.Id, ["name"] = workflow.Name },
+                    ["execution"] = new JsonObject
+                    {
+                        ["id"] = execution.Id,
+                        ["status"] = execution.Status.ToString().ToLowerInvariant(),
+                        ["startedAt"] = execution.StartedAt,
+                        ["finishedAt"] = execution.FinishedAt,
+                        ["url"] = publicUrl is null ? null : $"{publicUrl}/jobs/{Uri.EscapeDataString(workflow.Id)}/{Uri.EscapeDataString(execution.Id)}"
+                    }
+                };
+                await runner.RunAsync(notify, new PipeExecutionRequest
+                {
+                    Mode = PipeExecutionMode.Api,
+                    InputItems = [new PipeItem(item)],
+                    StartedBy = "portal-mail"
+                }, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "The mail for a portal run of {Workflow} was not sent", workflow.Id);
+            }
+        });
+    }
+
+    /// <summary>The values the user entered, from the run of the Form Trigger; null when data is not kept. Passwords are left out.</summary>
+    static private JsonObject? ValuesOf(PipeWorkflow workflow, IReadOnlyDictionary<string, PipeNodeRun> nodeRuns, HttpContext context)
+    {
+        var registry = PipeApiEndpoints.Services<IPipeNodeRegistry>(context);
+        foreach (var node in workflow.Nodes.Where(n => registry.Find(n.Type) is { } d && typeof(IPipeFormTrigger).IsAssignableFrom(d.NodeType)))
+        {
+            if (nodeRuns.GetValueOrDefault(node.Id)?.Outputs?.GetValueOrDefault(PipePorts.Main)?.FirstOrDefault() is not { } item)
+            {
+                continue;
+            }
+            var values = new JsonObject();
+            foreach (var field in FormOf(workflow, context).Fields.Where(f => f.Type != PipeFormFieldType.Password))
+            {
+                if (item.Json[field.Name] is { } value)
+                {
+                    values[field.Name] = value.DeepClone();
+                }
+            }
+            return values;
+        }
+        return null;
     }
 
     /// <summary>True when the run was started for the user.</summary>

@@ -40,8 +40,32 @@ Start it like the Shell: `dotnet run --project src/gView.Pipe.Portal` (port 5250
 - **Workflows**: all published workflows by category, with a search.
 - **Form**: the fields of the Form Trigger. Fields with a pattern are checked while the user types; the backend checks every start again.
 - **Wait or background**: the author sets the default and whether users may switch. A run the user waits for goes on in the background when the wait timeout has passed.
-- **My runs**: the runs of the user with their status. Running runs have a *Stop* button, unless the workflow forbids it.
+- **My runs**: the runs of the user with their status. Running runs have a *Stop* button, unless the workflow forbids it. Finished runs have *Run again*, which opens the form with the values of that run (passwords are never kept).
 - **Result**: text, Markdown (without raw HTML) or a table, as defined by the Result node. Users never see raw items or the details of errors.
+
+## Mail when a run is done
+
+A user can tick *Mail me when it is done* when starting a run. The mail is sent by a workflow that you build, so you decide its text and its SMTP server:
+
+1. Create a workflow with an **Execute Workflow Trigger** and a **Send Email** node, e.g. *portal-mail*. The trigger gives it one item:
+
+    ```json
+    {
+      "to": "ada@example.com",
+      "user": "ada",
+      "workflow": { "id": "invoice", "name": "Invoice" },
+      "execution": { "id": "…", "status": "success", "startedAt": "…", "finishedAt": "…", "url": "https://portal.example.com/jobs/invoice/…" }
+    }
+    ```
+
+    In the Send Email node use `{{ $json.to }}` as recipient, and for the text e.g. `Your run of {{ $json.workflow.name }} ended: {{ $json.execution.status }}. {{ $json.execution.url }}`. The item never holds the result of the run.
+2. On the backend set `Pipe:Portal:NotifyWorkflowId` to its id, and `Pipe:Portal:PublicUrl` to the address of the portal, so `url` is filled.
+
+The option appears only when the backend has a notification workflow and the user has an address: from the login (OIDC claim `email`) or, in the forms mode, the `Email` of the user in `Portal:Auth:Users` (the settings of the portal, not of the backend). No mail is sent when the user already got the result while waiting. A run that is still going when the backend restarts doesn't send its mail.
+
+## Results and history
+
+Users see their own runs with the values they entered and the result for `Pipe:Portal:HistoryDays` days (default 30); after that only the status. Values of password fields are not shown. The history of the editor keeps the data of the run as usual, so switch off *Save item data of executions* for workflows with secrets.
 
 ## Limits
 

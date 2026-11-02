@@ -22,7 +22,12 @@ else
     <MudText Typo="Typo.caption" Class="mud-text-secondary mb-3">Started @(_run.StartedAt?.LocalDateTime.ToString("g")) · run number @_run.ExecutionId</MudText>
 
     <MudPaper Outlined="true" Class="pa-4">
-        <RunOutcome Run="_run" />
+        <RunOutcome Run="_run" Form="_form" />
+        @if (!_run.IsRunning)
+        {
+            <MudButton Class="mt-3" Variant="Variant.Outlined" Href="@($"run/{Uri.EscapeDataString(_run.WorkflowId)}?from={Uri.EscapeDataString(_run.ExecutionId)}")"
+                       StartIcon="@Icons.Material.Filled.Replay">Run again</MudButton>
+        }
         @if (_run.IsRunning)
         {
             <MudProgressLinear Indeterminate="true" Class="mt-3" />
@@ -42,11 +47,20 @@ else
     private readonly CancellationTokenSource _stopped = new();
     private readonly List<BreadcrumbItem> _crumbs = [new("My runs", href: "jobs")];
     private PortalRun? _run;
+    private IReadOnlyList<gView.Pipe.Abstraction.Portal.PipeFormField>? _form;
     private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();
+        try
+        {
+            _form = (await Client.GetWorkflowsAsync(_stopped.Token)).FirstOrDefault(w => w.Id == WorkflowId)?.Form;
+        }
+        catch (PipePortalException)
+        {
+            // the labels are a nicety: the names do
+        }
         _ = PollAsync();
     }
 
