@@ -43,6 +43,9 @@ class Build : NukeBuild
     [Parameter("Deploy root - Default is c:\\deploy\\gview-pipe")]
     readonly AbsolutePath DeployRoot = (AbsolutePath)@"c:\deploy\gview-pipe";
 
+    [Parameter("Checkout of docs-gviewonline for DocsPublish - Default is the folder docs-gviewonline next to this repository")]
+    readonly string DocsRepository;
+
     [Parameter("Docker exe file name")]
     readonly string DockerExe = "docker";
 
@@ -262,6 +265,30 @@ class Build : NukeBuild
                 .AssertZeroExitCode();
 
             Log.Information("Docs site: {Site}", ArtifactsDirectory / "docs" / "site");
+        });
+
+    // Publishes the docs together with the gView docs: mirrors the site into app/other/gview-pipe of the
+    // docs-gviewonline repository, whose app folder a GitHub action deploys as it is. Nothing is committed or
+    // pushed here; do that in the docs-gviewonline repository.
+    //   .\build.cmd DocsPublish
+    //   .\build.cmd DocsPublish --docs-repository D:\github\docs-gviewonline
+    Target DocsPublish => _ => _
+        .DependsOn(Docs)
+        .Executes(() =>
+        {
+            var site = ArtifactsDirectory / "docs" / "site";
+            Assert.DirectoryExists(site, "The Docs target made no site (is Python with MkDocs installed? pip install -r docs/requirements.txt)");
+
+            var repository = DocsRepository is null ? RootDirectory.Parent / "docs-gviewonline" : (AbsolutePath)DocsRepository;
+            Assert.DirectoryExists(repository / "app", $"{repository} is no checkout of docs-gviewonline (no app folder); set --docs-repository");
+
+            var target = repository / "app" / "other" / "gview-pipe";
+
+            // mirror, not merge: renamed or removed pages must not stay behind in the deployed folder
+            target.DeleteDirectory();
+            CopyDirectory(site, target, overwrite: true);
+
+            Log.Information("Docs copied to {Target}. Commit and push it in {Repository} to publish.", target, repository);
         });
 
     // Screenshots of the docs (docs/site/images): starts the Shell with an empty data folder and drives it with

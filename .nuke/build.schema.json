@@ -30,6 +30,7 @@
         "Docker",
         "DockerPush",
         "Docs",
+        "DocsPublish",
         "DocsScreenshots",
         "Test",
         "Zip"
@@ -121,6 +122,10 @@
         "DockerRegistry": {
           "type": "string",
           "description": "Docker registry for DockerPush"
+        },
+        "DocsRepository": {
+          "type": "string",
+          "description": "Checkout of docs-gviewonline for DocsPublish - Default is the folder docs-gviewonline next to this repository"
         },
         "Platform": {
           "type": "array",
