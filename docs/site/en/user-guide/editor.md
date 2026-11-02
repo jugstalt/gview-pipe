@@ -11,7 +11,7 @@ You build a workflow in the editor: nodes on a canvas, connected by lines. Open 
 | **Palette** (left) | All node types by category, with a search field. Hover a node for its description. |
 | **Canvas** (middle) | The workflow. Nodes show their name and type; ports are the dots on their edges. |
 | **Side panel** (right) | With no node selected: the settings of the workflow. With a node selected: its parameters, settings and run result. |
-| **Toolbar** (top) | Back, undo and redo, paste, show or hide the palette and the side panel, the **Active** switch, **Save** and **Run**. |
+| **Toolbar** (top) | Back, undo and redo, paste, add a note, show or hide the palette and the side panel, the **Active** switch, **Save** and **Run**. |
 
 The palette and the side panel can be resized by dragging the thin bar next to them. A double click resets the width. Two toolbar buttons hide and show them, to give the canvas more room; the browser keeps that choice. A large workflow is shown at 70 % at least, so the names stay readable; scroll the canvas to see the rest.
 
@@ -35,6 +35,12 @@ The first node of a workflow is a **trigger** (see [Triggers and webhooks](trigg
 - **Copy** a selection with Ctrl+C on the canvas, **paste** with Ctrl+V. Pasting also works into another workflow, so you can move parts between workflows. The toolbar has a paste button too.
 - **Duplicate** a node with the icon in the side panel.
 - **Undo** and **redo** (Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z on the canvas, or the toolbar) work for every change to the workflow. Typing into the fields of one node counts as one step.
+
+### Notes
+
+Use the note button in the toolbar to put a **sticky note** on the canvas, for example to explain why a filter is there or what to set up first. Select a note to change its text, color (yellow, green, blue, red, purple, gray) and size in the side panel; drag it like a node. Notes lie behind the nodes, have no ports and don't affect a run. They can be copied, pasted, duplicated, deleted and undone like nodes. Without the editor role you see them read only.
+
+![A note on the canvas](../../images/editor-note.png)
 
 ## Node tabs
 

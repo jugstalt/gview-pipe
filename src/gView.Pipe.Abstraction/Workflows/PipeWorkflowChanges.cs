@@ -42,6 +42,11 @@ static public class PipeWorkflowChanges
             parts.Add($"connections +{connectionsNow.Except(connections).Count()} -{connections.Except(connectionsNow).Count()}");
         }
 
+        if (!SameJson(before.StickyNotes ?? [], after.StickyNotes ?? []))
+        {
+            parts.Add("notes");
+        }
+
         if (before.Name != after.Name)
         {
             parts.Add($"renamed from '{before.Name}'");

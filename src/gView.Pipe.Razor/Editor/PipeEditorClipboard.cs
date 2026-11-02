@@ -16,6 +16,8 @@ public sealed class PipeClipboardContent
     public List<PipeWorkflowNode> Nodes { get; set; } = new();
 
     public List<PipeConnection> Connections { get; set; } = new();
+
+    public List<PipeStickyNote> Notes { get; set; } = new();
 }
 
 /// <summary>
@@ -79,7 +81,7 @@ public sealed class PipeEditorClipboard
         try
         {
             var content = JsonSerializer.Deserialize<PipeClipboardContent>(text, PipeJson.Options);
-            return content?.Format == PipeClipboardContent.Marker && content.Nodes.Count > 0 ? content : null;
+            return content?.Format == PipeClipboardContent.Marker && (content.Nodes.Count > 0 || content.Notes.Count > 0) ? content : null;
         }
         catch (JsonException)
         {

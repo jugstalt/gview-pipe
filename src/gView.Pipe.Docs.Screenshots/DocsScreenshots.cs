@@ -26,6 +26,7 @@ internal sealed class DocsScreenshots
         await StartPageAsync();
         await GroupPageAsync();
         await EditorRunAsync();
+        await EditorNoteAsync();
         await NodePanelsAsync();
         await CodeFieldAsync();
         await WebhookTriggerAsync();
@@ -87,6 +88,16 @@ internal sealed class DocsScreenshots
         await OpenEditorAsync("hello-pipe");
         await RunAsync();
         await ShotAsync("editor-run");
+    }
+
+    /// <summary>The sticky note of the sample "hello-pipe", selected so the panel shows its fields.</summary>
+    private async Task EditorNoteAsync()
+    {
+        await HighAsync();
+        await OpenEditorAsync("hello-pipe");
+        await _page.Locator(".gview-pipe-note").First.ClickAsync();
+        await _page.WaitForTimeoutAsync(1200);
+        await ShotAsync("editor-note");
     }
 
     /// <summary>The three tabs of a node, on the node "Set Greeting" of the run before.</summary>

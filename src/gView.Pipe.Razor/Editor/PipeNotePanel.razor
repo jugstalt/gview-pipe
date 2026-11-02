@@ -1,0 +1,37 @@
+@using gView.Pipe.Abstraction.Workflows
+
+<div class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Note</MudText>
+    <MudTextField T="string" Label="Text" Lines="6" Variant="Variant.Outlined" Immediate="true" ReadOnly="ReadOnly"
+                  Value="Model.Note.Text" ValueChanged="TextChanged" />
+    <MudSelect T="string" Label="Color" Variant="Variant.Outlined" Class="mt-3" Disabled="ReadOnly"
+               Value="Model.Note.Color" ValueChanged="ColorChanged">
+        @foreach (var color in PipeStickyNote.Colors)
+        {
+            <MudSelectItem T="string" Value="color">@color</MudSelectItem>
+        }
+    </MudSelect>
+    <MudStack Row="true" Spacing="2" Class="mt-3">
+        <MudNumericField T="double" Label="Width" Variant="Variant.Outlined" Min="80" Max="1200" Step="20" ReadOnly="ReadOnly"
+                         Value="Model.Note.Width" ValueChanged="WidthChanged" />
+        <MudNumericField T="double" Label="Height" Variant="Variant.Outlined" Min="50" Max="1200" Step="20" ReadOnly="ReadOnly"
+                         Value="Model.Note.Height" ValueChanged="HeightChanged" />
+    </MudStack>
+    @if (!ReadOnly)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" Class="mt-4" OnClick="OnDelete">Delete note</MudButton>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PipeNoteModel Model { get; set; } = default!;
+    [Parameter] public bool ReadOnly { get; set; }
+    /// <summary>Raised after every change; the argument is the key to merge typing into one undo step.</summary>
+    [Parameter] public EventCallback<string?> OnChanged { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    private Task TextChanged(string value) { Model.Note.Text = value ?? ""; Model.Refresh(); return OnChanged.InvokeAsync($"note:{Model.Note.Id}"); }
+    private Task ColorChanged(string value) { Model.Note.Color = value; Model.Refresh(); return OnChanged.InvokeAsync(null); }
+    private Task WidthChanged(double value) { Model.Note.Width = Math.Clamp(value, 80, 1200); Model.ApplySize(); return OnChanged.InvokeAsync($"note:{Model.Note.Id}"); }
+    private Task HeightChanged(double value) { Model.Note.Height = Math.Clamp(value, 50, 1200); Model.ApplySize(); return OnChanged.InvokeAsync($"note:{Model.Note.Id}"); }
+}

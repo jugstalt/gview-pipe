@@ -65,6 +65,16 @@
       "position": { "x": 720, "y": 80 }
     }
   ],
+  "stickyNotes": [
+    {
+      "id": "note-start",
+      "text": "Click Run to try it.\nThe condition sends the greeting to one of the two outputs.",
+      "color": "yellow",
+      "position": { "x": 0, "y": -200 },
+      "width": 260,
+      "height": 110
+    }
+  ],
   "connections": [
     { "sourceNodeId": "start", "sourcePort": "main", "targetNodeId": "set", "targetPort": "main" },
     { "sourceNodeId": "set", "sourcePort": "main", "targetNodeId": "check", "targetPort": "main" },

@@ -76,6 +76,9 @@
             <MudTooltip Text="Redo (Ctrl+Y on the canvas)">
                 <MudIconButton Icon="@Icons.Material.Filled.Redo" aria-label="Redo" OnClick="Redo" Disabled="@(!CanRedo || _running)" Class="mr-2" />
             </MudTooltip>
+            <MudTooltip Text="Add a note to the canvas">
+                <MudIconButton Icon="@Icons.Material.Filled.StickyNote2" aria-label="Add note" OnClick="AddNote" />
+            </MudTooltip>
             <MudTooltip Text="Paste nodes (Ctrl+V on the canvas)">
                 <MudIconButton Icon="@Icons.Material.Filled.ContentPaste" aria-label="Paste nodes" OnClick="PasteAsync" Class="mr-2" />
             </MudTooltip>
@@ -198,7 +201,12 @@
             <div class="gview-pipe-splitter" data-gview-pipe-splitter="panel" title="Drag to resize, double-click to reset"
                  @ondblclick="() => ResetWidth(ResizeSide.Panel)"></div>
             <div class="gview-pipe-editor-panel">
-                @if (_selected is not null)
+                @if (_selectedNote is not null)
+                {
+                    <PipeNotePanel @key="_selectedNote" Model="_selectedNote" ReadOnly="ReadOnly"
+                                   OnChanged="key => MarkDirty(key)" OnDelete="DeleteSelected" />
+                }
+                else if (_selected is not null)
                 {
                     <PipeNodePanel @key="_selected" Model="_selected" Workflow="_workflow"
                                    ReadOnly="ReadOnly" CanRun="CanRun"
@@ -403,6 +411,7 @@
     private bool _loading = true;
     private bool _dirty;
     private PipeNodeModel? _selected;
+    private PipeNoteModel? _selectedNote;
     private PipeExecution? _execution;
     private bool _running;
     private CancellationTokenSource? _runCts;
@@ -437,6 +446,7 @@
 
         _diagram = new BlazorDiagram(options);
         _diagram.RegisterComponent<PipeNodeModel, PipeNodeWidget>();
+        _diagram.RegisterComponent<PipeNoteModel, PipeNoteWidget>();
         _diagram.SelectionChanged += _ => InvokeAsync(SelectionChanged);
         _diagram.Nodes.Removed += node => InvokeAsync(() => NodeRemoved(node));
         _diagram.Links.Added += link =>
@@ -621,10 +631,14 @@
         }
 
         const double margin = 60, MinFitZoom = 0.7;
-        var minX = models.Min(m => m.Position.X);
-        var minY = models.Min(m => m.Position.Y);
-        var width = models.Max(m => m.Position.X + PipeNodeModel.Width) - minX;
-        var height = models.Max(m => m.Position.Y + m.Height) - minY;
+        // (x, y, right, bottom) of nodes and notes
+        var boxes = models.Select(m => (m.Position.X, m.Position.Y, Right: m.Position.X + PipeNodeModel.Width, Bottom: m.Position.Y + m.Height))
+            .Concat(_diagram.Nodes.OfType<PipeNoteModel>().Select(m => (m.Position.X, m.Position.Y, Right: m.Position.X + m.Note.Width, Bottom: m.Position.Y + m.Note.Height)))
+            .ToList();
+        var minX = boxes.Min(b => b.X);
+        var minY = boxes.Min(b => b.Y);
+        var width = boxes.Max(b => b.Right) - minX;
+        var height = boxes.Max(b => b.Bottom) - minY;
         var zoom = Math.Clamp(Math.Min((container.Width - 2 * margin) / width, (container.Height - 2 * margin) / height), MinFitZoom, 1);
 
         _fitPending = false;
@@ -687,6 +701,11 @@
         if (_workflow is null)
         {
             return;
+        }
+
+        foreach (var note in _workflow.StickyNotes ?? [])
+        {
+            AddNoteModel(note);
         }
 
         var models = _workflow.Nodes.Select(node => AddNodeModel(node, keepConnectedPorts: true)).ToDictionary(m => m.Node.Id);
@@ -793,6 +812,7 @@
         {
             _workflow = PipeJson.Deserialize<PipeWorkflow>(snapshot)!;
             _selected = null;
+            _selectedNote = null;
             BuildDiagram();
 
             foreach (var model in _diagram.Nodes.OfType<PipeNodeModel>())
@@ -814,6 +834,32 @@
         _lastMergeKey = null;
         _dirty = true;
         StateHasChanged();
+    }
+
+    private PipeNoteModel AddNoteModel(PipeStickyNote note)
+    {
+        var model = new PipeNoteModel(note);
+        model.Moved += _ => InvokeAsync(MarkDirty);
+        _diagram.Nodes.Add(model);
+        return model;
+    }
+
+    private void AddNote()
+    {
+        if (!Allowed(PipePermission.Edit) || _workflow is null)
+        {
+            return;
+        }
+
+        var position = NextPosition();
+        var model = AddNoteModel(new PipeStickyNote
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Text = "Note",
+            Position = new PipePosition { X = position.X, Y = position.Y }
+        });
+        _diagram.SelectModel(model, unselectOthers: true);
+        MarkDirty();
     }
 
     private PipeNodeModel AddNodeModel(PipeWorkflowNode node, bool keepConnectedPorts)
@@ -894,6 +940,13 @@
         {
             model.Node.Position = new PipePosition { X = Math.Round(model.Position.X), Y = Math.Round(model.Position.Y) };
         }
+
+        var notes = _diagram.Nodes.OfType<PipeNoteModel>().ToList();
+        foreach (var model in notes)
+        {
+            model.Note.Position = new PipePosition { X = Math.Round(model.Position.X), Y = Math.Round(model.Position.Y) };
+        }
+        workflow.StickyNotes = notes.Count == 0 ? null : notes.Select(m => m.Note).ToList();
 
         workflow.Nodes = models.Select(m => m.Node).ToList();
         workflow.Connections = _diagram.Links
@@ -994,6 +1047,8 @@
     {
         var selected = _diagram.GetSelectedModels().OfType<PipeNodeModel>().ToList();
         _selected = selected.Count == 1 ? selected[0] : null;
+        var notes = _diagram.GetSelectedModels().OfType<PipeNoteModel>().ToList();
+        _selectedNote = selected.Count == 0 && notes.Count == 1 ? notes[0] : null;
         StateHasChanged();
     }
 
@@ -1002,6 +1057,10 @@
         if (node == _selected)
         {
             _selected = null;
+        }
+        if (node == _selectedNote)
+        {
+            _selectedNote = null;
         }
         MarkDirty();
     }
@@ -1183,6 +1242,10 @@
         if (_selected is not null)
         {
             _diagram.Nodes.Remove(_selected);
+        }
+        else if (_selectedNote is not null)
+        {
+            _diagram.Nodes.Remove(_selectedNote);
         }
     }
 
@@ -1449,7 +1512,8 @@
     private PipeClipboardContent? CopySelection()
     {
         var models = SelectedNodes();
-        if (models.Count == 0)
+        var noteModels = _diagram.GetSelectedModels().OfType<PipeNoteModel>().ToList();
+        if (models.Count == 0 && noteModels.Count == 0)
         {
             return null;
         }
@@ -1465,7 +1529,14 @@
             .Where(c => ids.Contains(c.SourceNodeId) && ids.Contains(c.TargetNodeId))
             .ToList();
 
-        return new PipeClipboardContent { Nodes = nodes, Connections = connections };
+        var notes = noteModels.Select(m =>
+        {
+            var note = PipeJson.Clone(m.Note);
+            note.Position = new PipePosition { X = Math.Round(m.Position.X), Y = Math.Round(m.Position.Y) };
+            return note;
+        }).ToList();
+
+        return new PipeClipboardContent { Nodes = nodes, Connections = connections, Notes = notes };
     }
 
     private async Task CopySelectionAsync()
@@ -1473,7 +1544,7 @@
         if (CopySelection() is { } content)
         {
             await Clipboard.CopyAsync(content);
-            Snackbar.Add(content.Nodes.Count == 1 ? $"Copied '{content.Nodes[0].Name}'" : $"Copied {content.Nodes.Count} nodes", Severity.Info);
+            Snackbar.Add(content.Nodes.Count == 1 && content.Notes.Count == 0 ? $"Copied '{content.Nodes[0].Name}'" : $"Copied {content.Nodes.Count + content.Notes.Count} items", Severity.Info);
         }
     }
 
@@ -1505,7 +1576,9 @@
 
         // the copied group lands in the visible area
         var target = NextPosition();
-        InsertNodes(content, new Point(target.X - content.Nodes.Min(n => n.Position.X), target.Y - content.Nodes.Min(n => n.Position.Y)));
+        var minX = content.Nodes.Select(n => n.Position.X).Concat(content.Notes.Select(n => n.Position.X)).Min();
+        var minY = content.Nodes.Select(n => n.Position.Y).Concat(content.Notes.Select(n => n.Position.Y)).Min();
+        InsertNodes(content, new Point(target.X - minX, target.Y - minY));
     }
 
     /// <summary>Adds copies with new ids and unique names, keeps the connections among them and selects them.</summary>
@@ -1538,8 +1611,21 @@
             }
         }
 
+        var noteModels = new List<PipeNoteModel>();
+        foreach (var original in content.Notes)
+        {
+            var note = PipeJson.Clone(original);
+            note.Id = Guid.NewGuid().ToString("N");
+            note.Position = new PipePosition { X = original.Position.X + offset.X, Y = original.Position.Y + offset.Y };
+            noteModels.Add(AddNoteModel(note));
+        }
+
         _diagram.UnselectAll();
         foreach (var model in models)
+        {
+            _diagram.SelectModel(model, unselectOthers: false);
+        }
+        foreach (var model in noteModels)
         {
             _diagram.SelectModel(model, unselectOthers: false);
         }

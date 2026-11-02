@@ -11,7 +11,7 @@ Im Editor baust du einen Workflow: Nodes auf einer Arbeitsfläche, verbunden dur
 | **Palette** (links) | Alle Node-Typen nach Kategorien, mit Suchfeld. Fahre über einen Node, um seine Beschreibung zu sehen. |
 | **Arbeitsfläche** (Mitte) | Der Workflow. Nodes zeigen Name und Typ; Ports sind die Punkte an ihren Rändern. |
 | **Seitenpanel** (rechts) | Ohne gewählten Node: die Einstellungen des Workflows. Mit gewähltem Node: seine Parameter, Einstellungen und das Laufergebnis. |
-| **Werkzeugleiste** (oben) | Zurück, Rückgängig und Wiederholen, Einfügen, Palette und Seitenpanel ein- und ausblenden, der Schalter **Active**, **Save** und **Run**. |
+| **Werkzeugleiste** (oben) | Zurück, Rückgängig und Wiederholen, Einfügen, Notiz hinzufügen, Palette und Seitenpanel ein- und ausblenden, der Schalter **Active**, **Save** und **Run**. |
 
 Palette und Seitenpanel änderst du in der Breite, indem du den schmalen Balken neben ihnen ziehst. Ein Doppelklick setzt die Breite zurück. Zwei Schaltflächen der Werkzeugleiste blenden sie aus und wieder ein, damit die Arbeitsfläche mehr Platz hat; der Browser merkt sich das. Ein großer Workflow wird mit mindestens 70 % angezeigt, damit die Namen lesbar bleiben; den Rest erreichst du durch Verschieben der Arbeitsfläche.
 
@@ -35,6 +35,12 @@ Der erste Node eines Workflows ist ein **Trigger** (siehe [Trigger und Webhooks]
 - **Kopiere** eine Auswahl mit Strg+C auf der Arbeitsfläche, **füge** sie mit Strg+V **ein**. Das funktioniert auch in einem anderen Workflow, du kannst also Teile zwischen Workflows verschieben. Die Werkzeugleiste hat dafür auch eine Einfügen-Schaltfläche.
 - **Dupliziere** einen Node mit dem Symbol im Seitenpanel.
 - **Rückgängig** und **Wiederholen** (Strg+Z, Strg+Y oder Strg+Umschalt+Z auf der Arbeitsfläche, oder die Werkzeugleiste) gelten für jede Änderung am Workflow. Tippen in die Felder eines Nodes zählt als ein Schritt.
+
+### Notizen
+
+Mit der Notiz-Schaltfläche der Werkzeugleiste legst du eine **Haftnotiz** auf die Arbeitsfläche, zum Beispiel um zu erklären, warum ein Filter da ist oder was zuerst einzurichten ist. Wähle eine Notiz, um im Seitenpanel Text, Farbe (yellow, green, blue, red, purple, gray) und Größe zu ändern; ziehe sie wie einen Node. Notizen liegen hinter den Nodes, haben keine Ports und beeinflussen keinen Lauf. Sie lassen sich wie Nodes kopieren, einfügen, duplizieren, löschen und rückgängig machen. Ohne die Rolle editor siehst du sie nur lesend.
+
+![Eine Notiz auf der Arbeitsfläche](../../images/editor-note.png)
 
 ## Die Tabs eines Nodes
 

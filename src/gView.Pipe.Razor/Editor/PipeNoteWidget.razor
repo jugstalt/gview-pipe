@@ -1,0 +1,6 @@
+<div class="gview-pipe-note gview-pipe-note-@Node.Note.Color @(Node.Selected ? "selected" : null)"
+     style="width:@(Node.Note.Width)px;height:@(Node.Note.Height)px">@Node.Note.Text</div>
+
+@code {
+    [Parameter] public PipeNoteModel Node { get; set; } = default!;
+}

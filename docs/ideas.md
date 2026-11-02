@@ -25,7 +25,7 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 ## Editor and UX
 
 - [x] Pinned data, undo/redo and copy/paste of nodes (as JSON, also between workflows) exist already.
-- [ ] Sticky notes and comments on the canvas.
+- [x] Sticky notes on the canvas (ADR 0024); comments by several people are not part of it.
 - [x] Expression editor: autocomplete in expression and code fields (ADR 0019); the preview of the value existed already.
 - [ ] Workflow versions: history and diff, export/import with Git.
 

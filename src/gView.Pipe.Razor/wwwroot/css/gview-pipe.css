@@ -998,3 +998,35 @@ div.gview-pipe-json-tree {
 .gview-pipe-readonly {
     opacity: .85;
 }
+
+/* ---- sticky notes (ADR 0024) ---- */
+
+.gview-pipe-note {
+    --note-bg: #fff3b0;
+    --note-border: #e0c64a;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    overflow: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: var(--note-bg);
+    border: 1px solid var(--note-border);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+    color: #2b2b2b;
+    font-size: .8rem;
+}
+
+    .gview-pipe-note.selected { box-shadow: 0 0 0 2px var(--mud-palette-primary); }
+    .gview-pipe-note-green { --note-bg: #cdeccf; --note-border: #8cc790; }
+    .gview-pipe-note-blue { --note-bg: #cfe4fa; --note-border: #86b6e6; }
+    .gview-pipe-note-red { --note-bg: #f8d2d0; --note-border: #e08e8a; }
+    .gview-pipe-note-purple { --note-bg: #e3d5f4; --note-border: #b79ddd; }
+    .gview-pipe-note-gray { --note-bg: #e4e6ea; --note-border: #b3b8c1; }
+
+[data-mud-theme="dark"] .gview-pipe-note { color: #f1f1f1; --note-bg: #6b5d12; --note-border: #968420; }
+[data-mud-theme="dark"] .gview-pipe-note-green { --note-bg: #2f5a33; --note-border: #4d8a52; }
+[data-mud-theme="dark"] .gview-pipe-note-blue { --note-bg: #274a73; --note-border: #3f74ab; }
+[data-mud-theme="dark"] .gview-pipe-note-red { --note-bg: #6e2e2b; --note-border: #a64b47; }
+[data-mud-theme="dark"] .gview-pipe-note-purple { --note-bg: #4a3770; --note-border: #7459a8; }
+[data-mud-theme="dark"] .gview-pipe-note-gray { --note-bg: #484c55; --note-border: #6b717d; }

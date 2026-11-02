@@ -39,6 +39,9 @@ public sealed class PipeWorkflow
 
     public List<PipeConnection> Connections { get; set; } = new();
 
+    /// <summary>Notes on the canvas. Only the editor shows them; a missing list means none (ADR 0024).</summary>
+    public List<PipeStickyNote>? StickyNotes { get; set; }
+
     /// <summary>
     /// Pin data: fixed output items per node id and output port. In manual runs a pinned node is not executed;
     /// it returns these items instead. Trigger runs ignore pin data.
