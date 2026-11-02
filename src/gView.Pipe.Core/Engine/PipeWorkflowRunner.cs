@@ -25,6 +25,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
     private readonly PipeExecutionRetention _retention;
     private readonly IPipeErrorWorkflows _errorWorkflows;
     private readonly IPipeWorkflowGroupStore _groupStore;
+    private readonly IPipeWorkflowHealthStore _healthStore;
     private readonly TimeProvider _time;
     private readonly PipeCoreOptions _options;
     private readonly ILogger<PipeWorkflowRunner> _logger;
@@ -45,6 +46,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         PipeExecutionRetention retention,
         IPipeErrorWorkflows errorWorkflows,
         IPipeWorkflowGroupStore groupStore,
+        IPipeWorkflowHealthStore healthStore,
         TimeProvider time,
         IOptions<PipeCoreOptions> options,
         ILogger<PipeWorkflowRunner> logger)
@@ -57,6 +59,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         _retention = retention;
         _errorWorkflows = errorWorkflows;
         _groupStore = groupStore;
+        _healthStore = healthStore;
         _time = time;
         _options = options.Value;
         _logger = logger;
@@ -171,6 +174,10 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
                     await RunErrorWorkflowAsync(workflow, execution);
                 }
             }
+            else if (execution.Status == PipeExecutionStatus.Success && request.Mode is PipeExecutionMode.Trigger or PipeExecutionMode.Replay or PipeExecutionMode.Api)
+            {
+                await RunRecoveryWorkflowAsync(workflow, execution);
+            }
             _failedSubRuns.TryRemove(execution.Id, out _);
 
             return execution;
@@ -254,9 +261,11 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
             if (!TryNotify(workflow.Id, errorWorkflow.Id, ThrottleOf(entry), out var suppressed))
             {
                 _logger.LogInformation("Failure of {WorkflowName} not reported: error workflow {ErrorWorkflowName} ran recently", workflow.Name, errorWorkflow.Name);
+                await RecordFailureAsync(workflow, failed, notified: false);
                 return;
             }
 
+            await RecordFailureAsync(workflow, failed, notified: true);
             await RunAsync(errorWorkflow, new PipeExecutionRequest
             {
                 Mode = PipeExecutionMode.Error,
@@ -271,6 +280,91 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         {
             _logger.LogError(ex, "Error workflow of {WorkflowName} could not be run", workflow.Name);
         }
+    }
+
+    /// <summary>Keeps the open failure of the workflow (ADR 0025): since when, how often, and whether it was reported.</summary>
+    private async Task RecordFailureAsync(PipeWorkflow workflow, PipeExecution failed, bool notified)
+    {
+        var health = await _healthStore.GetAsync(workflow.Id, CancellationToken.None) ?? new PipeWorkflowHealth
+        {
+            WorkflowId = workflow.Id,
+            FailingSince = failed.StartedAt
+        };
+        health.Failures++;
+        health.FailedExecutionId = failed.Id;
+        health.Notified |= notified;
+        await _healthStore.SaveAsync(health, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// A triggered run succeeded: ends the open failure of the workflow. If the failure was reported, the effective error
+    /// workflow gets the item at its Recovery Trigger (none: nothing happens). Problems are only logged.
+    /// </summary>
+    private async Task RunRecoveryWorkflowAsync(PipeWorkflow workflow, PipeExecution succeeded)
+    {
+        try
+        {
+            var health = await _healthStore.GetAsync(workflow.Id, CancellationToken.None);
+            if (health is null)
+            {
+                return;
+            }
+            await _healthStore.DeleteAsync(workflow.Id, CancellationToken.None);
+            if (!health.Notified)
+            {
+                return;
+            }
+
+            var group = string.IsNullOrEmpty(workflow.GroupId) ? null : await _groupStore.GetAsync(workflow.GroupId, CancellationToken.None);
+            if (_errorWorkflows.Resolve(workflow, group).WorkflowId is not { } errorWorkflowId
+                || await _workflowStore.GetAsync(errorWorkflowId, CancellationToken.None) is not { } errorWorkflow
+                || PipeEntryNodes.Find<IPipeRecoveryTrigger>(errorWorkflow, _registry) is not { } entry)
+            {
+                return;
+            }
+
+            await RunAsync(errorWorkflow, new PipeExecutionRequest
+            {
+                Mode = PipeExecutionMode.Error,
+                Environment = succeeded.Environment,
+                StartNodeId = entry.Id,
+                InputItems = [RecoveryItem(workflow, succeeded, health)],
+                ParentExecutionId = succeeded.Id,
+                ParentWorkflowId = workflow.Id
+            }, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Recovery of {WorkflowName} could not be reported", workflow.Name);
+        }
+    }
+
+    /// <summary><c>{ workflow, execution, failedSince, failedExecution, failures }</c>, see <see cref="IPipeRecoveryTrigger"/>.</summary>
+    private PipeItem RecoveryItem(PipeWorkflow workflow, PipeExecution succeeded, PipeWorkflowHealth health)
+    {
+        var execution = new JsonObject
+        {
+            ["id"] = succeeded.Id,
+            ["mode"] = JsonSerializer.SerializeToNode(succeeded.Mode, PipeJson.Options),
+            ["environment"] = succeeded.Environment,
+            ["startedAt"] = succeeded.StartedAt.ToString("O")
+        };
+        var failedExecution = new JsonObject { ["id"] = health.FailedExecutionId };
+        if (!string.IsNullOrWhiteSpace(_options.PublicUrl))
+        {
+            var baseUrl = $"{_options.PublicUrl.TrimEnd('/')}/workflows/{Uri.EscapeDataString(workflow.Id)}?execution=";
+            execution["url"] = baseUrl + Uri.EscapeDataString(succeeded.Id);
+            failedExecution["url"] = baseUrl + Uri.EscapeDataString(health.FailedExecutionId);
+        }
+
+        return new PipeItem(new JsonObject
+        {
+            ["workflow"] = new JsonObject { ["id"] = workflow.Id, ["name"] = workflow.Name },
+            ["execution"] = execution,
+            ["failedSince"] = health.FailingSince.ToString("O"),
+            ["failedExecution"] = failedExecution,
+            ["failures"] = health.Failures
+        });
     }
 
     /// <summary><c>{ workflow, execution, node, subWorkflow?, suppressed }</c>, see <see cref="IPipeErrorTrigger"/>.</summary>

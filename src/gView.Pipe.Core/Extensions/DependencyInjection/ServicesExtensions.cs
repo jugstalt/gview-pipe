@@ -80,6 +80,7 @@ static public class ServicesExtensions
         services.TryAddSingleton<IPipeCredentialStore, PipeMemoryCredentialStore>();
         services.TryAddSingleton<IPipeVariableStore, PipeMemoryVariableStore>();
         services.TryAddSingleton<IPipeApiKeyStore, PipeMemoryApiKeyStore>();
+        services.TryAddSingleton<IPipeWorkflowHealthStore, PipeMemoryWorkflowHealthStore>();
         services.TryAddSingleton<IPipeAuditLog, PipeMemoryAuditLog>();
         services.TryAddSingleton<IPipeWorkflowValidator, PipeWorkflowValidator>();
         services.TryAddSingleton<IPipeEnvironments, PipeEnvironmentService>();
@@ -112,6 +113,7 @@ static public class ServicesExtensions
         services.Replace(ServiceDescriptor.Singleton<IPipeCredentialStore, PipeFileCredentialStore>());
         services.Replace(ServiceDescriptor.Singleton<IPipeVariableStore, PipeFileVariableStore>());
         services.Replace(ServiceDescriptor.Singleton<IPipeApiKeyStore, PipeFileApiKeyStore>());
+        services.Replace(ServiceDescriptor.Singleton<IPipeWorkflowHealthStore, PipeFileWorkflowHealthStore>());
         services.Replace(ServiceDescriptor.Singleton<IPipeAuditLog, PipeFileAuditLog>());
         services.TryAddSingleton<PipeSecretValues>();
 

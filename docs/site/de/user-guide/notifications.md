@@ -39,6 +39,20 @@ Weiteres, das die Zahl der Nachrichten klein hält:
 - Ein fehlschlagender Sub-Workflow wird einmal gemeldet, vom Workflow, der ihn aufgerufen hat; die Nachricht nennt den Sub-Workflow und seinen fehlgeschlagenen Node.
 - Ein Node mit *Continue* oder *Error output* lässt den Lauf nicht fehlschlagen und wird daher nicht gemeldet. Schicke bei Bedarf eine Nachricht aus seinem `error`-Zweig ([Fehlerbehandlung](error-handling.md)).
 
+## Wieder normal
+
+Ein Alarm sollte auch enden. Lege einen **Recovery Trigger** in denselben Workflow wie den Error Trigger und verbinde ihn mit einer Nachricht, wie der zweite Zweig der drei Beispiele (deaktiviert, bis du sie einrichtest). Er startet, wenn ein Workflow, der fehlgeschlagen war, wieder erfolgreich läuft.
+
+- Er meldet eine Erholung nur, wenn vorher ein Fehler gemeldet wurde: Hat das Throttling alle Fehler verschluckt oder galt kein Fehler-Workflow, erfährt auch niemand von der Erholung.
+- Nur Läufe durch Trigger, [Replay](executions.md#replay) oder die API zählen. Ein Lauf, den du im Editor startest, beginnt oder beendet keinen Fehlerzustand.
+- Der Zustand liegt auf der Platte (`data/health`) und übersteht einen Neustart.
+- Das Item ist `{ workflow, execution, failedSince, failedExecution, failures }`; `execution.url` und `failedExecution.url` verlinken die Läufe mit `Pipe:PublicUrl`.
+
+| Ausdruck | Wert |
+|---|---|
+| `{{ $json.failedSince }}` | Beginn des ersten fehlgeschlagenen Laufs |
+| `{{ $json.failures }}` | seither fehlgeschlagene Läufe, gemeldet oder nicht |
+
 ## Ausprobieren
 
 Starte die Entwickler-Container mit Mailpit (`ADD_MAILPIT` im AppHost, siehe [Entwicklerhandbuch](../developer-guide/index.md)) und lege ein SMTP-Credential für `localhost`, Port `1025`, ohne TLS an. Richte damit **Error Mail** ein, lass einen Workflow mit Cron- oder Webhook-Trigger fehlschlagen (etwa einen Code-Node mit `throw new Error('test')`) und lass ihn über seinen Trigger laufen oder starte ein [Replay](executions.md#replay) eines fehlgeschlagenen Laufs. Die Mail erscheint unter http://localhost:8025.

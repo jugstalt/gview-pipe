@@ -19,6 +19,7 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
     private readonly string? _seedFolder;
     private readonly string? _seedGroups;
     private readonly string _groupsFile;
+    private readonly string _healthFolder;
     private readonly PipeSecretValues _secrets;
     private readonly ILogger<PipeFileWorkflowStore> _logger;
     private readonly Lock _seedLock = new();
@@ -31,6 +32,7 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
         _seedFolder = options.Value.SeedWorkflowsPath is { } seed ? Path.GetFullPath(seed) : null;
         _seedGroups = options.Value.SeedGroupsPath is { } groups ? Path.GetFullPath(groups) : null;
         _groupsFile = PipeFileWorkflowGroupStore.FileOf(options.Value);
+        _healthFolder = PipeFileWorkflowHealthStore.FolderOf(options.Value);
         _logger = logger;
     }
 
@@ -90,6 +92,8 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
     {
         EnsureSeeded();
         File.Delete(PathOf(id));
+        // an open failure (ADR 0025) goes with the workflow
+        PipeFileWorkflowHealthStore.DeleteFile(_healthFolder, id);
         return Task.CompletedTask;
     }
 

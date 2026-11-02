@@ -24,6 +24,7 @@ static public class PipeBuiltInNodes
     public const string ExecuteWorkflow = "a02238ee-6819-42b5-8b15-837078d74adc";
     public const string ExecuteWorkflowTrigger = "bd47c3b0-0e64-4234-ae83-1f465875ac34";
     public const string ErrorTrigger = "c102a313-b62c-4465-bf28-139c6b1ebbb0";
+    public const string RecoveryTrigger = "f81fb49b-3b42-489f-996e-232798fe087f";
     public const string RespondToWebhook = "5aaad06c-980a-4e67-8c1e-40cf04926333";
     public const string ReadFile = "26912bb1-7982-47e7-b6ae-73937b3e83f9";
     public const string WriteFile = "def4eb54-c93e-40d1-9d27-49dfe8f19b41";

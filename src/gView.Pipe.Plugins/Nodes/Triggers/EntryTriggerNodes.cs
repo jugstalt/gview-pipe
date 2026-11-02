@@ -25,6 +25,19 @@ public sealed class ErrorTriggerNodeParameters
     public int ThrottleMinutes { get; set; } = PipeErrorWorkflows.DefaultThrottleMinutes;
 }
 
+[PipeNode(PipeBuiltInNodes.RecoveryTrigger, "Recovery Trigger",
+    Category = "Triggers",
+    Description = "Starts the workflow when a workflow that failed and was reported to this error workflow runs successfully again (triggered runs only). "
+                  + "Outputs { workflow, execution, failedSince, failedExecution, failures }; execution.url and failedExecution.url link to the runs when Pipe:PublicUrl is set.")]
+public sealed class RecoveryTriggerNode : IPipeRecoveryTrigger
+{
+    public Task<IAsyncDisposable?> ActivateAsync(IPipeTriggerContext context, CancellationToken cancellationToken)
+        => Task.FromResult<IAsyncDisposable?>(null);
+
+    public Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)
+        => Task.FromResult(PipeNodeResult.FromMain(context.GetInput()));
+}
+
 [PipeNode(PipeBuiltInNodes.ErrorTrigger, "Error Trigger",
     Category = "Triggers",
     Description = "Starts the workflow when a triggered run of a workflow that uses it as error workflow fails (set on the workflow, its group or the instance). "

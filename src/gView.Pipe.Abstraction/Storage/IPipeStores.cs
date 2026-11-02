@@ -59,6 +59,16 @@ public interface IPipeVariableStore
     Task SaveAsync(IReadOnlyList<PipeVariable> variables, CancellationToken cancellationToken = default);
 }
 
+/// <summary>Workflows that are failing right now (ADR 0025). An entry exists from the first failed triggered run until a run succeeds.</summary>
+public interface IPipeWorkflowHealthStore
+{
+    Task<PipeWorkflowHealth?> GetAsync(string workflowId, CancellationToken cancellationToken = default);
+
+    Task SaveAsync(PipeWorkflowHealth health, CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(string workflowId, CancellationToken cancellationToken = default);
+}
+
 public interface IPipeCredentialStore
 {
     Task<IReadOnlyList<PipeCredentialInfo>> ListAsync(CancellationToken cancellationToken = default);

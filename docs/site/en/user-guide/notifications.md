@@ -39,6 +39,20 @@ Other things that keep the noise down:
 - A failing sub-workflow is reported once, by the workflow that called it; the message names the sub-workflow and its failed node.
 - A node with *Continue* or *Error output* doesn't fail the run, so it isn't reported. Send a message from its `error` branch if you need one ([Error handling](error-handling.md)).
 
+## Back to normal
+
+An alarm should also end. Put a **Recovery Trigger** into the same workflow as the Error Trigger and connect it to a message, like the second branch of the three samples (disabled until you set them up). It starts when a workflow that failed runs successfully again.
+
+- It only reports a recovery when a failure was reported before: if the throttle swallowed all failures, or no error workflow applied, nobody hears about the recovery either.
+- Only runs by trigger, [replay](executions.md#replay) or the API count. A run you start in the editor neither starts nor ends a failure.
+- The state is kept on disk (`data/health`), so it survives a restart.
+- The item is `{ workflow, execution, failedSince, failedExecution, failures }`; `execution.url` and `failedExecution.url` link to the runs with `Pipe:PublicUrl`.
+
+| Expression | Value |
+|---|---|
+| `{{ $json.failedSince }}` | start of the first failed run |
+| `{{ $json.failures }}` | failed runs since then, reported or not |
+
 ## Trying it out
 
 Start the developer containers with Mailpit (`ADD_MAILPIT` in the AppHost, see the [Developer Guide](../developer-guide/index.md)) and create an SMTP credential for `localhost`, port `1025`, without TLS. Set up **Error Mail** with it, make a workflow with a Cron or Webhook Trigger fail (for example a Code node with `throw new Error('test')`), and let it run by its trigger or [replay](executions.md#replay) a failed run. The mail appears at http://localhost:8025.

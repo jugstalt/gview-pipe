@@ -48,6 +48,7 @@ An error workflow is a normal workflow that starts with an **Error Trigger**. Ch
 
     Use it in expressions, for example `{{ $json.workflow.name }}` and `{{ $json.execution.error }}`. `url` links to the failed run when `Pipe:PublicUrl` is configured; `subWorkflow` is only there when a sub-workflow failed.
 - **Throttle minutes** on the Error Trigger (default 15) starts it at most once in that time per failed workflow. Failures in between are counted in `suppressed` of the next run. Set 0 to report every failure.
+- Add a **Recovery Trigger** to the same workflow to be told when the failed workflow runs successfully again; see [Failure notifications](notifications.md#back-to-normal).
 - A failure of the error workflow itself is only written to the application log. A workflow is never its own error workflow.
 - It does **not** change the result of the failed run. The run stays **Error**.
 

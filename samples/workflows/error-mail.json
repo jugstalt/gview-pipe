@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "error-mail",
   "name": "Error Mail",
-  "description": "Sample error workflow: mails failed triggered runs to the variable ALERT_MAIL_TO. Choose the SMTP credential in 'Send Mail' and enable it.",
+  "description": "Sample error workflow: mails failed triggered runs to the variable ALERT_MAIL_TO. Choose the SMTP credential in 'Send Mail' and enable it. It also mails when the workflow runs successfully again (Recovery Trigger).",
   "groupId": "samples",
   "active": false,
   "nodes": [
@@ -27,9 +27,38 @@
         "text": "Workflow: {{ $json.workflow.name }}\nEnvironment: {{ $json.execution.environment }}\nStarted: {{ $json.execution.startedAt }}\nNode: {{ $json.node?.name ?? '-' }}\nError: {{ $json.execution.error }}\n{{ $json.subWorkflow ? 'Sub-workflow: ' + $json.subWorkflow.name + ', node ' + ($json.subWorkflow.node?.name ?? '-') + ': ' + $json.subWorkflow.error + '\\n' : '' }}{{ $json.suppressed > 0 ? $json.suppressed + ' more failure(s) since the last message.\\n' : '' }}{{ $json.execution.url ?? '' }}"
       },
       "position": { "x": 240, "y": 0 }
+    },
+    {
+      "id": "recovery",
+      "name": "On Recovery",
+      "type": "f81fb49b-3b42-489f-996e-232798fe087f",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": {
+        "x": 0,
+        "y": 160
+      }
+    },
+    {
+      "id": "mail-recovered",
+      "name": "Mail Recovered",
+      "type": "fafaca25-a6f7-49bd-a689-c3a7f01b1c7a",
+      "typeVersion": 1,
+      "disabled": true,
+      "notes": "Disabled until set up, like Send Mail: choose the SMTP credential.",
+      "parameters": {
+        "to": "{{ $vars.ALERT_MAIL_TO }}",
+        "subject": "[gView.Pipe] {{ $json.workflow.name }} is running again",
+        "text": "Workflow: {{ $json.workflow.name }}\nEnvironment: {{ $json.execution.environment }}\nFailing since: {{ $json.failedSince }} ({{ $json.failures }} failed run(s))\n{{ $json.execution.url ?? '' }}"
+      },
+      "position": {
+        "x": 240,
+        "y": 160
+      }
     }
   ],
   "connections": [
-    { "sourceNodeId": "error", "sourcePort": "main", "targetNodeId": "mail", "targetPort": "main" }
+    { "sourceNodeId": "error", "sourcePort": "main", "targetNodeId": "mail", "targetPort": "main" },
+    { "sourceNodeId": "recovery", "sourcePort": "main", "targetNodeId": "mail-recovered", "targetPort": "main" }
   ]
 }

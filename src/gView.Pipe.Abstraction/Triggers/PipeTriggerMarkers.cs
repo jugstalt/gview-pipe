@@ -13,3 +13,12 @@ public interface IPipeSubWorkflowTrigger : IPipeTriggerNode
 public interface IPipeErrorTrigger : IPipeTriggerNode
 {
 }
+
+/// <summary>
+/// Entry point of a workflow that reports a recovery: a workflow that had failed (and whose failure was reported to the
+/// error workflow) ran successfully again. Receives <c>{ workflow: { id, name }, execution: { id, mode, environment, startedAt, url? },
+/// failedSince, failedExecution: { id, url? }, failures }</c> (see ADR 0025). Found in the effective error workflow.
+/// </summary>
+public interface IPipeRecoveryTrigger : IPipeTriggerNode
+{
+}

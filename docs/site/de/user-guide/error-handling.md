@@ -48,6 +48,7 @@ Ein Fehler-Workflow ist ein normaler Workflow, der mit einem **Error Trigger** b
 
     Du nutzt es in Ausdrücken, zum Beispiel `{{ $json.workflow.name }}` und `{{ $json.execution.error }}`. `url` verweist auf den fehlgeschlagenen Lauf, wenn `Pipe:PublicUrl` konfiguriert ist; `subWorkflow` gibt es nur, wenn ein Sub-Workflow fehlgeschlagen ist.
 - **Throttle minutes** am Error Trigger (Vorgabe 15) startet ihn pro fehlgeschlagenem Workflow höchstens einmal in dieser Zeit. Fehler dazwischen werden in `suppressed` des nächsten Laufs gezählt. Mit 0 wird jeder Fehler gemeldet.
+- Füge demselben Workflow einen **Recovery Trigger** hinzu, um zu erfahren, wann der fehlgeschlagene Workflow wieder erfolgreich läuft; siehe [Fehlerbenachrichtigungen](notifications.md#wieder-normal).
 - Ein Fehler des Fehler-Workflows selbst wird nur ins Anwendungslog geschrieben. Ein Workflow ist nie sein eigener Fehler-Workflow.
 - Er ändert das Ergebnis des fehlgeschlagenen Laufs **nicht**. Der Lauf bleibt **Error**.
 

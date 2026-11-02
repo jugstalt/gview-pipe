@@ -10,7 +10,7 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 - [x] Retry and timeout per node and "continue on error" existed already; exponential backoff added (ADR 0015).
 - [x] Queue for triggered runs (ADR 0016).
 - [x] Failure notifications: inherited error workflow, throttling, Mail/Teams/Slack samples (ADR 0017).
-- [ ] "Back to normal" message when a workflow that failed succeeds again (needs the last state per workflow).
+- [x] "Back to normal" message when a workflow that failed succeeds again: Recovery Trigger (ADR 0025).
 - [ ] Metrics with OpenTelemetry: runs, duration and errors per workflow (the ServiceDefaults are already there).
 
 ## Nodes
