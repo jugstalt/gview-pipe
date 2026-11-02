@@ -4,6 +4,7 @@
 
 @* The environment of the instance (read-only, set in the configuration) and the variables of the instance level. *@
 
+<PipeRequireRole Permission="PipePermission.Administer">
 <MudPaper Class="pa-4" Elevation="0" Outlined="true">
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
         <MudText Typo="Typo.h6">Variables</MudText>
@@ -45,6 +46,7 @@
         <PipeVariablesEditor Variables="_variables" VariablesChanged="v => { _variables = v ?? []; _dirty = true; }" />
     }
 </MudPaper>
+</PipeRequireRole>
 
 @code {
     private List<PipeVariable>? _variables;

@@ -45,7 +45,7 @@ The [REST API](api.md) under `/api/v1` accepts only API keys, never the login co
 
 - Give each script or pipeline its own key with only the rights it needs, limited to its groups and with an expiry date. Delete keys that are no longer used; the page shows when each was last used.
 - Only the SHA-256 of a key is stored in `data/api-keys.json`; a copy of the data folder doesn't reveal keys.
-- Anyone who can open the UI can create keys. Use a [login](authentication.md) when the UI is reachable by others.
+- Only admins create keys ([roles](authentication.md#roles)). Without a login everyone is admin: use one when the UI is reachable by others.
 - Send keys only over HTTPS.
 
 ## Plugins

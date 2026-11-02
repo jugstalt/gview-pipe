@@ -26,7 +26,7 @@ X-Pipe-Api-Key: pipe_…
 or as `Authorization: Bearer pipe_…`.
 
 !!! warning
-    Every signed-in user can create keys; there are no roles yet. With `Pipe:Auth:Mode` *none* that is everyone who can reach the UI. Protect the UI with a [login](authentication.md) before you rely on keys. More than 60 failed attempts per minute from one address answer `429`.
+    Only users with the [role](authentication.md#roles) admin can create keys. With `Pipe:Auth:Mode` *none* everyone who can reach the UI is admin. Protect the UI with a [login](authentication.md) before you rely on keys. More than 60 failed attempts per minute from one address answer `429`.
 
 ## Endpoints
 

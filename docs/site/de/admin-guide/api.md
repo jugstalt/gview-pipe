@@ -26,7 +26,7 @@ X-Pipe-Api-Key: pipe_…
 oder als `Authorization: Bearer pipe_…`.
 
 !!! warning
-    Jeder angemeldete Benutzer kann Schlüssel anlegen; Rollen gibt es noch nicht. Mit `Pipe:Auth:Mode` *none* ist das jeder, der die UI erreicht. Schütze die UI mit einer [Anmeldung](authentication.md), bevor du dich auf Schlüssel verlässt. Mehr als 60 Fehlversuche pro Minute von einer Adresse werden mit `429` beantwortet.
+    Nur Benutzer mit der [Rolle](authentication.md#rollen) admin können Schlüssel anlegen. Mit `Pipe:Auth:Mode` *none* ist jeder admin, der die UI erreicht. Schütze die UI mit einer [Anmeldung](authentication.md), bevor du dich auf Schlüssel verlässt. Mehr als 60 Fehlversuche pro Minute von einer Adresse werden mit `429` beantwortet.
 
 ## Endpunkte
 

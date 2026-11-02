@@ -1,6 +1,7 @@
 @implements IDisposable
 @inject IPipeRunningExecutions Running
 @inject IDialogService DialogService
+@inject IPipeAuthorization Authorization
 
 @*
     "Running now": every execution running in this process (editor, list, cron, webhook, sub-workflow, error workflow),
@@ -60,7 +61,7 @@
                         <div class="gview-pipe-running-line" title="@line.Entry.Message">@line.NodeName: @line.Entry.Message</div>
                     }
                 </div>
-                @if (info.IsRunning)
+                @if (info.IsRunning && CanStop(info))
                 {
                     <div @onclick:stopPropagation>
                         <MudTooltip Text="@(info.Status == PipeExecutionStatus.Queued ? "Take this run out of the queue" : "Stop this run")">
@@ -141,8 +142,18 @@
         return duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss") : duration.ToString(@"m\:ss");
     }
 
+    private PipeUserRoles _roles = PipeUserRoles.ViewOnly;
+
+    protected override async Task OnInitializedAsync() => _roles = await Authorization.GetRolesAsync();
+
+    private bool CanStop(PipeRunningExecutionInfo info) => _roles.Can(PipePermission.Run, GroupOf?.Invoke(info.WorkflowId)?.Id);
+
     private async Task StopAsync(PipeRunningExecutionInfo info)
     {
+        if (!CanStop(info))
+        {
+            return;
+        }
         var confirmed = info.Status == PipeExecutionStatus.Queued
             ? await DialogService.ShowMessageBoxAsync("Remove from queue", $"Take the waiting run of '{info.WorkflowName}' out of the queue? It won't start.", yesText: "Remove", cancelText: "Cancel")
             : await DialogService.ShowMessageBoxAsync("Stop run", $"Stop the running '{info.WorkflowName}'?", yesText: "Stop", cancelText: "Cancel");

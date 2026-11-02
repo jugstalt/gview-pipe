@@ -3,6 +3,7 @@
 @inject IPipeWorkflowGroupStore GroupStore
 @inject IPipeWorkflowRunner Runner
 @inject ISnackbar Snackbar
+@inject IPipeAuthorization Authorization
 
 @* The executions of all workflows (ADR 0015), with replay of one or several. *@
 <MudPaper Class="pa-4" Elevation="0" Outlined="true">
@@ -115,7 +116,7 @@
                 <MudTd DataLabel="Duration">@Duration(context)</MudTd>
                 <MudTd DataLabel="Failed node"><span title="@context.Error">@context.ErrorNodeName</span></MudTd>
                 <MudTd Style="text-align:right; white-space:nowrap" @onclick:stopPropagation="true">
-                    @if (context.DataSaved)
+                    @if (context.DataSaved && CanReplay(context))
                     {
                         <MudTooltip Text="Replay">
                             <MudIconButton Icon="@Icons.Material.Filled.Replay" Size="Size.Small" aria-label="Replay" OnClick="() => ReplayAsync([context], fromFailedNode: false)" />
@@ -160,6 +161,7 @@
     protected override async Task OnInitializedAsync()
     {
         _groups = await GroupStore.ListAsync();
+        _roles = await Authorization.GetRolesAsync();
         await ReloadAsync();
     }
 
@@ -210,9 +212,15 @@
     /// Replays one after the other in the order they originally ran. It runs in the background, so leaving the page
     /// doesn't stop it.
     /// </summary>
+    private PipeUserRoles _roles = PipeUserRoles.ViewOnly;
+
+    private bool CanReplay(PipeExecutionSummary execution)
+        => _roles.Can(PipePermission.Run, _workflows.TryGetValue(execution.WorkflowId, out var workflow) ? workflow.GroupId : null);
+
     private Task ReplayAsync(IEnumerable<PipeExecutionSummary> executions, bool fromFailedNode)
     {
-        var all = executions.ToList();
+        // checked on the server: only executions of groups where the user may run (ADR 0021)
+        var all = executions.Where(CanReplay).ToList();
         var replayable = all.Where(e => e.DataSaved).OrderBy(e => e.StartedAt).ToList();
         if (replayable.Count < all.Count)
         {

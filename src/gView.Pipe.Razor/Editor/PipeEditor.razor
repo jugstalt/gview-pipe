@@ -23,6 +23,7 @@
 @inject IPipeRunningExecutions RunningExecutions
 @inject IPipeExecutionStore ExecutionStore
 @inject IPipeEnvironments Environments
+@inject IPipeAuthorization Authorization
 
 @*
     Workflow editor: node palette, canvas and a side panel for the selected node (or the workflow).
@@ -55,11 +56,19 @@
                 }
                 @_workflow.Name
             </MudText>
-            @if (_dirty)
+            @if (ReadOnly)
+            {
+                <MudTooltip Text="@($"You can look at this workflow{(CanRun ? " and run it" : "")}, but not change it ({PipeUserRoles.NotAllowed(PipePermission.Edit)})")">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Lock">Read only (@_roles.Role(_workflow.GroupId).ToString().ToLowerInvariant())</MudChip>
+                </MudTooltip>
+            }
+            else if (_dirty)
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">unsaved</MudChip>
             }
             <MudSpacer />
+            @if (!ReadOnly)
+            {
             <MudTooltip Text="Undo (Ctrl+Z on the canvas)">
                 <MudIconButton Icon="@Icons.Material.Filled.Undo" aria-label="Undo" OnClick="Undo" Disabled="@(!CanUndo || _running)" />
             </MudTooltip>
@@ -69,6 +78,7 @@
             <MudTooltip Text="Paste nodes (Ctrl+V on the canvas)">
                 <MudIconButton Icon="@Icons.Material.Filled.ContentPaste" aria-label="Paste nodes" OnClick="PasteAsync" Class="mr-2" />
             </MudTooltip>
+            }
             <MudTooltip Text="@(_paletteHidden ? "Show the node palette" : "Hide the node palette")">
                 <MudIconButton Icon="@Icons.Material.Filled.MenuOpen" aria-label="Toggle the node palette" OnClick="() => ToggleSideAsync(ResizeSide.Palette)"
                                Color="@(_paletteHidden ? Color.Default : Color.Primary)" />
@@ -78,9 +88,12 @@
                                Color="@(_panelHidden ? Color.Default : Color.Primary)" Class="mr-2" />
             </MudTooltip>
             <MudTooltip Text="Active workflows have their triggers (e.g. cron) armed after saving">
-                <MudSwitch T="bool" Value="_workflow.Active" ValueChanged="SetActive" Color="Color.Success" Label="Active" Class="mr-2" />
+                <MudSwitch T="bool" Value="_workflow.Active" ValueChanged="SetActiveAsync" Color="Color.Success" Label="Active" Class="mr-2" Disabled="@(!CanRun)" />
             </MudTooltip>
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Class="mr-2" Disabled="_running">Save</MudButton>
+            @if (!ReadOnly)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Class="mr-2" Disabled="_running">Save</MudButton>
+            }
             @if (_running)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Stop" OnClick="StopRun">Stop</MudButton>
@@ -107,7 +120,7 @@
                         }
                     </MudSelect>
                 </div>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="() => RunAsync()">Run</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="() => RunAsync()" Disabled="@(!CanRun)" title="@(CanRun ? null : PipeUserRoles.NotAllowed(PipePermission.Run))">Run</MudButton>
             }
         </div>
 
@@ -128,7 +141,7 @@
         }
 
         @* the splitters are dragged in the browser (gview-pipe-editor.js) *@
-        <div class="gview-pipe-editor-body @(_paletteHidden ? "gview-pipe-hide-palette" : null) @(_panelHidden ? "gview-pipe-hide-panel" : null)" @ref="_body" style="--gview-pipe-palette-width:@(_paletteWidth)px;--gview-pipe-panel-width:@(_panelWidth)px">
+        <div class="gview-pipe-editor-body @(_paletteHidden || ReadOnly ? "gview-pipe-hide-palette" : null) @(_panelHidden ? "gview-pipe-hide-panel" : null)" @ref="_body" style="--gview-pipe-palette-width:@(_paletteWidth)px;--gview-pipe-panel-width:@(_panelWidth)px">
             <PipeNodePalette OnAdd="AddNode" />
             <div class="gview-pipe-splitter" data-gview-pipe-splitter="palette" title="Drag to resize, double-click to reset"
                  @ondblclick="() => ResetWidth(ResizeSide.Palette)"></div>
@@ -187,6 +200,7 @@
                 @if (_selected is not null)
                 {
                     <PipeNodePanel @key="_selected" Model="_selected" Workflow="_workflow"
+                                   ReadOnly="ReadOnly" CanRun="CanRun"
                                    IsNameTaken="IsNameTaken"
                                    Running="_running"
                                    PinnedOutputs="@_workflow.PinData?.GetValueOrDefault(_selected.Node.Id)"
@@ -207,7 +221,7 @@
                             <PipeLiveOutput Lines="_liveLines.ToList()" ShowNodeName="true" Running="true" Title="Live output of the run" />
                         </div>
                     }
-                    <PipeWorkflowPanel Workflow="_workflow" HistoryVersion="_historyVersion"
+                    <PipeWorkflowPanel Workflow="_workflow" HistoryVersion="_historyVersion" ReadOnly="ReadOnly"
                                        SelectedExecutionId="@_execution?.Id"
                                        OnChanged="@(() => MarkDirty("workflow"))"
                                        OnSelectExecution="ShowExecution" />
@@ -410,6 +424,13 @@
                 EnableSnapping = true,
                 SnappingRadius = 30,
                 Factory = (_, source, target) => new LinkModel(new SinglePortAnchor((PortModel)source), target)
+            },
+            // read only (ADR 0021): the Delete key removes nothing
+            Constraints =
+            {
+                ShouldDeleteNode = _ => ValueTask.FromResult(!ReadOnly),
+                ShouldDeleteLink = _ => ValueTask.FromResult(!ReadOnly),
+                ShouldDeleteGroup = _ => ValueTask.FromResult(!ReadOnly)
             }
         };
 
@@ -419,6 +440,12 @@
         _diagram.Nodes.Removed += node => InvokeAsync(() => NodeRemoved(node));
         _diagram.Links.Added += link =>
         {
+            if (ReadOnly && !_loading)
+            {
+                // read only: a link drawn by hand goes away again
+                InvokeAsync(() => _diagram.Links.Remove(link));
+                return;
+            }
             // a link drawn by hand gets its target only when it is dropped onto a port
             link.TargetChanged += (_, _, _) => InvokeAsync(MarkDirty);
             InvokeAsync(MarkDirty);
@@ -626,12 +653,20 @@
         _loading = true;
         _workflow = await WorkflowStore.GetAsync(WorkflowId);
         _groups = await GroupStore.ListAsync();
+        _roles = await Authorization.GetRolesAsync();
         _runEnvironment = null;
         _selected = null;
         _execution = null;
 
         BuildDiagram();
         ResetHistory();
+        if (ReadOnly)
+        {
+            foreach (var node in _diagram.Nodes)
+            {
+                node.Locked = true;
+            }
+        }
 
         _dirty = false;
         _loading = false;
@@ -895,6 +930,10 @@
 
     private void AddNode(PipeNodeDescriptor descriptor)
     {
+        if (!Allowed(PipePermission.Edit))
+        {
+            return;
+        }
         if (_workflow is null)
         {
             return;
@@ -1135,6 +1174,10 @@
 
     private void DeleteSelected()
     {
+        if (!Allowed(PipePermission.Edit))
+        {
+            return;
+        }
         if (_selected is not null)
         {
             _diagram.Nodes.Remove(_selected);
@@ -1146,7 +1189,7 @@
     /// <param name="mergeKey">Changes of the same thing in a row (typing into a node's fields) merge into one undo step.</param>
     private void MarkDirty(string? mergeKey)
     {
-        if (!_loading && !_restoring)
+        if (!_loading && !_restoring && !ReadOnly)
         {
             _dirty = true;
             ScheduleHistory(mergeKey);
@@ -1184,14 +1227,58 @@
         });
     }
 
-    private void SetActive(bool active)
+    private PipeUserRoles _roles = PipeUserRoles.ViewOnly;
+
+    /// <summary>The user may look at the workflow but not change it (ADR 0021).</summary>
+    private bool ReadOnly => _workflow is not null && !_roles.Can(PipePermission.Edit, _workflow.GroupId);
+
+    private bool CanRun => _workflow is not null && _roles.Can(PipePermission.Run, _workflow.GroupId);
+
+    /// <summary>Checked on the server before every change or run; the buttons only hide what isn't allowed.</summary>
+    private bool Allowed(PipePermission permission)
     {
+        if (_workflow is not null && _roles.Can(permission, _workflow.GroupId))
+        {
+            return true;
+        }
+        Snackbar.Add($"Not allowed: {PipeUserRoles.NotAllowed(permission)}", Severity.Warning);
+        return false;
+    }
+
+    /// <summary>
+    /// An editor changes the flag and saves it with the rest; an operator may only switch the triggers, so the flag
+    /// is stored right away on the saved workflow.
+    /// </summary>
+    private async Task SetActiveAsync(bool active)
+    {
+        if (!Allowed(PipePermission.Run))
+        {
+            return;
+        }
         _workflow!.Active = active;
-        MarkDirty();
+        if (!ReadOnly)
+        {
+            MarkDirty();
+            return;
+        }
+
+        if (await WorkflowStore.GetAsync(_workflow.Id) is { } stored)
+        {
+            stored.Active = active;
+            await WorkflowStore.SaveAsync(stored);
+            await TriggerManager.DeactivateAsync(stored.Id);
+            var problems = active ? await TriggerManager.ActivateAsync(stored) : [];
+            Snackbar.Add(problems.Count > 0 ? $"Activated, but some triggers are not armed: {string.Join("; ", problems)}"
+                : active ? "Activated, triggers armed" : "Deactivated", problems.Count > 0 ? Severity.Warning : Severity.Success);
+        }
     }
 
     private async Task SaveAsync()
     {
+        if (!Allowed(PipePermission.Edit))
+        {
+            return;
+        }
         try
         {
             var workflow = BuildWorkflow();
@@ -1218,6 +1305,10 @@
     /// <param name="targetNodeId">"Run to here": only this node and the nodes it depends on.</param>
     private async Task RunAsync(string? targetNodeId = null)
     {
+        if (!Allowed(PipePermission.Run))
+        {
+            return;
+        }
         // the engine gets a snapshot, so editing during the run can't interfere
         var workflow = PipeJson.Clone(BuildWorkflow());
         ClearExecution();
@@ -1260,6 +1351,10 @@
     /// <param name="fromNodeId">Run this node and everything downstream again; null to replay from the start.</param>
     private async Task ReplayAsync(string? fromNodeId)
     {
+        if (!Allowed(PipePermission.Run))
+        {
+            return;
+        }
         if (_execution is not { } replayed || _workflow is null)
         {
             return;
@@ -1300,6 +1395,10 @@
 
     private void SetPinData(Dictionary<string, List<PipeItem>>? outputs)
     {
+        if (!Allowed(PipePermission.Edit))
+        {
+            return;
+        }
         if (_workflow is null || _selected is null)
         {
             return;
@@ -1367,6 +1466,10 @@
 
     private async Task PasteAsync()
     {
+        if (!Allowed(PipePermission.Edit))
+        {
+            return;
+        }
         if (_workflow is null)
         {
             return;
@@ -1386,6 +1489,10 @@
     /// <summary>Adds copies with new ids and unique names, keeps the connections among them and selects them.</summary>
     private void InsertNodes(PipeClipboardContent content, Point offset)
     {
+        if (!Allowed(PipePermission.Edit))
+        {
+            return;
+        }
         var ids = new Dictionary<string, string>();
         var models = new List<PipeNodeModel>();
 

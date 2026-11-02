@@ -31,14 +31,20 @@ try
 
     await new DocsScreenshots(page, shell.Address, shell.WorkflowsFolder, output).TakeAllAsync();
 
-    // the login form needs the forms mode: a second Shell, only for this picture
+    // the login form and the roles need the forms mode: a second Shell, only for these pictures; throwaway passwords
+    var viewerPassword = Guid.NewGuid().ToString();
     await using var formsShell = await ShellProcess.StartAsync(repositoryRoot, new Dictionary<string, string>
     {
         ["Pipe__Auth__Mode"] = "forms",
         ["Pipe__Auth__Users__0__Name"] = "admin",
-        ["Pipe__Auth__Users__0__Password"] = Guid.NewGuid().ToString()
+        ["Pipe__Auth__Users__0__Password"] = Guid.NewGuid().ToString(),
+        ["Pipe__Auth__Users__1__Name"] = "viewer",
+        ["Pipe__Auth__Users__1__Password"] = viewerPassword,
+        ["Pipe__Auth__Users__1__Role"] = "viewer"
     });
-    await new DocsScreenshots(page, formsShell.Address, formsShell.WorkflowsFolder, output).TakeLoginAsync();
+    var formsScreenshots = new DocsScreenshots(page, formsShell.Address, formsShell.WorkflowsFolder, output);
+    await formsScreenshots.TakeLoginAsync();
+    await formsScreenshots.TakeReadOnlyAsync("viewer", viewerPassword);
 }
 catch (PlaywrightException ex) when (ex.Message.Contains("Executable doesn't exist"))
 {

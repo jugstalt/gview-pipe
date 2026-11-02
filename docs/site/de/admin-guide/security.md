@@ -45,7 +45,7 @@ Die [REST API](api.md) unter `/api/v1` akzeptiert nur API-Schlüssel, nie das An
 
 - Gib jedem Skript und jeder Pipeline einen eigenen Schlüssel mit nur den nötigen Rechten, beschränkt auf seine Gruppen und mit Ablaufdatum. Lösche Schlüssel, die nicht mehr gebraucht werden; die Seite zeigt, wann jeder zuletzt benutzt wurde.
 - Gespeichert wird nur der SHA-256 eines Schlüssels in `data/api-keys.json`; eine Kopie des Datenordners verrät keine Schlüssel.
-- Wer die UI öffnen kann, kann Schlüssel anlegen. Nutze eine [Anmeldung](authentication.md), wenn andere die UI erreichen.
+- Nur admins legen Schlüssel an ([Rollen](authentication.md#rollen)). Ohne Anmeldung ist jeder admin: Nutze eine, wenn andere die UI erreichen.
 - Schicke Schlüssel nur über HTTPS.
 
 ## Plugins

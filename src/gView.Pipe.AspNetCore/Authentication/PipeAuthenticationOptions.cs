@@ -28,6 +28,12 @@ public class PipeAuthenticationOptions
     public int LoginAttemptsPerMinute { get; set; } = 10;
 
     public PipeOidcOptions Oidc { get; set; } = new();
+
+    /// <summary>
+    /// Role of a signed-in user without one of their own (ADR 0021): viewer, operator, editor or admin. Admin keeps
+    /// installations from before roles working; set viewer once the roles are configured.
+    /// </summary>
+    public string DefaultRole { get; set; } = "admin";
 }
 
 public class PipeFormsUser
@@ -39,6 +45,12 @@ public class PipeFormsUser
 
     /// <summary>Created with <c>--hash-password</c>, see <see cref="PipePasswordHasher"/>.</summary>
     public string? PasswordHash { get; set; }
+
+    /// <summary>viewer, operator, editor or admin; empty: <see cref="PipeAuthenticationOptions.DefaultRole"/>.</summary>
+    public string? Role { get; set; }
+
+    /// <summary>Group id → role for the workflows of that group, replacing <see cref="Role"/> there.</summary>
+    public Dictionary<string, string> GroupRoles { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 public class PipeOidcOptions
@@ -59,4 +71,10 @@ public class PipeOidcOptions
     public List<string> RequiredRoles { get; set; } = [];
 
     public bool RequireHttpsMetadata { get; set; } = true;
+
+    /// <summary>
+    /// Values of the role claim → <c>role</c> or <c>role@groupId</c>, e.g. <c>pipe-admins → admin</c>,
+    /// <c>pipe-billing → editor@billing</c>. The highest match wins (ADR 0021).
+    /// </summary>
+    public Dictionary<string, string> RoleMappings { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

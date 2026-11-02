@@ -993,3 +993,8 @@ div.gview-pipe-json-tree {
     font-size: .75rem;
     white-space: normal;
 }
+
+/* read only (ADR 0021): the fields are shown, but inert; the server refuses changes anyway */
+.gview-pipe-readonly {
+    opacity: .85;
+}

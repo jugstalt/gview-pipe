@@ -35,7 +35,7 @@ Workflows can only be run, deployed and inspected through the UI. Scripts and CI
 - Each key has a name, rights (`read`, `run`, `deploy`), optionally a list of groups it is limited to, an optional expiry, who created it and when it was last used.
 - A limited key sees and changes only workflows in its groups; workflows without a group are outside of every limited key.
 - More than 60 failed attempts per minute from one address answer `429`.
-- Keys are managed on the page *API keys* by every signed-in user (there are no roles yet).
+- Keys are managed on the page *API keys* by admins ([ADR 0021](0021-roles.md)).
 
 ## Consequences
 

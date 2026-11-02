@@ -49,6 +49,20 @@ internal sealed class DocsScreenshots
         await ShotAsync("login");
     }
 
+    /// <summary>A viewer in the editor: read only, no palette, no saving (ADR 0021). Needs a Shell in the forms mode.</summary>
+    public async Task TakeReadOnlyAsync(string user, string password)
+    {
+        await _page.GotoAsync(new Uri(_address, "/").ToString());
+        await _page.GetByLabel("User name").FillAsync(user);
+        await _page.GetByLabel("Password").FillAsync(password);
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Sign in" }).ClickAsync();
+        await _page.GetByText("Samples").First.WaitForAsync();
+        await HighAsync();
+        await OpenEditorAsync("hello-pipe");
+        await SelectNodeAsync("Set Greeting");
+        await ShotAsync("editor-readonly");
+    }
+
     private async Task StartPageAsync()
     {
         await LowAsync();

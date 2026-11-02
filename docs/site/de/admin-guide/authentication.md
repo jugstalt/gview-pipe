@@ -113,6 +113,52 @@ Der AppHost startet IdentityServer.NET unter `https://localhost:8443` (`ADD_IDEN
 
 Der Benutzer mit der Rolle kann arbeiten, der andere sieht **No access**.
 
+## Rollen
+
+Mit Anmeldung hat jeder Benutzer eine Rolle. Jede Rolle darf, was die vorherigen dürfen:
+
+| Rolle | Darf |
+|---|---|
+| viewer | Workflows, Executions und Gruppen sehen |
+| operator | Workflows ausführen, stoppen und wiederholen; aktivieren und deaktivieren |
+| editor | Workflows und Gruppen anlegen, ändern und löschen; Pin Data |
+| admin | Credentials, die Variablen der Instanz, API-Schlüssel |
+
+viewer und operator öffnen Workflows **nur lesend**: Der Editor zeigt *Read only*, ohne Palette und Save; die Felder lassen sich nicht ändern. Seiten und Knöpfe, die eine Rolle nicht nutzen darf, sind ausgeblendet oder deaktiviert. Ohne Anmeldung (`Mode` *none*) ist jeder admin.
+
+Ein Benutzer kann für die Workflows einer Gruppe eine andere Rolle haben, z. B. allgemein viewer, aber editor in der Gruppe *Billing*. Credentials, Instanz-Variablen und API-Schlüssel richten sich nur nach der Rolle für die Instanz. Gruppen werden über ihre Id angegeben (`billing`), wie sie in der Adresse der Gruppenseite steht.
+
+**Forms:** pro Benutzer in `auth.config`:
+
+```json
+"Users": [
+  { "Name": "admin", "PasswordHash": "…", "Role": "admin" },
+  { "Name": "ada", "PasswordHash": "…", "Role": "viewer", "GroupRoles": { "billing": "editor" } }
+]
+```
+
+**OIDC:** Bilde Werte des Rollen-Claims (`RoleClaimType`) auf Rollen ab; `rolle@gruppe` gibt die Rolle für eine Gruppe. Der höchste Treffer gilt, und eine Gruppe bekommt nie weniger als die Rolle für die Instanz:
+
+```json
+"Oidc": {
+  "RoleMappings": {
+    "pipe-admins": "admin",
+    "pipe-operators": "operator",
+    "pipe-billing": "editor@billing"
+  }
+}
+```
+
+**Benutzer ohne Rolle** (ein Forms-Benutzer ohne `Role`, ein OIDC-Benutzer ohne abgebildeten Claim) bekommen `DefaultRole`. Die Vorgabe ist `admin`, damit eine Installation von vor den Rollen wie bisher funktioniert. Sobald du die Rollen vergeben hast, stelle sie auf `viewer`:
+
+```json
+"DefaultRole": "viewer"
+```
+
+Die Rollen werden bei jeder Prüfung aus der Konfiguration ermittelt und nicht in der Anmeldung gespeichert: Nach einer Änderung an `auth.config` und einem Neustart der App gelten sie ohne erneute Anmeldung. Das Konto-Menü zeigt die eigene Rolle und mit *(+ groups)*, dass es in manchen Gruppen andere gibt.
+
+![Ein viewer sieht Hello Pipe nur lesend](../../images/editor-readonly.png)
+
 ## Abmelden
 
-Mit Anmeldung zeigt das Konto-Symbol oben rechts den Benutzernamen und **Sign out**.
+Mit Anmeldung zeigt das Konto-Symbol oben rechts den Benutzernamen, die Rolle und **Sign out**.

@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject gView.Pipe.Shell.PipeDocsSite Docs
 @inject PipeAuthenticationOptions AuthOptions
+@inject IPipeAuthorization Authorization
 
 <MudThemeProvider @ref="_themeProvider" Theme="PipeTheme.Default" IsDarkMode="_isDark" />
 
@@ -19,9 +20,13 @@
                 <MudText Typo="Typo.h6" Class="mr-6">gView.Pipe</MudText>
                 <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ViewList" Class="gview-pipe-shell-nav">Workflows</MudNavLink>
                 <MudNavLink Href="executions" Icon="@Icons.Material.Filled.History" Class="gview-pipe-shell-nav">Executions</MudNavLink>
-                <MudNavLink Href="credentials" Icon="@Icons.Material.Filled.Key" Class="gview-pipe-shell-nav">Credentials</MudNavLink>
-                <MudNavLink Href="variables" Icon="@Icons.Material.Filled.DataObject" Class="gview-pipe-shell-nav">Variables</MudNavLink>
-                <MudNavLink Href="api-keys" Icon="@Icons.Material.Filled.VpnKey" Class="gview-pipe-shell-nav">API keys</MudNavLink>
+                @* pages for admins only (ADR 0021); the pages check it again *@
+                @if (_roles.Can(PipePermission.Administer))
+                {
+                    <MudNavLink Href="credentials" Icon="@Icons.Material.Filled.Key" Class="gview-pipe-shell-nav">Credentials</MudNavLink>
+                    <MudNavLink Href="variables" Icon="@Icons.Material.Filled.DataObject" Class="gview-pipe-shell-nav">Variables</MudNavLink>
+                    <MudNavLink Href="api-keys" Icon="@Icons.Material.Filled.VpnKey" Class="gview-pipe-shell-nav">API keys</MudNavLink>
+                }
                 <MudSpacer />
                 @if (Docs.Available)
                 {
@@ -35,7 +40,9 @@
                 @if (AuthOptions.Mode != PipeAuthenticationMode.None && _userName is not null)
                 {
                     <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" aria-label="Account">
-                        <MudMenuItem Disabled="true">@_userName</MudMenuItem>
+                        <MudMenuItem Disabled="true">
+                            <span title="@GroupRolesText">@_userName · @_roles.Global.ToString().ToLowerInvariant()@(_roles.Groups.Count > 0 ? " (+ groups)" : "")</span>
+                        </MudMenuItem>
                         @* a full request: the logout clears the cookie (and the session at the identity provider) *@
                         <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="@(() => Navigation.NavigateTo("account/logout", forceLoad: true))">Sign out</MudMenuItem>
                     </MudMenu>
@@ -58,6 +65,12 @@
     private bool _systemDark;
     private bool _isDark;
     private string? _userName;
+    private PipeUserRoles _roles = PipeUserRoles.ViewOnly;
+
+    /// <summary>The groups where the user has another role than for the instance.</summary>
+    private string GroupRolesText => _roles.Groups.Count == 0
+        ? "Same role in every group"
+        : string.Join(", ", _roles.Groups.Select(g => $"{g.Key}: {g.Value.ToString().ToLowerInvariant()}"));
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationState { get; set; }
@@ -68,6 +81,7 @@
         {
             _userName = (await AuthenticationState).User.Identity?.Name;
         }
+        _roles = await Authorization.GetRolesAsync();
     }
 
     private string ModeIcon => _mode switch

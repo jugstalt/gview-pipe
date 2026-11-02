@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using gView.Pipe.Abstraction.Users;
 
 namespace gView.Pipe.AspNetCore.Extensions.DependencyInjection;
 
@@ -61,6 +62,9 @@ static public class ServicesExtensions
         services.AddAuthorization(authorization => authorization.AddPolicy(PipeAuthentication.PolicyName, policy =>
             policy.RequireAssertion(context => PipeAuthentication.IsAllowed(context.User, options))));
         services.AddCascadingAuthenticationState();
+        // the roles of the UI (ADR 0021); replaces the full access of AddPipeCore()
+        services.AddHttpContextAccessor();
+        services.Replace(ServiceDescriptor.Scoped<IPipeAuthorization, PipeClaimsAuthorization>());
 
         if (options.Mode == PipeAuthenticationMode.None)
         {

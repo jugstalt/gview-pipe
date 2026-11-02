@@ -8,6 +8,7 @@
 @inject IPipeEnvironments Environments
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IPipeAuthorization Authorization
 
 @*
     Workflows, three ways:
@@ -42,10 +43,13 @@
             <MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="200" Placeholder="Search all workflows"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true"
                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="gview-pipe-workflow-search" />
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CreateNewFolder" OnClick="() => EditGroupAsync(null)">New group</MudButton>
+            @if (_roles.Can(PipePermission.Edit))
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CreateNewFolder" OnClick="() => EditGroupAsync(null)">New group</MudButton>
+            }
         }
         <MudIconButton Icon="@Icons.Material.Filled.Refresh" aria-label="Reload" OnClick="LoadAsync" />
-        @if (OnOpen.HasDelegate)
+        @if (OnOpen.HasDelegate && _roles.Can(PipePermission.Edit, GroupId))
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New workflow</MudButton>
         }
@@ -73,6 +77,7 @@
                                     OnOpen="g => OnOpenGroup.InvokeAsync(g.Id)"
                                     OnEdit="g => EditGroupAsync(g)"
                                     OnDelete="DeleteGroupAsync"
+                                    CanEdit="g => _roles.Can(PipePermission.Edit, g.Id)"
                                     OnDrop="g => MoveDraggedAsync(g.Id)" />
             <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1 mud-text-secondary">Workflows without group</MudText>
         }
@@ -151,18 +156,21 @@
                     <MudTd Style="text-align:right; white-space:nowrap">
                         <div class="gview-pipe-row-actions" @onclick:stopPropagation>
                         <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Primary" Size="Size.Small" aria-label="Run"
-                                       Disabled="_running.Contains(context.Id)"
+                                       Disabled="@(_running.Contains(context.Id) || !_roles.Can(PipePermission.Run, context.GroupId))"
                                        OnClick="() => RunAsync(context)" />
+                        @if (_roles.Can(PipePermission.Edit, context.GroupId))
+                        {
                         <MudMenu Icon="@Icons.Material.Filled.DriveFileMove" Size="Size.Small" Dense="true" AriaLabel="Move to group">
                             <MudMenuItem Disabled="true">Move to group…</MudMenuItem>
                             @foreach (var group in _groups)
                             {
-                                <MudMenuItem Disabled="@(group.Id == context.GroupId)" OnClick="() => MoveAsync(context, group.Id)">@group.Name</MudMenuItem>
+                                <MudMenuItem Disabled="@(group.Id == context.GroupId || !_roles.Can(PipePermission.Edit, group.Id))" OnClick="() => MoveAsync(context, group.Id)">@group.Name</MudMenuItem>
                             }
                             <MudMenuItem Disabled="@(GroupOf(context) is null)" OnClick="() => MoveAsync(context, null)">No group</MudMenuItem>
                         </MudMenu>
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete"
                                        OnClick="() => DeleteAsync(context)" />
+                        }
                         </div>
                     </MudTd>
                 </RowTemplate>
@@ -202,6 +210,21 @@
     private IReadOnlySet<string> _runningWorkflows = new HashSet<string>();
 
     private bool Searching => ShowGroups && !string.IsNullOrWhiteSpace(_search);
+
+    private PipeUserRoles _roles = PipeUserRoles.ViewOnly;
+
+    /// <summary>Checked on the server before every change (ADR 0021); the buttons only hide what isn't allowed.</summary>
+    private bool Allowed(PipePermission permission, string? groupId)
+    {
+        if (_roles.Can(permission, groupId))
+        {
+            return true;
+        }
+        Snackbar.Add($"Not allowed: {PipeUserRoles.NotAllowed(permission)}", Severity.Warning);
+        return false;
+    }
+
+    protected override async Task OnInitializedAsync() => _roles = await Authorization.GetRolesAsync();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -291,6 +314,10 @@
 
     private async Task CreateAsync()
     {
+        if (!Allowed(PipePermission.Edit, GroupId))
+        {
+            return;
+        }
         var workflow = new PipeWorkflow { Name = "New workflow", GroupId = GroupId };
 
         // start with a manual trigger if one is installed, so the workflow can run right away
@@ -314,6 +341,10 @@
 
     private async Task EditGroupAsync(PipeWorkflowGroup? group)
     {
+        if (!Allowed(PipePermission.Edit, group?.Id))
+        {
+            return;
+        }
         var parameters = new DialogParameters<PipeWorkflowGroupDialog> { { d => d.Group, group } };
         var dialog = await DialogService.ShowAsync<PipeWorkflowGroupDialog>(group is null ? "New group" : "Edit group", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
@@ -327,6 +358,11 @@
     /// <summary>Deleting a group never deletes workflows: they stay, without group.</summary>
     private async Task DeleteGroupAsync(PipeWorkflowGroup group)
     {
+        // deleting a group touches the instance: its workflows end up without group
+        if (!Allowed(PipePermission.Edit, null))
+        {
+            return;
+        }
         var members = (_workflows ?? []).Where(w => w.GroupId == group.Id).ToList();
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Delete group",
@@ -365,6 +401,10 @@
 
     private async Task MoveAsync(PipeWorkflow workflow, string? groupId)
     {
+        if (!Allowed(PipePermission.Edit, workflow.GroupId) || !Allowed(PipePermission.Edit, groupId))
+        {
+            return;
+        }
         if (workflow.GroupId == groupId)
         {
             return;
@@ -403,6 +443,10 @@
 
     private async Task RunAsync(PipeWorkflow workflow)
     {
+        if (!Allowed(PipePermission.Run, workflow.GroupId))
+        {
+            return;
+        }
         _running.Add(workflow.Id);
         try
         {
@@ -431,6 +475,10 @@
 
     private async Task DeleteAsync(PipeWorkflow workflow)
     {
+        if (!Allowed(PipePermission.Edit, workflow.GroupId))
+        {
+            return;
+        }
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Delete workflow",
             $"Delete '{workflow.Name}'? Its execution history is kept.",

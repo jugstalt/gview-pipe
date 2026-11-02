@@ -12,6 +12,7 @@
     </div>
 </div>
 
+<div class="@(ReadOnly ? "gview-pipe-readonly" : null)" inert="@ReadOnly">
 <MudStack Spacing="3" Class="pa-4">
     <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
                   Value="@Workflow.Name" ValueChanged="v => ChangeAsync(() => Workflow.Name = string.IsNullOrWhiteSpace(v) ? Workflow.Name : v.Trim())" />
@@ -55,6 +56,7 @@
                         HelperText="Runs (via its Error Trigger) when a triggered run of this workflow fails"
                         Value="@Workflow.Settings.ErrorWorkflowId" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ErrorWorkflowId = v)" />
 </MudStack>
+</div>
 
 <MudDivider />
 
@@ -98,6 +100,9 @@
 @code {
     [Parameter, EditorRequired] public PipeWorkflow Workflow { get; set; } = default!;
     [Parameter] public string? SelectedExecutionId { get; set; }
+
+    /// <summary>The settings are shown but can't be changed (ADR 0021); the executions stay usable.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
 
     /// <summary>Changed by the editor after a run, so the history reloads.</summary>
     [Parameter] public int HistoryVersion { get; set; }

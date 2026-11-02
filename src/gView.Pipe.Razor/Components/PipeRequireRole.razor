@@ -1,0 +1,28 @@
+@inject IPipeAuthorization Authorization
+
+@* Renders its content only for users with the permission (ADR 0021); others see why not. *@
+
+@if (_roles is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_roles.Can(Permission, GroupId))
+{
+    @ChildContent
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Not allowed: this page needs the role @PipeUserRoles.Needed(Permission).ToString().ToLowerInvariant(); yours is @_roles.Role(GroupId).ToString().ToLowerInvariant().
+    </MudAlert>
+}
+
+@code {
+    [Parameter, EditorRequired] public PipePermission Permission { get; set; }
+    [Parameter] public string? GroupId { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private PipeUserRoles? _roles;
+
+    protected override async Task OnInitializedAsync() => _roles = await Authorization.GetRolesAsync();
+}

@@ -113,6 +113,52 @@ The AppHost starts IdentityServer.NET at `https://localhost:8443` (`ADD_IDENTITY
 
 The user with the role can work; the other one sees **No access**.
 
+## Roles
+
+With a login, every user has a role. Each role may do what the ones before it may:
+
+| Role | May |
+|---|---|
+| viewer | see workflows, executions and groups |
+| operator | run, stop and replay workflows; activate and deactivate them |
+| editor | create, change and delete workflows and groups; pin data |
+| admin | credentials, the variables of the instance, API keys |
+
+viewer and operator open workflows **read only**: the editor shows *Read only*, without palette and Save; the fields can't be changed. Pages and buttons a role may not use are hidden or disabled. Without a login (`Mode` *none*) everyone is admin.
+
+A user can have another role for the workflows of one group, e.g. viewer in general but editor in the group *Billing*. Credentials, instance variables and API keys only look at the role for the instance. Groups are named by their id (`billing`), as shown in the address of the group page.
+
+**Forms:** per user in `auth.config`:
+
+```json
+"Users": [
+  { "Name": "admin", "PasswordHash": "…", "Role": "admin" },
+  { "Name": "ada", "PasswordHash": "…", "Role": "viewer", "GroupRoles": { "billing": "editor" } }
+]
+```
+
+**OIDC:** map values of the role claim (`RoleClaimType`) to roles; `role@group` gives the role for one group. The highest match wins, and a group never gets less than the role for the instance:
+
+```json
+"Oidc": {
+  "RoleMappings": {
+    "pipe-admins": "admin",
+    "pipe-operators": "operator",
+    "pipe-billing": "editor@billing"
+  }
+}
+```
+
+**Users without a role** (a forms user without `Role`, an OIDC user without a mapped claim) get `DefaultRole`. Its default is `admin`, so an installation from before roles works as before. Once you have given the roles, set it to `viewer`:
+
+```json
+"DefaultRole": "viewer"
+```
+
+The roles are worked out on every check from the configuration, not stored in the login: after changing `auth.config` and restarting the app they apply without signing in again. The account menu shows the own role, and with *(+ groups)* that there are others in some groups.
+
+![A viewer sees Hello Pipe read only](../../images/editor-readonly.png)
+
 ## Signing out
 
-With a login, the account icon at the top right shows the user name and **Sign out**.
+With a login, the account icon at the top right shows the user name, the role and **Sign out**.

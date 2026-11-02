@@ -1,3 +1,4 @@
+using gView.Pipe.Abstraction.Users;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Razor.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ public class PipeRunningExecutionsPanelTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddMudServices();
         Services.AddSingleton<IPipeRunningExecutions>(_running);
+        Services.AddSingleton<IPipeAuthorization>(new FullAccess());
     }
 
     static private PipeRunningExecutionInfo Info(string id, string workflow, PipeExecutionMode mode, PipeExecutionStatus status = PipeExecutionStatus.Running,
@@ -73,6 +75,11 @@ public class PipeRunningExecutionsPanelTests : BunitContext
 
         rows[1].Click();
         Assert.Equal("parent", opened!.ExecutionId);
+    }
+
+    private sealed class FullAccess : IPipeAuthorization
+    {
+        public Task<PipeUserRoles> GetRolesAsync() => Task.FromResult(PipeUserRoles.FullAccess);
     }
 
     private sealed class FakeRunning : IPipeRunningExecutions

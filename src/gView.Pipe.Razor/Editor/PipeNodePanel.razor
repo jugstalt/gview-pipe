@@ -15,23 +15,29 @@
     </div>
     <MudSpacer />
     <MudTooltip Text="Run to here: execute this node and the nodes it depends on">
-        <MudIconButton Icon="@Icons.Material.Filled.PlayCircleOutline" Size="Size.Small" aria-label="Run to here" Disabled="Running" OnClick="() => OnRunToHere.InvokeAsync()" />
+        <MudIconButton Icon="@Icons.Material.Filled.PlayCircleOutline" Size="Size.Small" aria-label="Run to here" Disabled="@(Running || !CanRun)" OnClick="() => OnRunToHere.InvokeAsync()" />
     </MudTooltip>
-    @if (OnReplayFromHere is not null)
+    @if (OnReplayFromHere is not null && CanRun)
     {
         <MudTooltip Text="Replay from here: run this node and everything after it again, with the data of the shown run">
             <MudIconButton Icon="@Icons.Material.Filled.Replay" Size="Size.Small" aria-label="Replay from here" Disabled="Running" OnClick="OnReplayFromHere" />
         </MudTooltip>
     }
-    <MudTooltip Text="Duplicate">
-        <MudIconButton Icon="@Icons.Material.Filled.ControlPointDuplicate" Size="Size.Small" aria-label="Duplicate node" OnClick="() => OnDuplicate.InvokeAsync()" />
-    </MudTooltip>
+    @if (!ReadOnly)
+    {
+        <MudTooltip Text="Duplicate">
+            <MudIconButton Icon="@Icons.Material.Filled.ControlPointDuplicate" Size="Size.Small" aria-label="Duplicate node" OnClick="() => OnDuplicate.InvokeAsync()" />
+        </MudTooltip>
+    }
     <MudTooltip Text="Copy (Ctrl+C)">
         <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" aria-label="Copy node" OnClick="() => OnCopy.InvokeAsync()" />
     </MudTooltip>
-    <MudTooltip Text="Delete (Del)">
-        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete node" OnClick="() => OnDelete.InvokeAsync()" />
-    </MudTooltip>
+    @if (!ReadOnly)
+    {
+        <MudTooltip Text="Delete (Del)">
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="Delete node" OnClick="() => OnDelete.InvokeAsync()" />
+        </MudTooltip>
+    }
 </div>
 
 @if (Model.Descriptor?.Description is { } description)
@@ -49,6 +55,7 @@
 
 <MudTabs Elevation="0" Rounded="false" @bind-ActivePanelIndex="_tab" Class="gview-pipe-panel-tabs" MinimumTabWidth="80px">
     <MudTabPanel Text="Parameters">
+        <div class="@(ReadOnly ? "gview-pipe-readonly" : null)" inert="@ReadOnly">
         <PipeParameterForm ParametersType="Model.Descriptor?.ParametersType"
                            Parameters="Model.Node.Parameters"
                            ShowRawWithoutType="@(Model.Descriptor is null)"
@@ -56,9 +63,11 @@
                            ExpressionPreview="PreviewExpression"
                            OptionsProvider="@(Model.Descriptor?.HasParameterOptions == true ? LoadOptionsAsync : null)"
                            OnChanged="ParametersChangedAsync" />
+        </div>
     </MudTabPanel>
 
     <MudTabPanel Text="Settings">
+        <div class="@(ReadOnly ? "gview-pipe-readonly" : null)" inert="@ReadOnly">
         <MudStack Spacing="3">
             <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
                           HelperText="Unique in the workflow; used by $node[&quot;Name&quot;] expressions"
@@ -100,6 +109,7 @@
             <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Timeout (seconds, 0 = none)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
                              Value="Settings.TimeoutSeconds" ValueChanged="v => ChangeAsync(() => Settings.TimeoutSeconds = v)" />
         </MudStack>
+        </div>
     </MudTabPanel>
 
     <MudTabPanel Text="Run" BadgeData="@OutputBadge" BadgeColor="@(Model.Run?.Status == PipeNodeRunStatus.Error ? Color.Error : Color.Primary)">
@@ -114,7 +124,7 @@
                 <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Clear" OnClick="() => OnPinChanged.InvokeAsync(null)">Unpin</MudButton>
             </MudStack>
         }
-        else if (CanPin)
+        else if (CanPin && !ReadOnly)
         {
             <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-1">
                 <MudTooltip Text="Keep this output: manual runs use it instead of executing the node">
@@ -154,6 +164,12 @@
 
     /// <summary>A run of the workflow is in progress.</summary>
     [Parameter] public bool Running { get; set; }
+
+    /// <summary>The user may look but not change the node (ADR 0021): no editing, pinning, duplicating or deleting.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>The user may run the workflow (Run to here, Replay from here).</summary>
+    [Parameter] public bool CanRun { get; set; } = true;
 
     /// <summary>Log lines of this node while a run is in progress; null when there is no run.</summary>
     [Parameter] public IReadOnlyList<PipeLiveLine>? LiveLines { get; set; }

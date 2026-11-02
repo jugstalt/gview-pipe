@@ -67,6 +67,7 @@ static public class ServicesExtensions
         services.TryAddSingleton<IPipeWebhookRouter>(sp => sp.GetRequiredService<PipeWebhookRegistry>());
         services.TryAddSingleton<IPipeTriggerHost, PipeTriggerHost>();
         services.TryAddSingleton<IPipeUserContext, PipeAnonymousUserContext>();
+        services.TryAddScoped<IPipeAuthorization, PipeFullAccess>();
         services.TryAddSingleton<IPipeFileRoots, PipeFileRoots>();
 
         services.TryAddSingleton<PipeTriggerManager>();

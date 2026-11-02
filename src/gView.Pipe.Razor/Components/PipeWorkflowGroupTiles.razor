@@ -25,12 +25,15 @@
                 {
                     <PipeEnvironmentBadge Name="@PipeEnvironments.Normalize(group.Environment)" Title="@($"Environment {group.Environment}, set on the group")" />
                 }
-                <div @onclick:stopPropagation>
-                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AriaLabel="Group actions">
-                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => OnEdit.InvokeAsync(group)">Edit</MudMenuItem>
-                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="() => OnDelete.InvokeAsync(group)">Delete</MudMenuItem>
-                    </MudMenu>
-                </div>
+                @if (CanEdit(group))
+                {
+                    <div @onclick:stopPropagation>
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AriaLabel="Group actions">
+                            <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => OnEdit.InvokeAsync(group)">Edit</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="() => OnDelete.InvokeAsync(group)">Delete</MudMenuItem>
+                        </MudMenu>
+                    </div>
+                }
             </div>
             @if (!string.IsNullOrEmpty(group.Description))
             {
@@ -66,6 +69,9 @@
     [Parameter] public EventCallback<PipeWorkflowGroup> OnOpen { get; set; }
 
     [Parameter] public EventCallback<PipeWorkflowGroup> OnEdit { get; set; }
+
+    /// <summary>Whether the user may edit and delete the group; without it the menu is hidden.</summary>
+    [Parameter] public Func<PipeWorkflowGroup, bool> CanEdit { get; set; } = _ => true;
 
     [Parameter] public EventCallback<PipeWorkflowGroup> OnDelete { get; set; }
 
