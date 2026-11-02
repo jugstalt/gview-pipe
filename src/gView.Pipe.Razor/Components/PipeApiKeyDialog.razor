@@ -1,8 +1,8 @@
 @using gView.Pipe.Abstraction.Security
-@using gView.Pipe.Abstraction.Users
 @inject IPipeApiKeyStore KeyStore
 @inject IPipeWorkflowGroupStore GroupStore
-@inject IPipeUserContext User
+@inject IPipeAuthorization Authorization
+@inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject PipeEditorClipboard Clipboard
 @inject ISnackbar Snackbar
 
@@ -105,9 +105,10 @@
             // the end of the chosen day, in the browser's sense of "day" is unknown on the server: take UTC
             ExpiresAt = _expires is { } date ? new DateTimeOffset(date.Date.AddDays(1), TimeSpan.Zero) : null,
             CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = User.IsAuthenticated ? User.DisplayName : null
+            CreatedBy = (await Authorization.GetRolesAsync()).UserName
         });
         _created = key;
+        await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.ApiKey, "created", null, _name.Trim(), $"rights {rights}" + (_groups.Any() ? $", groups {string.Join(", ", _groups)}" : ""));
     }
 
     private async Task CopyAsync()

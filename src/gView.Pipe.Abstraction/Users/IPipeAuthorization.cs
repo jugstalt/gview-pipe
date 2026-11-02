@@ -27,6 +27,9 @@ public enum PipePermission
 /// <summary>The roles of a user: one for the instance, and others for single groups.</summary>
 public sealed record PipeUserRoles(PipeRole Global, IReadOnlyDictionary<string, PipeRole> Groups)
 {
+    /// <summary>Who the user is, for the audit log (ADR 0022): the login name, or <c>anonymous (address)</c> without login.</summary>
+    public string? UserName { get; init; }
+
     static public PipeUserRoles FullAccess { get; } = new(PipeRole.Admin, new Dictionary<string, PipeRole>());
 
     /// <summary>Until the roles are known: look only.</summary>

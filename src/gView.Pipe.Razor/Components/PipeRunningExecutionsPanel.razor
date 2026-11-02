@@ -1,4 +1,5 @@
 @implements IDisposable
+@inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject IPipeRunningExecutions Running
 @inject IDialogService DialogService
 @inject IPipeAuthorization Authorization
@@ -160,6 +161,7 @@
         if (confirmed == true)
         {
             Running.Cancel(info.ExecutionId);
+            await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Execution, "stopped", info.WorkflowId, info.WorkflowName, $"execution {info.ExecutionId}");
         }
     }
 

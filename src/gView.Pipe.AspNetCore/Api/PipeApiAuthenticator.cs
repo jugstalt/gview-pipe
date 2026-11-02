@@ -1,4 +1,5 @@
 using gView.Pipe.Abstraction.Security;
+using gView.Pipe.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
@@ -20,13 +21,15 @@ public sealed class PipeApiAuthenticator
     static private readonly TimeSpan UsageWriteInterval = TimeSpan.FromMinutes(1);
 
     private readonly IPipeApiKeyStore _store;
+    private readonly PipeAuditRefusals _refusals;
     private readonly TimeProvider _time;
     private readonly ILogger<PipeApiAuthenticator> _logger;
     private readonly ConcurrentDictionary<string, (DateTimeOffset Window, int Count)> _failures = new();
 
-    public PipeApiAuthenticator(IPipeApiKeyStore store, TimeProvider time, ILogger<PipeApiAuthenticator> logger)
+    public PipeApiAuthenticator(IPipeApiKeyStore store, PipeAuditRefusals refusals, TimeProvider time, ILogger<PipeApiAuthenticator> logger)
     {
         _store = store;
+        _refusals = refusals;
         _time = time;
         _logger = logger;
     }
@@ -46,7 +49,9 @@ public sealed class PipeApiAuthenticator
         if (key is null || key.IsExpired(now))
         {
             _failures.AddOrUpdate(address, _ => (now, 1), (_, f) => now - f.Window < TimeSpan.FromMinutes(1) ? (f.Window, f.Count + 1) : (now, 1));
-            _logger.LogWarning("API request from {Address} with {Reason}", address, key is null ? (string.IsNullOrEmpty(presented) ? "no key" : "an unknown key") : $"the expired key '{key.Name}'");
+            var reason = key is null ? (string.IsNullOrEmpty(presented) ? "no key" : "an unknown key") : $"the expired key '{key.Name}'";
+            _logger.LogWarning("API request from {Address} with {Reason}", address, reason);
+            await _refusals.RefusedAsync(address, "apiKeyRefused", reason);
             return (null, Results.Problem(statusCode: StatusCodes.Status401Unauthorized,
                 title: key is null ? "A valid API key is needed (X-Pipe-Api-Key or Authorization: Bearer)" : "The API key has expired"));
         }

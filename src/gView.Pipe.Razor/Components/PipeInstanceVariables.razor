@@ -1,3 +1,5 @@
+@inject IPipeAuthorization Authorization
+@inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject IPipeEnvironments Environments
 @inject IPipeVariableStore VariableStore
 @inject ISnackbar Snackbar
@@ -76,6 +78,9 @@
     private async Task SaveAsync()
     {
         await VariableStore.SaveAsync(_variables ?? []);
+        // names only: values of secret variables never go into the log
+        await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Variables, "changed", null, "instance variables",
+            string.Join(", ", (_variables ?? []).Select(v => v.Name)));
         _dirty = false;
         Snackbar.Add("Variables saved", Severity.Success);
     }

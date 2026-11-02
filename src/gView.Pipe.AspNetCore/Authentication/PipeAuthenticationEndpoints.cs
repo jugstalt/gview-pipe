@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -30,6 +31,8 @@ static internal class PipeAuthenticationEndpoints
         if (user is null || !PipePasswordHasher.Verify(user, password))
         {
             // slows down guessing; the rate limiter caps the attempts per address
+            await context.RequestServices.GetRequiredService<PipeAuditRefusals>()
+                .RefusedAsync(context.Connection.RemoteIpAddress?.ToString() ?? "", "signInFailed", $"user '{name}'");
             await Task.Delay(TimeSpan.FromSeconds(1));
             return Results.Redirect($"{context.Request.PathBase}{PipeAuthentication.LoginPath}?error=1&returnUrl={Uri.EscapeDataString(returnUrl)}");
         }

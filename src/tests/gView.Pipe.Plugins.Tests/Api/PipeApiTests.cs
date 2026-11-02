@@ -243,6 +243,38 @@ public sealed class PipeApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Deploys_and_runs_are_in_the_audit_log_with_the_key_as_actor()
+    {
+        var key = await KeyAsync(PipeApiRights.Deploy | PipeApiRights.Run | PipeApiRights.Read);
+        var workflow = Greeter("invoice", "billing");
+        workflow.Nodes.Single(n => n.Id == "set").Parameters["fields"]!["greeting"] = "Hi {{ $json.name }}";
+
+        await _client.SendAsync(Request(HttpMethod.Put, "/api/v1/workflows/invoice", key, workflow));
+        await _client.SendAsync(Request(HttpMethod.Post, "/api/v1/workflows/invoice/run", key, new { wait = true }));
+
+        var audit = JsonNode.Parse(await (await _client.SendAsync(Request(HttpMethod.Get, "/api/v1/audit?objectId=invoice", key))).Content.ReadAsStringAsync())!.AsArray();
+        Assert.Equal(["started", "deployed"], audit.Select(e => e!["action"]!.GetValue<string>()));
+        Assert.All(audit, e => Assert.StartsWith("api:test-", e!["actor"]!.GetValue<string>()));
+        Assert.Contains("changed: set (parameters)", audit[1]!["details"]!.GetValue<string>());
+
+        var limited = await KeyAsync(PipeApiRights.Read, "billing");
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(Request(HttpMethod.Get, "/api/v1/audit", limited))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Refused_keys_are_audited_once_per_minute_and_address()
+    {
+        for (var i = 0; i < 5; i++)
+        {
+            await _client.SendAsync(Request(HttpMethod.Get, "/api/v1/workflows", "pipe_wrong"));
+        }
+
+        var refused = await _app.Services.GetRequiredService<gView.Pipe.Abstraction.Audit.IPipeAuditLog>()
+            .QueryAsync(new gView.Pipe.Abstraction.Audit.PipeAuditQuery { Area = gView.Pipe.Abstraction.Audit.PipeAuditArea.Login });
+        Assert.Equal("apiKeyRefused", Assert.Single(refused).Action);
+    }
+
+    [Fact]
     public async Task The_openapi_document_describes_only_the_api()
     {
         var document = JsonNode.Parse(await _client.GetStringAsync("/api/v1/openapi.json"))!;

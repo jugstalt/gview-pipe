@@ -123,6 +123,10 @@ internal sealed class PipeClaimsAuthorization : IPipeAuthorization
             }
         }
         user ??= _http.HttpContext?.User ?? new ClaimsPrincipal(new ClaimsIdentity());
-        return PipeRoles.Resolve(user, _options, _logger);
+        // the name for the audit log (ADR 0022); the address is known while there is a request
+        var name = user.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(user.Identity.Name)
+            ? user.Identity.Name
+            : _http.HttpContext?.Connection.RemoteIpAddress is { } address ? $"anonymous ({address})" : "anonymous";
+        return PipeRoles.Resolve(user, _options, _logger) with { UserName = name };
     }
 }

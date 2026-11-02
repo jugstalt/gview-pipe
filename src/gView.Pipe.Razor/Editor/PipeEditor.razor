@@ -11,6 +11,7 @@
 @using gView.Pipe.Abstraction.Triggers
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
+@inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject IPipeWorkflowStore WorkflowStore
 @inject IPipeWorkflowGroupStore GroupStore
 @inject IPipeWorkflowRunner Runner
@@ -552,6 +553,7 @@
         if (confirmed == true)
         {
             RunningExecutions.Cancel(watched.ExecutionId);
+            await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Execution, "stopped", watched.WorkflowId, watched.WorkflowName, $"execution {watched.ExecutionId}");
         }
     }
 
@@ -1266,6 +1268,7 @@
         {
             stored.Active = active;
             await WorkflowStore.SaveAsync(stored);
+            await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Workflow, active ? "activated" : "deactivated", stored.Id, stored.Name);
             await TriggerManager.DeactivateAsync(stored.Id);
             var problems = active ? await TriggerManager.ActivateAsync(stored) : [];
             Snackbar.Add(problems.Count > 0 ? $"Activated, but some triggers are not armed: {string.Join("; ", problems)}"
@@ -1282,9 +1285,14 @@
         try
         {
             var workflow = BuildWorkflow();
+            var before = await WorkflowStore.GetAsync(workflow.Id);
+            var changes = before is null ? null : PipeWorkflowChanges.Describe(before, workflow);
             await WorkflowStore.SaveAsync(workflow);
+            await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Workflow, before is null ? "created" : "saved", workflow.Id, workflow.Name, changes);
             var problems = await TriggerManager.ActivateAsync(workflow);
             _dirty = false;
+            // the History of the workflow panel shows the new entry
+            _historyVersion++;
 
             if (problems.Count > 0)
             {
@@ -1321,6 +1329,11 @@
         {
             var request = new PipeExecutionRequest { Observer = new EditorObserver(this), TargetNodeId = targetNodeId, Environment = _runEnvironment };
             var execution = await Runner.RunAsync(workflow, request, _runCts.Token);
+            if (execution is not null)
+            {
+                await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Execution, "started", workflow.Id, workflow.Name,
+                    $"execution {execution.Id}" + (targetNodeId is null ? "" : $", to node {targetNodeId}"));
+            }
             if (execution is null)
             {
                 Snackbar.Add("The workflow is already running (max concurrent runs reached)", Severity.Warning);
@@ -1374,6 +1387,8 @@
         try
         {
             var execution = await Runner.ReplayAsync(_workflow.Id, replayed.Id, fromNodeId, new EditorObserver(this), _runCts.Token);
+            await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Execution, "replayed", _workflow.Id, _workflow.Name,
+                $"execution {replayed.Id} as {execution.Id}" + (fromNodeId is null ? "" : $", from node {fromNodeId}"));
             ShowExecution(execution);
             Snackbar.Add(execution.Status == PipeExecutionStatus.Success ? "Replay finished" : $"Replay {execution.Status}: {execution.Error}",
                 execution.Status == PipeExecutionStatus.Success ? Severity.Success : Severity.Error);
@@ -1391,7 +1406,14 @@
         }
     }
 
-    private void StopRun() => _runCts?.Cancel();
+    private void StopRun()
+    {
+        _runCts?.Cancel();
+        if (_workflow is not null && _execution is not null)
+        {
+            _ = AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Execution, "stopped", _workflow.Id, _workflow.Name, $"execution {_execution.Id}");
+        }
+    }
 
     private void SetPinData(Dictionary<string, List<PipeItem>>? outputs)
     {

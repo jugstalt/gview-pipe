@@ -2,7 +2,7 @@
 
 Backlog of possible features. Internal, not part of the docs site. Larger items get an ADR before they are built.
 
-Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: the audit log.
+Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: workflow versions (history, diff, restore; the audit log already records who saved).
 
 ## Operations and reliability
 
@@ -33,7 +33,7 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 
 - [x] Roles viewer, operator, editor, admin, also per group (ADR 0021).
 - [ ] Roles in the UI: a user store, so admins can manage users and roles without editing auth.config.
-- [ ] Audit log: who changed or ran what and when.
+- [x] Audit log: who changed, deleted, ran or signed in, with page, CSV export and API (ADR 0022).
 - [ ] Secrets from Key Vault or environment variables, not only from the file store.
 
 ## Platform

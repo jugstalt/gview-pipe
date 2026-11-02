@@ -1,3 +1,5 @@
+@inject IPipeAuthorization Authorization
+@inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject IPipeWorkflowGroupStore GroupStore
 @inject IPipeEnvironments Environments
 @inject IPipeErrorWorkflows ErrorWorkflows
@@ -79,7 +81,9 @@
         }
         try
         {
+            var created = string.IsNullOrEmpty(_group.Id);
             await GroupStore.SaveAsync(_group);
+            await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Group, created ? "created" : "changed", _group.Id, _group.Name);
             Dialog.Close(DialogResult.Ok(_group));
         }
         catch (PipeException ex)

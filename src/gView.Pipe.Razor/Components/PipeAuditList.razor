@@ -1,0 +1,155 @@
+@using System.Text
+@inject IPipeAuditLog AuditLog
+@inject IJSRuntime JS
+
+@* The audit log (ADR 0022): who changed, deleted or ran what, for admins. *@
+
+<PipeRequireRole Permission="PipePermission.Administer">
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h6">Audit</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportAsync" Disabled="@(_entries is not { Count: > 0 })">Export CSV</MudButton>
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" aria-label="Reload" OnClick="ReloadAsync" />
+    </MudStack>
+
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+        Who changed, deleted, ran or signed in, and when. Triggered runs are in the executions; values of credentials and secret variables are never logged.
+    </MudText>
+
+    <MudGrid Spacing="2" Class="mb-2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField T="string" Label="Who" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Immediate="true" DebounceInterval="400"
+                          Value="_actor" ValueChanged="v => FilterAsync(() => _actor = v)" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="PipeAuditArea?" Label="Area" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true"
+                       Value="_area" ValueChanged="v => FilterAsync(() => _area = v)">
+                @foreach (var area in Enum.GetValues<PipeAuditArea>())
+                {
+                    <MudSelectItem T="PipeAuditArea?" Value="area">@AreaText(area)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField T="string" Label="Object id" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Immediate="true" DebounceInterval="400"
+                          Value="_objectId" ValueChanged="v => FilterAsync(() => _objectId = v)" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="int" Label="Time range" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                       Value="_days" ValueChanged="v => FilterAsync(() => _days = v)">
+                <MudSelectItem Value="1">Last 24 hours</MudSelectItem>
+                <MudSelectItem Value="7">Last 7 days</MudSelectItem>
+                <MudSelectItem Value="30">Last 30 days</MudSelectItem>
+                <MudSelectItem Value="0">All</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    @if (_entries is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_entries.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">No entries match the filters.</MudText>
+    }
+    else
+    {
+        <MudTable T="PipeAuditEntry" Items="_entries" Dense="true" Hover="true" Elevation="0" RowClass="gview-pipe-audit-row">
+            <HeaderContent>
+                <MudTh>Time</MudTh>
+                <MudTh>Who</MudTh>
+                <MudTh>Area</MudTh>
+                <MudTh>Action</MudTh>
+                <MudTh>Object</MudTh>
+                <MudTh>Details</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Time" Style="white-space:nowrap">@context.Timestamp.LocalDateTime.ToString("g")</MudTd>
+                <MudTd DataLabel="Who">@context.Actor</MudTd>
+                <MudTd DataLabel="Area">@AreaText(context.Area)</MudTd>
+                <MudTd DataLabel="Action">@context.Action</MudTd>
+                <MudTd DataLabel="Object"><span title="@context.ObjectId">@(context.ObjectName ?? context.ObjectId)</span></MudTd>
+                <MudTd DataLabel="Details" Class="mud-text-secondary" Style="font-size:.8rem">@context.Details</MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_hasMore)
+        {
+            <MudStack Row="true" Justify="Justify.Center" Class="mt-2">
+                <MudButton Variant="Variant.Text" OnClick="LoadMoreAsync">Load more</MudButton>
+            </MudStack>
+        }
+    }
+</MudPaper>
+</PipeRequireRole>
+
+@code {
+    private const int PageSize = 100;
+
+    private List<PipeAuditEntry>? _entries;
+    private bool _hasMore;
+    private string? _actor;
+    private string? _objectId;
+    private PipeAuditArea? _area;
+    private int _days = 7;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task FilterAsync(Action change)
+    {
+        change();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _entries = null;
+        var page = await QueryAsync(before: null);
+        _entries = page.ToList();
+        _hasMore = page.Count == PageSize;
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        var page = await QueryAsync(_entries?.LastOrDefault()?.Timestamp);
+        _entries?.AddRange(page);
+        _hasMore = page.Count == PageSize;
+    }
+
+    private Task<IReadOnlyList<PipeAuditEntry>> QueryAsync(DateTimeOffset? before)
+        => AuditLog.QueryAsync(new PipeAuditQuery
+        {
+            Actor = _actor,
+            Area = _area,
+            ObjectId = string.IsNullOrWhiteSpace(_objectId) ? null : _objectId.Trim(),
+            From = _days > 0 ? DateTimeOffset.UtcNow.AddDays(-_days) : null,
+            Before = before,
+            MaxCount = PageSize
+        });
+
+    /// <summary>The rows shown, as CSV (UTF-8 with BOM, so Excel reads the umlauts).</summary>
+    private async Task ExportAsync()
+    {
+        var csv = new StringBuilder("﻿time;actor;area;action;objectId;objectName;details\r\n");
+        foreach (var entry in _entries ?? [])
+        {
+            csv.AppendJoin(';', new[]
+            {
+                entry.Timestamp.ToString("O"), entry.Actor, entry.Area.ToString(), entry.Action, entry.ObjectId, entry.ObjectName, entry.Details
+            }.Select(Quote)).Append("\r\n");
+        }
+        await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/gView.Pipe.Razor/js/gview-pipe-download.js");
+        await module.InvokeVoidAsync("save", $"audit-{DateTime.Now:yyyy-MM-dd}.csv", csv.ToString(), "text/csv");
+    }
+
+    static private string Quote(string? value)
+        => value is null ? "" : value.IndexOfAny([';', '"', '\r', '\n']) >= 0 ? $"\"{value.Replace("\"", "\"\"")}\"" : value;
+
+    static public string AreaText(PipeAuditArea area) => area switch
+    {
+        PipeAuditArea.ApiKey => "API key",
+        _ => area.ToString()
+    };
+}

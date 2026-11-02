@@ -1,4 +1,6 @@
 @using gView.Pipe.Abstraction.Security
+@inject IPipeAuthorization Authorization
+@inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject IPipeApiKeyStore KeyStore
 @inject IPipeWorkflowGroupStore GroupStore
 @inject IDialogService DialogService
@@ -100,6 +102,7 @@
         if (confirmed == true)
         {
             await KeyStore.DeleteAsync(key.Id);
+            await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.ApiKey, "deleted", key.Id, key.Name);
             await LoadAsync();
         }
     }

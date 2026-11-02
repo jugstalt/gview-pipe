@@ -1,4 +1,5 @@
 using gView.Pipe.Abstraction;
+using gView.Pipe.Abstraction.Audit;
 using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Nodes;
@@ -80,6 +81,7 @@ static public class PipeApiEndpoints
         api.MapPost("/executions/{workflowId}/{id}/cancel", CancelAsync).Need(PipeApiRights.Run).WithSummary("Stops a running or queued execution");
         api.MapPost("/executions/{workflowId}/{id}/replay", ReplayAsync).Need(PipeApiRights.Run).WithSummary("Runs a stored execution again");
         api.MapGet("/groups", (Delegate)ListGroupsAsync).Need(PipeApiRights.Read).WithSummary("Lists the workflow groups");
+        api.MapGet("/audit", AuditAsync).Need(PipeApiRights.Read).WithSummary("The audit log, newest first; only for keys not limited to groups");
         return api;
     }
 
@@ -103,6 +105,19 @@ static public class PipeApiEndpoints
     }
 
     static private T Services<T>(HttpContext context) where T : notnull => context.RequestServices.GetRequiredService<T>();
+
+    /// <summary>An audit entry with the key as actor (ADR 0022).</summary>
+    static private Task WriteAuditAsync(HttpContext context, PipeAuditArea area, string action, string? objectId, string? objectName, string? details = null)
+        => Services<IPipeAuditLog>(context).WriteAsync(new PipeAuditEntry
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            Actor = $"api:{Key(context).Name}",
+            Area = area,
+            Action = action,
+            ObjectId = objectId,
+            ObjectName = objectName,
+            Details = details
+        });
 
     static private string ETag(PipeWorkflow workflow)
         => $"\"{(workflow.UpdatedAt ?? workflow.CreatedAt ?? DateTimeOffset.MinValue).ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}\"";
@@ -168,6 +183,8 @@ static public class PipeApiEndpoints
 
         workflow.CreatedAt = existing?.CreatedAt ?? workflow.CreatedAt;
         await store.SaveAsync(workflow, context.RequestAborted);
+        await WriteAuditAsync(context, PipeAuditArea.Workflow, existing is null ? "created" : "deployed", workflow.Id, workflow.Name,
+            existing is null ? null : PipeWorkflowChanges.Describe(existing, workflow));
         var warnings = validation.Warnings.Concat(await ArmAsync(workflow, context)).ToList();
 
         context.Response.Headers.ETag = ETag(workflow);
@@ -190,6 +207,7 @@ static public class PipeApiEndpoints
         }
         await Services<IPipeTriggerManager>(context).DeactivateAsync(id);
         await Services<IPipeWorkflowStore>(context).DeleteAsync(id, context.RequestAborted);
+        await WriteAuditAsync(context, PipeAuditArea.Workflow, "deleted", id, null);
         return Results.NoContent();
     }
 
@@ -202,6 +220,7 @@ static public class PipeApiEndpoints
         workflow.Active = active;
         await Services<IPipeWorkflowStore>(context).SaveAsync(workflow, context.RequestAborted);
         var problems = await ArmAsync(workflow, context);
+        await WriteAuditAsync(context, PipeAuditArea.Workflow, active ? "activated" : "deactivated", workflow.Id, workflow.Name);
         return Json(new { workflow.Id, workflow.Active, Warnings = problems });
     }
 
@@ -245,6 +264,7 @@ static public class PipeApiEndpoints
         {
             return Problem(StatusCodes.Status429TooManyRequests, "The workflow is already running (max concurrent runs reached) and its queue is full");
         }
+        await WriteAuditAsync(context, PipeAuditArea.Execution, "started", workflow.Id, workflow.Name, $"execution {executionId}");
         if (!body.Wait)
         {
             return Json(new { ExecutionId = executionId, Status = ticket.State == PipeQueueState.Queued ? "queued" : "started" }, StatusCodes.Status202Accepted);
@@ -339,9 +359,12 @@ static public class PipeApiEndpoints
             return NotFound($"Workflow '{workflowId}'");
         }
         var running = Services<IPipeRunningExecutions>(context);
-        return running.Find(id) is { WorkflowId: var owner } && owner == workflowId && running.Cancel(id)
-            ? Results.Accepted()
-            : Problem(StatusCodes.Status409Conflict, $"Execution '{id}' isn't running");
+        if (running.Find(id) is not { WorkflowId: var owner } || owner != workflowId || !running.Cancel(id))
+        {
+            return Problem(StatusCodes.Status409Conflict, $"Execution '{id}' isn't running");
+        }
+        await WriteAuditAsync(context, PipeAuditArea.Execution, "stopped", workflowId, null, $"execution {id}");
+        return Results.Accepted();
     }
 
     static private async Task<IResult> ReplayAsync(string workflowId, string id, HttpContext context)
@@ -364,9 +387,38 @@ static public class PipeApiEndpoints
                 ? Problem(ex.Message.Contains("not found") ? StatusCodes.Status404NotFound : StatusCodes.Status409Conflict, ex.Message)
                 : throw replay.Exception!.InnerException!;
         }
+        await WriteAuditAsync(context, PipeAuditArea.Execution, "replayed", workflowId, null,
+            $"execution {id}" + (started.Started.IsCompleted ? $" as {await started.Started}" : ""));
         return started.Started.IsCompleted
             ? Json(new { ExecutionId = await started.Started, ReplayOf = id, Status = "started" }, StatusCodes.Status202Accepted)
             : Json(new { ReplayOf = id, Status = "queued" }, StatusCodes.Status202Accepted);
+    }
+
+    static private async Task<IResult> AuditAsync(HttpContext context, DateTimeOffset? from, DateTimeOffset? before, string? actor,
+        string? area, string? objectId, int? limit)
+    {
+        if (Key(context).Groups is { Count: > 0 })
+        {
+            return Problem(StatusCodes.Status403Forbidden, "The audit log is only for API keys that aren't limited to groups");
+        }
+        PipeAuditArea? parsed = null;
+        if (area is not null)
+        {
+            if (!Enum.TryParse<PipeAuditArea>(area, ignoreCase: true, out var value))
+            {
+                return Problem(StatusCodes.Status400BadRequest, $"Unknown area '{area}'");
+            }
+            parsed = value;
+        }
+        return Json(await Services<IPipeAuditLog>(context).QueryAsync(new PipeAuditQuery
+        {
+            From = from,
+            Before = before,
+            Actor = actor,
+            Area = parsed,
+            ObjectId = objectId,
+            MaxCount = Math.Clamp(limit ?? 100, 1, 1000)
+        }, context.RequestAborted));
     }
 
     static private async Task<IResult> ListGroupsAsync(HttpContext context)

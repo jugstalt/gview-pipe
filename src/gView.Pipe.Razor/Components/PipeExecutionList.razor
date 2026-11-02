@@ -1,3 +1,4 @@
+@inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject IPipeExecutionStore ExecutionStore
 @inject IPipeWorkflowStore WorkflowStore
 @inject IPipeWorkflowGroupStore GroupStore
@@ -242,6 +243,7 @@
                 try
                 {
                     var replay = await Runner.ReplayAsync(execution.WorkflowId, execution.Id, fromFailedNode ? execution.ErrorNodeId : null);
+                    await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Execution, "replayed", execution.WorkflowId, execution.WorkflowName, $"execution {execution.Id} as {replay.Id}");
                     failed += replay.Status == PipeExecutionStatus.Success ? 0 : 1;
                 }
                 catch (Exception ex)

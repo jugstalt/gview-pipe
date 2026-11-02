@@ -1,4 +1,5 @@
 @using gView.Pipe.Abstraction.Triggers
+@inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject IPipeWorkflowStore WorkflowStore
 @inject IPipeWorkflowGroupStore GroupStore
 @inject IPipeExecutionStore ExecutionStore
@@ -334,6 +335,7 @@
         }
 
         await WorkflowStore.SaveAsync(workflow);
+        await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Workflow, "created", workflow.Id, workflow.Name);
         await OnOpen.InvokeAsync(workflow.Id);
     }
 
@@ -381,6 +383,7 @@
             await SetGroupAsync(workflow, null);
         }
         await GroupStore.DeleteAsync(group.Id);
+        await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Group, "deleted", group.Id, group.Name, members.Count > 0 ? $"{members.Count} workflow(s) left without group" : null);
         await LoadAsync();
     }
 
@@ -427,6 +430,7 @@
         }
 
         await SetGroupAsync(workflow, groupId);
+        await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Workflow, "moved", workflow.Id, workflow.Name, $"to {groupId ?? "no group"}");
         Snackbar.Add($"Moved '{workflow.Name}' to {(target is null ? "no group" : $"'{target.Name}'")}", Severity.Success);
         await LoadAsync();
     }
@@ -451,6 +455,10 @@
         try
         {
             var execution = await Runner.RunAsync(workflow);
+            if (execution is not null)
+            {
+                await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Execution, "started", workflow.Id, workflow.Name, $"execution {execution.Id}");
+            }
             if (execution is null)
             {
                 Snackbar.Add($"{workflow.Name} is already running", Severity.Warning);
@@ -491,6 +499,7 @@
 
         await TriggerManager.DeactivateAsync(workflow.Id);
         await WorkflowStore.DeleteAsync(workflow.Id);
+        await AuditLog.WriteAsync(Authorization, gView.Pipe.Abstraction.Audit.PipeAuditArea.Workflow, "deleted", workflow.Id, workflow.Name);
         await LoadAsync();
     }
 

@@ -1,3 +1,4 @@
+using gView.Pipe.Abstraction.Audit;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Options;
@@ -17,6 +18,7 @@ internal sealed class PipeExecutionRetention : BackgroundService
 
     private readonly IPipeExecutionStore _executionStore;
     private readonly IPipeWorkflowStore _workflowStore;
+    private readonly IPipeAuditLog _auditLog;
     private readonly PipeCoreOptions _options;
     private readonly TimeProvider _time;
     private readonly ILogger<PipeExecutionRetention> _logger;
@@ -24,12 +26,14 @@ internal sealed class PipeExecutionRetention : BackgroundService
     public PipeExecutionRetention(
         IPipeExecutionStore executionStore,
         IPipeWorkflowStore workflowStore,
+        IPipeAuditLog auditLog,
         IOptions<PipeCoreOptions> options,
         TimeProvider time,
         ILogger<PipeExecutionRetention> logger)
     {
         _executionStore = executionStore;
         _workflowStore = workflowStore;
+        _auditLog = auditLog;
         _options = options.Value;
         _time = time;
         _logger = logger;
@@ -46,6 +50,12 @@ internal sealed class PipeExecutionRetention : BackgroundService
 
     public async Task PruneAllAsync(CancellationToken cancellationToken = default)
     {
+        // the audit log has its own limit (ADR 0022)
+        if (_options.AuditRetentionDays > 0)
+        {
+            await _auditLog.PruneAsync(_time.GetUtcNow().AddDays(-_options.AuditRetentionDays), cancellationToken);
+        }
+
         foreach (var workflow in await _workflowStore.ListAsync(cancellationToken))
         {
             try

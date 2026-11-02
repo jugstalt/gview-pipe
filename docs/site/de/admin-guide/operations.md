@@ -26,6 +26,28 @@ Die letzten 50 Executions je Workflow bleiben in `data/executions/` erhalten; `P
 
 Laufende Executions liegen im Speicher des Prozesses. Ein Neustart beendet sie, und ein wartender Wait-Node verliert seinen Lauf.
 
+## Audit-Log
+
+Die Seite **Audit** (nur admins) zeigt, wer wann etwas geändert, gelöscht, ausgeführt oder sich angemeldet hat:
+
+| Bereich | Aufgezeichnet |
+|---|---|
+| Workflow | angelegt, gespeichert (mit Zusammenfassung: Nodes hinzugefügt, entfernt und geändert, Verbindungen, Einstellungen), gelöscht, aktiviert, deaktiviert, verschoben, über die API deployt |
+| Group | angelegt, geändert, gelöscht |
+| Credential | angelegt, geändert, gelöscht; nie die Werte |
+| Variables | die Instanz-Variablen geändert; nur Namen |
+| API key | angelegt, gelöscht |
+| Login | angemeldet; fehlgeschlagene Anmeldungen und abgelehnte API-Schlüssel, höchstens ein Eintrag pro Minute und Adresse, mit der Zahl weiterer Versuche |
+| Execution | von Hand oder über die API gestartet, gestoppt, wiederholt |
+
+Getriggerte Läufe stehen nicht im Audit-Log; dafür gibt es die [Execution-Historie](../user-guide/executions.md). *Wer* ist der Benutzername, `api:<Schlüsselname>` für die [REST API](api.md) oder `anonymous` ohne Anmeldung.
+
+Filtere nach Person, Bereich, Objekt-Id und Zeitraum und exportiere das Angezeigte als CSV (*Export CSV*). Das Workflow-Panel des Editors zeigt unter **History** die letzten Änderungen des Workflows. Skripte lesen das Log mit `GET /api/v1/audit`.
+
+![Die Seite Audit](../../images/audit.png)
+
+Die Einträge liegen als eine Datei mit JSON-Zeilen pro Monat in `data/audit/` und werden nach `Pipe:AuditRetentionDays` (365, in ganzen Monaten) gelöscht. Jeder Eintrag geht zusätzlich ins Anwendungslog (Kategorie `gView.Pipe.Audit`). Wer den Datenordner schreiben kann, kann die Dateien ändern; brauchst du Nachweise, bewahre die Einträge eines zentralen Log-Systems auf.
+
 ## Backup
 
 Sichere den ganzen Ordner `data`, dazu `files` und `scripts`, wenn du sie nutzt:

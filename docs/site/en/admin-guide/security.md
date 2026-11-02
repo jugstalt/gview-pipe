@@ -52,6 +52,10 @@ The [REST API](api.md) under `/api/v1` accepts only API keys, never the login co
 
 A plugin runs with the full rights of the app. Install only plugins from sources you trust.
 
+## Audit log
+
+The [audit log](operations.md#audit-log) records who changed, deleted or ran what, sign-ins and refused attempts. It never contains values of credentials or secret variables. For proof that can't be changed afterwards, forward the application log (category `gView.Pipe.Audit`) to a central log system.
+
 ## Updates
 
 Install updates regularly. The runtime and the third-party libraries receive security fixes.

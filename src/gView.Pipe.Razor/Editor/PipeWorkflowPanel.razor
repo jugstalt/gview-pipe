@@ -3,6 +3,7 @@
 @inject IPipeEnvironments Environments
 @inject IPipeErrorWorkflows ErrorWorkflows
 @inject IPipeWorkflowStore WorkflowStore
+@inject IPipeAuditLog AuditLog
 
 <div class="gview-pipe-panel-header">
     <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
@@ -97,6 +98,27 @@
     }
 </div>
 
+<MudDivider />
+
+@* the last changes of the workflow from the audit log (ADR 0022) *@
+<div class="pa-4">
+    <MudText Typo="Typo.subtitle2">History</MudText>
+    @if (_history.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">No changes recorded yet.</MudText>
+    }
+    @foreach (var entry in _history)
+    {
+        <div class="gview-pipe-history-item gview-pipe-audit-history">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Class="mud-text-secondary" />
+            <div>
+                <div>@entry.Timestamp.LocalDateTime.ToString("g") · @entry.Actor</div>
+                <div class="mud-text-secondary gview-pipe-history-meta" title="@entry.Details">@entry.Action@(entry.Details is { Length: > 0 } details ? $": {details}" : "")</div>
+            </div>
+        </div>
+    }
+</div>
+
 @code {
     [Parameter, EditorRequired] public PipeWorkflow Workflow { get; set; } = default!;
     [Parameter] public string? SelectedExecutionId { get; set; }
@@ -161,7 +183,13 @@
         }
     }
 
-    private async Task LoadAsync() => _executions = await ExecutionStore.ListAsync(Workflow.Id, 20);
+    private IReadOnlyList<PipeAuditEntry> _history = [];
+
+    private async Task LoadAsync()
+    {
+        _executions = await ExecutionStore.ListAsync(Workflow.Id, 20);
+        _history = await AuditLog.QueryAsync(new PipeAuditQuery { Area = PipeAuditArea.Workflow, ObjectId = Workflow.Id, MaxCount = 10 });
+    }
 
     private async Task ChangeAsync(Action change)
     {

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using gView.Pipe.Abstraction.Users;
+using gView.Pipe.Abstraction.Audit;
 
 namespace gView.Pipe.AspNetCore.Extensions.DependencyInjection;
 
@@ -22,6 +23,7 @@ static public class ServicesExtensions
     static public IServiceCollection AddPipeApi(this IServiceCollection services)
     {
         services.TryAddSingleton<PipeApiAuthenticator>();
+        services.TryAddSingleton<PipeAuditRefusals>();
         services.AddOpenApi(PipeApiEndpoints.DocumentName, openApi =>
         {
             // only the API, not the webhooks or the login
@@ -62,6 +64,7 @@ static public class ServicesExtensions
         services.AddAuthorization(authorization => authorization.AddPolicy(PipeAuthentication.PolicyName, policy =>
             policy.RequireAssertion(context => PipeAuthentication.IsAllowed(context.User, options))));
         services.AddCascadingAuthenticationState();
+        services.TryAddSingleton<PipeAuditRefusals>();
         // the roles of the UI (ADR 0021); replaces the full access of AddPipeCore()
         services.AddHttpContextAccessor();
         services.Replace(ServiceDescriptor.Scoped<IPipeAuthorization, PipeClaimsAuthorization>());
@@ -89,6 +92,15 @@ static public class ServicesExtensions
             cookie.SlidingExpiration = true;
             cookie.LoginPath = PipeAuthentication.LoginPath;
             cookie.AccessDeniedPath = PipeAuthentication.DeniedPath;
+            // forms and OIDC both end in the cookie: one place for the audit log (ADR 0022)
+            cookie.Events.OnSignedIn = context => context.HttpContext.RequestServices.GetService<IPipeAuditLog>()?.WriteAsync(new PipeAuditEntry
+            {
+                Timestamp = DateTimeOffset.UtcNow,
+                Actor = context.Principal?.Identity?.Name ?? "unknown",
+                Area = PipeAuditArea.Login,
+                Action = "signedIn",
+                Details = context.HttpContext.Connection.RemoteIpAddress?.ToString()
+            }) ?? Task.CompletedTask;
         });
 
         if (options.Mode == PipeAuthenticationMode.Oidc)

@@ -26,6 +26,28 @@ The latest 50 executions per workflow are kept in `data/executions/`; `Pipe:Exec
 
 Executions that are running live in the memory of the process. A restart ends them, and a Wait node that is waiting loses its run.
 
+## Audit log
+
+The page **Audit** (admins only) shows who changed, deleted, ran or signed in, and when:
+
+| Area | Recorded |
+|---|---|
+| Workflow | created, saved (with a summary: nodes added, removed and changed, connections, settings), deleted, activated, deactivated, moved, deployed through the API |
+| Group | created, changed, deleted |
+| Credential | created, changed, deleted; never the values |
+| Variables | the instance variables changed; names only |
+| API key | created, deleted |
+| Login | signed in; failed sign-ins and refused API keys, at most one entry per minute and address, with the number of further attempts |
+| Execution | started by hand or through the API, stopped, replayed |
+
+Triggered runs are not in the audit log; the [execution history](../user-guide/executions.md) has them. *Who* is the user name, `api:<key name>` for the [REST API](api.md), or `anonymous` without a login.
+
+Filter by person, area, object id and time, and export what is shown as CSV (*Export CSV*). The workflow panel of the editor shows the last changes of the workflow under **History**. Scripts read the log with `GET /api/v1/audit`.
+
+![The page Audit](../../images/audit.png)
+
+The entries are kept as one file of JSON lines per month in `data/audit/` and deleted after `Pipe:AuditRetentionDays` (365, in whole months). Every entry is also written to the application log (category `gView.Pipe.Audit`). Who can write the data folder can change the files; if you need proof, keep the entries of a central log system.
+
 ## Backup
 
 Back up the whole `data` folder, plus `files` and `scripts` if you use them:

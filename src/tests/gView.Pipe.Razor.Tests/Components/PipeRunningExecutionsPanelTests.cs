@@ -17,6 +17,7 @@ public class PipeRunningExecutionsPanelTests : BunitContext
         Services.AddMudServices();
         Services.AddSingleton<IPipeRunningExecutions>(_running);
         Services.AddSingleton<IPipeAuthorization>(new FullAccess());
+        Services.AddSingleton<gView.Pipe.Abstraction.Audit.IPipeAuditLog>(new NoAudit());
     }
 
     static private PipeRunningExecutionInfo Info(string id, string workflow, PipeExecutionMode mode, PipeExecutionStatus status = PipeExecutionStatus.Running,
@@ -75,6 +76,14 @@ public class PipeRunningExecutionsPanelTests : BunitContext
 
         rows[1].Click();
         Assert.Equal("parent", opened!.ExecutionId);
+    }
+
+    private sealed class NoAudit : gView.Pipe.Abstraction.Audit.IPipeAuditLog
+    {
+        public Task WriteAsync(gView.Pipe.Abstraction.Audit.PipeAuditEntry entry, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<IReadOnlyList<gView.Pipe.Abstraction.Audit.PipeAuditEntry>> QueryAsync(gView.Pipe.Abstraction.Audit.PipeAuditQuery query, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<gView.Pipe.Abstraction.Audit.PipeAuditEntry>>([]);
+        public Task PruneAsync(DateTimeOffset olderThan, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class FullAccess : IPipeAuthorization

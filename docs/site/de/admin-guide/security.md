@@ -52,6 +52,10 @@ Die [REST API](api.md) unter `/api/v1` akzeptiert nur API-Schlüssel, nie das An
 
 Ein Plugin läuft mit den vollen Rechten der App. Installiere nur Plugins aus Quellen, denen du vertraust.
 
+## Audit-Log
+
+Das [Audit-Log](operations.md#audit-log) zeichnet auf, wer was geändert, gelöscht oder ausgeführt hat, Anmeldungen und abgelehnte Versuche. Es enthält nie Werte von Credentials oder geheimen Variablen. Für Nachweise, die sich nachträglich nicht ändern lassen, leite das Anwendungslog (Kategorie `gView.Pipe.Audit`) an ein zentrales Log-System weiter.
+
 ## Updates
 
 Spiele Updates regelmäßig ein. Die Runtime und die Bibliotheken von Dritten bekommen Sicherheitskorrekturen.

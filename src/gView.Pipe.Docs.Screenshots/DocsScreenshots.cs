@@ -36,6 +36,7 @@ internal sealed class DocsScreenshots
         await ErrorMailAsync();
         await CredentialsAsync();
         await ApiKeysAsync();
+        await AuditAsync();
         await VariablesAsync();
         await EditorEnvironmentAsync();
     }
@@ -207,6 +208,15 @@ internal sealed class DocsScreenshots
         await _page.GetByText("CI Deploy").First.WaitForAsync();
         await _page.WaitForTimeoutAsync(300);
         await ShotAsync("api-keys");
+    }
+
+    /// <summary>The audit log with what the earlier pictures did (runs, the API key).</summary>
+    private async Task AuditAsync()
+    {
+        await LowAsync();
+        await OpenAsync("/audit");
+        await _page.Locator("tr.gview-pipe-audit-row").First.WaitForAsync();
+        await ShotAsync("audit");
     }
 
     /// <summary>The history of all workflows, with the runs the earlier pictures made.</summary>

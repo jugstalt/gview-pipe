@@ -19,6 +19,7 @@ using gView.Pipe.Core.Workflows;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Security;
+using gView.Pipe.Abstraction.Audit;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -66,7 +67,6 @@ static public class ServicesExtensions
         services.TryAddSingleton<PipeWebhookRegistry>();
         services.TryAddSingleton<IPipeWebhookRouter>(sp => sp.GetRequiredService<PipeWebhookRegistry>());
         services.TryAddSingleton<IPipeTriggerHost, PipeTriggerHost>();
-        services.TryAddSingleton<IPipeUserContext, PipeAnonymousUserContext>();
         services.TryAddScoped<IPipeAuthorization, PipeFullAccess>();
         services.TryAddSingleton<IPipeFileRoots, PipeFileRoots>();
 
@@ -80,6 +80,7 @@ static public class ServicesExtensions
         services.TryAddSingleton<IPipeCredentialStore, PipeMemoryCredentialStore>();
         services.TryAddSingleton<IPipeVariableStore, PipeMemoryVariableStore>();
         services.TryAddSingleton<IPipeApiKeyStore, PipeMemoryApiKeyStore>();
+        services.TryAddSingleton<IPipeAuditLog, PipeMemoryAuditLog>();
         services.TryAddSingleton<IPipeWorkflowValidator, PipeWorkflowValidator>();
         services.TryAddSingleton<IPipeEnvironments, PipeEnvironmentService>();
         services.TryAddSingleton<IPipeErrorWorkflows, PipeErrorWorkflowService>();
@@ -111,6 +112,7 @@ static public class ServicesExtensions
         services.Replace(ServiceDescriptor.Singleton<IPipeCredentialStore, PipeFileCredentialStore>());
         services.Replace(ServiceDescriptor.Singleton<IPipeVariableStore, PipeFileVariableStore>());
         services.Replace(ServiceDescriptor.Singleton<IPipeApiKeyStore, PipeFileApiKeyStore>());
+        services.Replace(ServiceDescriptor.Singleton<IPipeAuditLog, PipeFileAuditLog>());
         services.TryAddSingleton<PipeSecretValues>();
 
         return services;

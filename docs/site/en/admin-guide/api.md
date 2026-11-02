@@ -45,6 +45,7 @@ The API is described in `/api/v1/openapi.json` (OpenAPI 3). Load it into a tool 
 | `POST /api/v1/executions/{workflowId}/{id}/cancel` | run | Stops a running or queued run. |
 | `POST /api/v1/executions/{workflowId}/{id}/replay` | run | Runs the execution again; body `{ "fromNodeId": "…" }` to start at a node ([Replay](../user-guide/executions.md#replay)). |
 | `GET /api/v1/groups` | read | Lists the workflow groups. |
+| `GET /api/v1/audit` | read | The [audit log](operations.md#audit-log), newest first. Filters: `from`, `before`, `actor`, `area`, `objectId`, `limit`. Only for keys that aren't limited to groups. |
 
 Errors are answered as `application/problem+json` with a `title` that says what is wrong.
 

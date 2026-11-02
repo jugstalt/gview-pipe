@@ -42,6 +42,9 @@ public class PipeCoreOptions
     /// <summary>Days executions are kept; 0 = no limit. Workflows can override both.</summary>
     public int ExecutionRetentionDays { get; set; }
 
+    /// <summary>Days entries of the audit log are kept (whole months); 0 = no limit (ADR 0022).</summary>
+    public int AuditRetentionDays { get; set; } = 365;
+
     /// <summary>
     /// Folders workflows may read and write (Read File, Write File), by name: e.g. <c>"import" → "D:\data\import"</c>.
     /// Nothing outside these folders is reachable. Relative paths are resolved against the current directory.
