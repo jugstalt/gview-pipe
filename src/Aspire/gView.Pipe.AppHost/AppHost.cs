@@ -49,15 +49,7 @@ builder.AddContainer("gitea", "gitea/gitea", "latest")
        .WithVolume("gview-pipe-gitea", "/data")
        // starts Gitea and creates the admin once it is up (fails harmlessly when the user already exists)
        .WithEntrypoint("/bin/sh")
-       .WithArgs("-c", """
-           /usr/bin/entrypoint &
-           for i in $(seq 1 30); do
-             sleep 2
-             su git -c "gitea admin user create --admin --username gitea --password gitea --email gitea@localhost --must-change-password=false" && break
-             su git -c "gitea admin user list" | grep -q " gitea " && break
-           done
-           wait
-           """)
+       .WithArgs("-c", "/usr/bin/entrypoint &\nfor i in $(seq 1 30); do\n  sleep 2\n  su git -c \"gitea admin user create --admin --username gitea --password gitea --email gitea@localhost --must-change-password=false\" && break\n  su git -c \"gitea admin user list\" | grep -q \" gitea \" && break\ndone\nwait")
        .WithContainerName("gview-pipe-gitea")
        .WithLifetime(ContainerLifetime.Persistent);
 
