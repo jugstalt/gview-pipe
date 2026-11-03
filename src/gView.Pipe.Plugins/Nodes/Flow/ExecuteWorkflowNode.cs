@@ -33,6 +33,11 @@ public sealed class ExecuteWorkflowNodeParameters
     [PipeParameter(Label = "Batch size", Order = 3, Expressions = false, Description = "Items per call in batch mode")]
     [Range(1, int.MaxValue)]
     public int BatchSize { get; set; } = 10;
+
+    [PipeParameter(Label = "Pause between calls (ms)", Order = 4, Expressions = false,
+        Description = "Waits this long before each call but the first, e.g. for the rate limit of an API. 0 = no pause.")]
+    [Range(0, 600000)]
+    public int DelayMs { get; set; }
 }
 
 [PipeNode(PipeBuiltInNodes.ExecuteWorkflow, "Execute Workflow",
@@ -58,8 +63,16 @@ public sealed class ExecuteWorkflowNode : IPipeNode<ExecuteWorkflowNodeParameter
         };
 
         var output = new List<PipeItem>();
+        var delay = TimeSpan.FromMilliseconds(Math.Clamp(parameters.DelayMs, 0, 600000));
+        var first = true;
         foreach (var batch in items.Chunk(batchSize))
         {
+            if (!first && delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay, cancellationToken);
+            }
+            first = false;
+
             // calls run one after the other, like the iterations of a loop
             var execution = await context.ExecuteWorkflowAsync(parameters.WorkflowId, batch, cancellationToken);
             if (execution.Status != PipeExecutionStatus.Success)

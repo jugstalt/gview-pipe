@@ -48,6 +48,11 @@ public sealed class HttpRequestNodeParameters
     [PipeCredential(PipeBuiltInCredentials.BasicAuth, PipeBuiltInCredentials.BearerToken, PipeBuiltInCredentials.ApiKeyHeader)]
     [PipeParameter(Label = "Credential", Expressions = false, Order = 9, Description = "Authenticates the request: Basic, Bearer token or an API key header")]
     public string? CredentialId { get; set; }
+
+    [PipeParameter(Label = "Pause between requests (ms)", Expressions = false, Order = 10,
+        Description = "Waits this long before each request but the first, e.g. for the rate limit of an API. 0 = no pause.")]
+    [Range(0, 600000)]
+    public int DelayMs { get; set; }
 }
 
 [PipeNode(PipeBuiltInNodes.HttpRequest, "HTTP Request",
@@ -61,6 +66,9 @@ public sealed class HttpRequestNode : PipeItemNodeBase<HttpRequestNodeParameters
     {
         _httpClientFactory = httpClientFactory;
     }
+
+    protected override TimeSpan DelayBetweenItems(HttpRequestNodeParameters parameters)
+        => TimeSpan.FromMilliseconds(Math.Clamp(parameters.DelayMs, 0, 600000));
 
     protected override async Task<PipeItem?> ProcessItemAsync(PipeItem item, HttpRequestNodeParameters parameters, IPipeNodeContext context, CancellationToken cancellationToken)
     {

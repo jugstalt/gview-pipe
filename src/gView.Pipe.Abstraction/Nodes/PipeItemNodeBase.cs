@@ -19,6 +19,12 @@ public abstract class PipeItemNodeBase<TParameters> : IPipeNode<TParameters>
             cancellationToken.ThrowIfCancellationRequested();
 
             var parameters = context.GetParameters<TParameters>(items[i], i);
+            if (i > 0 && DelayBetweenItems(parameters) is { Ticks: > 0 } delay)
+            {
+                // ends at once when the run is stopped
+                await Task.Delay(delay, cancellationToken);
+            }
+
             var result = await ProcessItemAsync(items[i], parameters, context, cancellationToken);
             if (result is not null)
             {
@@ -28,6 +34,9 @@ public abstract class PipeItemNodeBase<TParameters> : IPipeNode<TParameters>
 
         return PipeNodeResult.FromMain(output);
     }
+
+    /// <summary>How long to wait before an item that isn't the first, e.g. for the rate limit of an API. None by default.</summary>
+    protected virtual TimeSpan DelayBetweenItems(TParameters parameters) => TimeSpan.Zero;
 
     protected abstract Task<PipeItem?> ProcessItemAsync(
         PipeItem item,

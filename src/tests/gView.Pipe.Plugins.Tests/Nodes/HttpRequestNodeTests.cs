@@ -57,6 +57,34 @@ public class HttpRequestNodeTests
     }
 
     [Fact]
+    public async Task The_pause_comes_between_requests_but_not_before_the_first()
+    {
+        var handler = new FakeHandler(HttpStatusCode.OK, "{}", "application/json");
+        using var services = PluginTestHost.Create(s => s
+            .AddHttpClient(Microsoft.Extensions.Options.Options.DefaultName)
+            .ConfigurePrimaryHttpMessageHandler(() => handler));
+
+        var workflow = new PipeWorkflowBuilder()
+            .Node("start", PipeBuiltInNodes.ManualTrigger)
+            .Node("http", PipeBuiltInNodes.HttpRequest, new { url = "https://example.test/x", delayMs = 150 })
+            .Connect("start", "http")
+            .Build();
+        var request = new PipeExecutionRequest
+        {
+            InputItems = Enumerable.Range(0, 3).Select(_ => new gView.Pipe.Abstraction.Data.PipeItem(new System.Text.Json.Nodes.JsonObject())).ToList()
+        };
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var execution = await services.GetRequiredService<IPipeEngine>().ExecuteAsync(workflow, request);
+        watch.Stop();
+
+        Assert.True(execution.Status == PipeExecutionStatus.Success, execution.Error);
+        Assert.Equal(3, handler.Requests.Count);
+        // two pauses of 150 ms; a pause before the first request would make it three
+        Assert.InRange(watch.ElapsedMilliseconds, 280, 440);
+    }
+
+    [Fact]
     public async Task Error_status_fails_the_node()
     {
         var handler = new FakeHandler(HttpStatusCode.NotFound, "nope", "text/plain");

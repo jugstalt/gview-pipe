@@ -87,6 +87,25 @@ public class ItemNodeTests
     }
 
     [Fact]
+    public async Task Split_in_batches_makes_one_item_per_batch_and_the_last_one_may_be_smaller()
+    {
+        var output = await RunNodeAsync(PipeBuiltInNodes.SplitInBatches, new { batchSize = 2 },
+            Input("""{ "n": 1 }""", """{ "n": 2 }""", """{ "n": 3 }"""));
+
+        Assert.Equal(2, output.Count);
+        Assert.Equal("""{"batch":1,"batches":2,"count":2,"items":[{"n":1},{"n":2}]}""", output[0].ToJsonString());
+        Assert.Equal("""{"batch":2,"batches":2,"count":1,"items":[{"n":3}]}""", output[1].ToJsonString());
+    }
+
+    [Fact]
+    public async Task Split_in_batches_without_items_gives_no_items()
+    {
+        var output = await RunNodeAsync(PipeBuiltInNodes.SplitInBatches, new { batchSize = 5, destination = "rows" }, Input());
+
+        Assert.Empty(output);
+    }
+
+    [Fact]
     public async Task Aggregate_collects_individual_fields_and_skips_missing_values()
     {
         var output = await RunNodeAsync(PipeBuiltInNodes.Aggregate, new { mode = "individualFields", fields = new[] { "id", "customer.name" } },
