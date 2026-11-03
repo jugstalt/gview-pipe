@@ -5,6 +5,7 @@ using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Triggers;
 using gView.Pipe.Abstraction.Expressions;
 using gView.Pipe.Abstraction.Nodes;
+using gView.Pipe.Abstraction.Secrets;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
@@ -70,8 +71,28 @@ internal sealed class PipeNodeContext : IPipeNodeContext
     public async Task<PipeCredential> GetCredentialAsync(string credentialId, CancellationToken cancellationToken = default)
     {
         var store = Services.GetRequiredService<IPipeCredentialStore>();
-        return await store.GetAsync(credentialId, cancellationToken)
-               ?? throw new PipeException($"Credential '{credentialId}' not found (node '{NodeName}')");
+        var credential = await store.GetAsync(credentialId, cancellationToken)
+                         ?? throw new PipeException($"Credential '{credentialId}' not found (node '{NodeName}')");
+
+        // fields that stand for a secret of an external source are read now (ADR 0033)
+        var resolver = Services.GetRequiredService<IPipeSecretResolver>();
+        foreach (var (field, node) in credential.Data.ToList())
+        {
+            if (node is JsonValue json && json.TryGetValue<string>(out var text) && PipeSecretReference.TryParse(text, out var reference))
+            {
+                try
+                {
+                    var value = await resolver.ResolveAsync(reference, cancellationToken);
+                    credential.Data[field] = value;
+                    _state.Variables.AddSecretValue(value);
+                }
+                catch (PipeException ex)
+                {
+                    throw new PipeException($"Credential '{credential.Name}', field {field}: {ex.Message}");
+                }
+            }
+        }
+        return credential;
     }
 
     public async Task<TData> GetCredentialAsync<TData>(string credentialId, CancellationToken cancellationToken = default)

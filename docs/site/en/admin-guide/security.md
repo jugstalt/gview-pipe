@@ -35,6 +35,8 @@ Run the app under an account (or container) that may do only what your scripts n
 - The keys are stored in `data/keys/`. **Anyone with access to both `keys/` and `credentials/` can decrypt the credentials.** Restrict access to the `data` folder. For production, a developer can configure Data Protection to protect the keys with DPAPI, a certificate or a key vault.
 - The headers `authorization`, `proxy-authorization` and `cookie` of webhook calls (and the API key header) are not copied into the items and so never reach the execution history. Credential values are masked in script output and logs.
 
+Values can also stay outside `data/`: in environment variables, Azure Key Vault or the vault of IdentityServer.NET, see [Secrets](secrets.md).
+
 ## Webhooks
 
 Give every webhook that is reachable from outside a credential. See [Operations](operations.md#webhooks-in-production).

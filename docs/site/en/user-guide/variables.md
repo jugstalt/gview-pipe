@@ -50,6 +50,8 @@ Example: the instance has `DATABASE_SERVER` = `db-test` for `DEFAULT` and `db-pr
 
 The lock next to the name marks a variable as **secret**. Its values are stored encrypted, shown as password fields and replaced by `***` in logs, error messages and script output. Passwords and keys still belong in [credentials](credentials.md) where a node supports one.
 
+The key button in a value takes the value from another source (an environment variable, Azure Key Vault or the vault of IdentityServer.NET) instead of storing it; see [Secrets](../admin-guide/secrets.md). Such a value is masked like a secret one.
+
 ## Running in another environment
 
 ![A workflow saved for PROD, about to run in TEST from the editor](../../images/editor-environment.png)

@@ -68,6 +68,9 @@ public class PipeCoreOptions
     /// <summary>Instance variables from the configuration: name → environment → value.</summary>
     public Dictionary<string, Dictionary<string, string>> Variables { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>External sources of secret values for credentials and variables (ADR 0033).</summary>
+    public PipeSecretOptions Secrets { get; } = new();
+
     /// <summary>Names of <see cref="Variables"/> to treat as secret (masked in logs and script output).</summary>
     public List<string> SecretVariables { get; } = new();
 
@@ -79,4 +82,23 @@ public class PipeCoreOptions
 
     /// <summary>Arm the triggers of all active workflows when the host starts.</summary>
     public bool ActivateTriggersOnStartup { get; set; } = true;
+}
+
+/// <summary>External sources of secret values (ADR 0033).</summary>
+public sealed class PipeSecretOptions
+{
+    /// <summary>Seconds a resolved value stays in memory; 0 = no cache.</summary>
+    public int CacheSeconds { get; set; } = 300;
+
+    /// <summary>Configured sources by name. The source <c>env</c> exists without configuration.</summary>
+    public Dictionary<string, PipeSecretSourceOptions> Sources { get; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public sealed class PipeSecretSourceOptions
+{
+    /// <summary>Type of the provider: <c>env</c> or the type of a plugin, e.g. <c>azureKeyVault</c>.</summary>
+    public string Type { get; set; } = "env";
+
+    /// <summary>All other settings of the source (Prefix, VaultUri, …).</summary>
+    public Dictionary<string, string?> Settings { get; } = new(StringComparer.OrdinalIgnoreCase);
 }

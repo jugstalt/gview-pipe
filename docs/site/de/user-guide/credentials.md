@@ -40,6 +40,10 @@ Parameter, die ein Credential brauchen, zeigen eine Auswahl mit den Credentials 
 - **Send Email:** der SMTP-Server und das Login.
 - **Skript-Nodes:** Die Felder des Credentials gehen als Umgebungsvariablen `PIPE_CREDENTIAL_<FELD>` an das Skript. Die Werte werden in Ausgabe und Logs maskiert.
 
+## Ein Secret aus einer anderen Quelle nehmen
+
+Ein Secret-Feld hat einen Schlüssel-Knopf. Er übernimmt den Wert aus einer Umgebungsvariablen, Azure Key Vault oder dem Vault von IdentityServer.NET, statt ihn im Credential zu speichern. Nach dem Speichern erscheinen Quelle und Name; *Check* sagt, ob das Secret lesbar ist. Siehe [Secrets](../admin-guide/secrets.md).
+
 ## Gut zu wissen
 
 - Ein Credential gehört zur ganzen App, nicht zu einem Workflow. Wer Workflows bearbeiten kann, kann jedes Credential *benutzen*, aber seine Geheimnisse nicht lesen.

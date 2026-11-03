@@ -11,6 +11,8 @@ using gView.Pipe.Core.Expressions;
 using gView.Pipe.Core.Files;
 using gView.Pipe.Core.Options;
 using gView.Pipe.Core.Plugins;
+using gView.Pipe.Abstraction.Secrets;
+using gView.Pipe.Core.Secrets;
 using gView.Pipe.Core.Storage;
 using gView.Pipe.Core.Triggers;
 using gView.Pipe.Core.Users;
@@ -55,6 +57,7 @@ static public class ServicesExtensions
         services.TryAddSingleton<PipeJavaScriptEngine>();
         services.TryAddSingleton<IPipeExpressionEvaluator>(sp => sp.GetRequiredService<PipeJavaScriptEngine>());
         services.TryAddSingleton<IPipeScriptRunner>(sp => sp.GetRequiredService<PipeJavaScriptEngine>());
+        services.TryAddSingleton<IPipeSecretResolver, PipeSecretResolver>();
         services.TryAddSingleton<IPipeEngine, PipeEngine>();
         services.TryAddSingleton<IPipeWorkflowRunner, PipeWorkflowRunner>();
         services.TryAddSingleton<PipeExecutionRetention>();

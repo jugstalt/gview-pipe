@@ -35,6 +35,8 @@ Starte die App unter einem Konto (oder in einem Container), das nur tun darf, wa
 - Die Schlüssel liegen in `data/keys/`. **Wer Zugriff auf `keys/` und `credentials/` hat, kann die Credentials entschlüsseln.** Beschränke den Zugriff auf den Ordner `data`. Für den Produktivbetrieb kann ein Entwickler Data Protection so konfigurieren, dass die Schlüssel mit DPAPI, einem Zertifikat oder einem Key Vault geschützt werden.
 - Die Header `authorization`, `proxy-authorization` und `cookie` von Webhook-Aufrufen (und der API-Key-Header) werden nicht in die Items kopiert und gelangen so nie in die Execution-Historie. Credential-Werte werden in Skriptausgaben und Logs maskiert.
 
+Werte können auch außerhalb von `data/` bleiben: in Umgebungsvariablen, Azure Key Vault oder im Vault von IdentityServer.NET, siehe [Secrets](secrets.md).
+
 ## Webhooks
 
 Gib jedem Webhook, der von außen erreichbar ist, ein Credential. Siehe [Betrieb](operations.md#webhooks-im-betrieb).

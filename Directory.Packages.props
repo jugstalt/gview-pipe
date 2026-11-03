@@ -30,6 +30,11 @@
     <PackageVersion Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.6.1" />
     <PackageVersion Include="IdentityServerNET.Aspire.Hosting" Version="7.26.2902" />
   </ItemGroup>
+  <ItemGroup Label="Secret sources">
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.11.2" />
+    <PackageVersion Include="IdentityServerNET.Clients" Version="7.26.2901" />
+  </ItemGroup>
   <ItemGroup Label="Third party">
     <PackageVersion Include="Cronos" Version="0.13.0" />
     <PackageVersion Include="Jint" Version="4.17.0" />

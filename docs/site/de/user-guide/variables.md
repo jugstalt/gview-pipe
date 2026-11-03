@@ -50,6 +50,8 @@ Beispiel: Die Instanz hat `DATABASE_SERVER` = `db-test` für `DEFAULT` und `db-p
 
 Das Schloss neben dem Namen macht eine Variable **geheim**. Ihre Werte werden verschlüsselt gespeichert, als Passwortfelder angezeigt und in Logs, Fehlermeldungen und Skriptausgaben durch `***` ersetzt. Passwörter und Schlüssel gehören trotzdem in [Credentials](credentials.md), wo ein Node eines unterstützt.
 
+Der Schlüssel-Knopf in einem Wert übernimmt den Wert aus einer anderen Quelle (Umgebungsvariable, Azure Key Vault oder Vault von IdentityServer.NET), statt ihn zu speichern; siehe [Secrets](../admin-guide/secrets.md). Ein solcher Wert wird wie ein geheimer maskiert.
+
 ## In einem anderen Environment laufen
 
 ![Ein Workflow, gespeichert für PROD, läuft gleich aus dem Editor in TEST](../../images/editor-environment.png)

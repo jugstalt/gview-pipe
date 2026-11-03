@@ -40,6 +40,10 @@ Parameters that need a credential show a drop-down with the credentials of the r
 - **Send Email:** the SMTP server and login.
 - **Script nodes:** the credential's fields are passed to the script as `PIPE_CREDENTIAL_<FIELD>` environment variables. Values are masked in the output and in the logs.
 
+## Take a secret from another source
+
+A secret field has a key button. It takes the value from an environment variable, Azure Key Vault or the vault of IdentityServer.NET instead of storing it in the credential. After saving, source and name show; *Check* tells whether the secret can be read. See [Secrets](../admin-guide/secrets.md).
+
 ## Good to know
 
 - A credential belongs to the whole app, not to a workflow. Whoever can edit workflows can *use* every credential, but not read its secrets.

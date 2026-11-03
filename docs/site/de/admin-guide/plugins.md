@@ -7,8 +7,9 @@ Alle Nodes kommen aus Plugins. Die eingebauten Nodes (`gView.Pipe.Plugins.dll`) 
 | `gView.Pipe.Plugins.Database` | SQL | Treiber für SQL Server, PostgreSQL und SQLite. |
 | `gView.Pipe.Plugins.Office` | keine; ergänzt das Format *Excel* in Extract from File und Convert to File | Die Excel-Bibliothek (MiniExcel). |
 | `gView.Pipe.Plugins.Scripts` | Run Script, Run Scripts Folder, Run Scripts Repo | Führt Skripte auf dem Server aus. Ohne dieses Plugin gibt es keine Skriptausführung. |
+| `gView.Pipe.Plugins.Secrets` | keine; ergänzt die Secret-Quellen Azure Key Vault und IdentityServer.NET (siehe [Secrets](secrets.md)) | Das Azure SDK und der IdentityServer-Client. |
 
-ZIP und Docker-Image enthalten beide. Entferne einen Plugin-Ordner, um es abzuschalten.
+ZIP und Docker-Image enthalten alle. Entferne einen Plugin-Ordner, um es abzuschalten.
 
 ## Ordnerstruktur
 

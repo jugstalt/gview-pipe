@@ -1,3 +1,5 @@
+using gView.Pipe.Abstraction;
+using gView.Pipe.Abstraction.Secrets;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
@@ -11,12 +13,14 @@ internal sealed class PipeEnvironmentService : IPipeEnvironments
     private readonly PipeCoreOptions _options;
     private readonly IPipeWorkflowGroupStore _groupStore;
     private readonly IPipeVariableStore _variableStore;
+    private readonly IPipeSecretResolver _secretResolver;
 
-    public PipeEnvironmentService(IOptions<PipeCoreOptions> options, IPipeWorkflowGroupStore groupStore, IPipeVariableStore variableStore)
+    public PipeEnvironmentService(IOptions<PipeCoreOptions> options, IPipeWorkflowGroupStore groupStore, IPipeVariableStore variableStore, IPipeSecretResolver secretResolver)
     {
         _options = options.Value;
         _groupStore = groupStore;
         _variableStore = variableStore;
+        _secretResolver = secretResolver;
 
         Instance = string.IsNullOrWhiteSpace(_options.Environment) ? PipeEnvironments.Default : PipeEnvironments.Normalize(_options.Environment);
         // the instance's environment is always selectable, even if the list misses it (e.g. an older pipe.config)
@@ -57,7 +61,30 @@ internal sealed class PipeEnvironmentService : IPipeEnvironments
             group?.Variables ?? [],
             await GetInstanceVariablesAsync(cancellationToken)
         ];
-        return Resolve(levels, PipeEnvironments.Normalize(environment));
+        var resolved = Resolve(levels, PipeEnvironments.Normalize(environment));
+
+        // references to external sources (ADR 0033): the value is read now, and masked like a secret variable
+        if (!resolved.Values.Any(v => PipeSecretReference.IsReference(v.Value)))
+        {
+            return resolved;
+        }
+
+        var values = new Dictionary<string, string>(resolved.Values, StringComparer.OrdinalIgnoreCase);
+        var secrets = new HashSet<string>(resolved.Secrets, StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, value) in resolved.Values.Where(v => PipeSecretReference.TryParse(v.Value, out _)))
+        {
+            PipeSecretReference.TryParse(value, out var reference);
+            try
+            {
+                values[name] = await _secretResolver.ResolveAsync(reference, cancellationToken);
+            }
+            catch (PipeException ex)
+            {
+                throw new PipeException($"Variable {name}: {ex.Message}");
+            }
+            secrets.Add(name);
+        }
+        return new PipeResolvedVariables { Values = values, Secrets = secrets };
     }
 
     /// <summary>The value for <paramref name="environment"/> on any level beats a DEFAULT value on any level.</summary>

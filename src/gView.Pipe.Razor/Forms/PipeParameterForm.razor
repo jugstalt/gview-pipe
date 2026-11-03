@@ -1,6 +1,8 @@
 @using System.Text.Json.Nodes
 @using gView.Pipe.Abstraction.Credentials
+@using gView.Pipe.Abstraction.Secrets
 @inject IPipeCredentialStore CredentialStore
+@inject IDialogService DialogService
 
 @*
     Edits a parameter (or credential) JSON object in place, driven by the metadata of its class.
@@ -95,7 +97,10 @@ else
                     <div @onfocusin="() => FieldFocusedAsync(field)">
                     <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="@(field.Required ? field.Label + " *" : field.Label)" Variant="Variant.Outlined" Margin="Margin.Dense"
                                   Lines="@(field.Multiline ? 4 : 1)"
-                                  InputType="@(field.Secret ? InputType.Password : InputType.Text)"
+                                  InputType="@(field.Secret && !PipeSecretReference.IsReference(PipeJsonText.ToText(value)) ? InputType.Password : InputType.Text)"
+                                  Adornment="@(field.Secret && AllowSecretSources ? Adornment.End : Adornment.None)"
+                                  AdornmentIcon="@Icons.Material.Filled.Key" AdornmentAriaLabel="Use a secret of a source"
+                                  OnAdornmentClick="() => PickSecretAsync(field)"
                                   Placeholder="@(field.Secret && SecretsArePlaceholders ? "(unchanged)" : field.Placeholder)"
                                   HelperText="@HelperText(field)"
                                   Class="@(field.Expressions ? "gview-pipe-expression-field" : null)"
@@ -122,6 +127,22 @@ else
 
     /// <summary>Secret fields are empty and mean "keep the stored value" (editing an existing credential).</summary>
     [Parameter] public bool SecretsArePlaceholders { get; set; }
+
+    /// <summary>Secret fields get a button to take the value from a source instead (ADR 0033); for credentials.</summary>
+    [Parameter] public bool AllowSecretSources { get; set; }
+
+    private async Task PickSecretAsync(PipeParameterField field)
+    {
+        var dialog = await DialogService.ShowAsync<PipeSecretReferenceDialog>("Secret from a source",
+            new DialogParameters<PipeSecretReferenceDialog> { { d => d.Value, PipeJsonText.ToText(Parameters[field.Key]) } },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: string reference })
+        {
+            // empty: back to a plain value
+            await SetAsync(field, reference.Length == 0 ? null : JsonValue.Create(reference));
+        }
+    }
 
     [Parameter] public bool ShowRawWithoutType { get; set; }
 

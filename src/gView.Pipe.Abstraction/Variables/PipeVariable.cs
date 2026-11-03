@@ -62,12 +62,25 @@ public sealed record PipeEffectiveEnvironment(string Name, PipeEnvironmentSource
 /// <summary>Variables of one execution: name → value for the active environment.</summary>
 public sealed class PipeResolvedVariables
 {
-    static public PipeResolvedVariables Empty { get; } = new();
+    // new each time: values of external secrets are added while a run goes on (AddSecretValue)
+    static public PipeResolvedVariables Empty => new();
 
     public IReadOnlyDictionary<string, string> Values { get; init; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Names of the variables marked secret on any level.</summary>
     public IReadOnlySet<string> Secrets { get; init; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-    public IEnumerable<string> SecretValues => Values.Where(v => Secrets.Contains(v.Key) && v.Value.Length > 0).Select(v => v.Value);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _extraSecretValues = new(StringComparer.Ordinal);
+
+    public IEnumerable<string> SecretValues
+        => Values.Where(v => Secrets.Contains(v.Key) && v.Value.Length > 0).Select(v => v.Value).Concat(_extraSecretValues.Keys);
+
+    /// <summary>Masks a value that isn't a variable, e.g. a field of a credential read from an external source (ADR 0033).</summary>
+    public void AddSecretValue(string value)
+    {
+        if (value.Length > 0)
+        {
+            _extraSecretValues.TryAdd(value, 0);
+        }
+    }
 }

@@ -1,4 +1,6 @@
+@using gView.Pipe.Abstraction.Secrets
 @inject IPipeEnvironments Environments
+@inject IDialogService DialogService
 
 @*
     Edits the variables of one level: per variable a name, the secret flag and one value per environment.
@@ -37,7 +39,9 @@
                 {
                     var name = environment;
                     <MudTextField T="string" Immediate="true" DebounceInterval="300" Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="ReadOnly"
-                                  Label="@name" InputType="@(current.Secret ? InputType.Password : InputType.Text)"
+                                  Label="@name" InputType="@(current.Secret && !PipeSecretReference.IsReference(ValueOf(current, name)) ? InputType.Password : InputType.Text)"
+                                  Adornment="@(ReadOnly ? Adornment.None : Adornment.End)" AdornmentIcon="@Icons.Material.Filled.Key"
+                                  AdornmentAriaLabel="Use a secret of a source" OnAdornmentClick="() => PickSecretAsync(current, name)"
                                   Placeholder="@(name == PipeEnvironments.Default ? "not set" : "DEFAULT")"
                                   Value="@ValueOf(current, name)" ValueChanged="v => ChangeAsync(() => SetValue(current, name, v))" />
                 }
@@ -76,6 +80,19 @@
         if (!string.IsNullOrEmpty(value))
         {
             variable.Values[environment] = value;
+        }
+    }
+
+    private async Task PickSecretAsync(PipeVariable variable, string environment)
+    {
+        var dialog = await DialogService.ShowAsync<PipeSecretReferenceDialog>("Secret from a source",
+            new DialogParameters<PipeSecretReferenceDialog> { { d => d.Value, ValueOf(variable, environment) } },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: string reference })
+        {
+            // empty: back to a plain value, which means "not set" here
+            await ChangeAsync(() => SetValue(variable, environment, reference));
         }
     }
 

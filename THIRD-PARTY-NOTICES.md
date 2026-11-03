@@ -56,6 +56,19 @@ The PostgreSQL License is a permissive license similar to MIT/BSD: https://opens
 |---|---|---|---|---|---|
 | MiniExcel | 1.46.0 | Apache-2.0 | Copyright (c) Wei Lin, 2021 onwards | directly | https://github.com/mini-software/MiniExcel |
 
+### Secrets plugin
+
+`gView.Pipe.Plugins.Secrets` is installed as an external plugin (`plugins/gView.Pipe.Plugins.Secrets/`) and brings these components:
+
+| Component | Version | License | Copyright | Referenced | Project |
+|---|---|---|---|---|---|
+| Azure.Identity, Azure.Security.KeyVault.Secrets | 1.21.0, 4.11.2 | MIT | Copyright (c) Microsoft Corporation | directly | https://github.com/Azure/azure-sdk-for-net |
+| Azure.Core, System.ClientModel, System.Memory.Data, Microsoft.Identity.Client (+ .Extensions.Msal) | 1.54.0, 1.9.0, 8.0.1, 4.83.1 | MIT | Copyright (c) Microsoft Corporation | transitively via Azure.Identity | https://github.com/Azure/azure-sdk-for-net |
+| IdentityServerNET.Clients, IdentityServerNET.Extensions | 7.26.2901 | Apache-2.0 | Copyright (c) 2026 Jürgen Gstaltmaier | directly / via IdentityServerNET.Clients | https://github.com/jugstalt/identityservernet |
+| Duende.IdentityModel | 8.1.0 | Apache-2.0 | Copyright (c) Duende Software | transitively via IdentityServerNET.Clients | https://github.com/DuendeSoftware/foss |
+| Newtonsoft.Json | 13.0.4 | MIT | Copyright (c) James Newton-King | transitively via IdentityServerNET.Clients | https://www.newtonsoft.com/json |
+| Microsoft.IdentityModel.\*, System.IdentityModel.Tokens.Jwt | 8.19.2 | MIT | Copyright (c) Microsoft Corporation | transitively via Azure.Identity and IdentityServerNET.Clients | https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet |
+
 ### Scripts plugin
 
 `gView.Pipe.Plugins.Scripts` contains no third-party components. For Git repository sources it calls the git command line installed on the host; git is not part of gView.Pipe and keeps its own license (GPLv2, https://git-scm.com/about/free-and-open-source).

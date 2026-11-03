@@ -64,6 +64,17 @@ builder.Services
         options.Environment = builder.Configuration["Pipe:Environment"] ?? "DEFAULT";
         options.Environments.AddRange(builder.Configuration.GetSection("Pipe:Environments").Get<string[]>() ?? []);
         options.SecretVariables.AddRange(builder.Configuration.GetSection("Pipe:SecretVariables").Get<string[]>() ?? []);
+        // external sources of secrets (ADR 0033): Pipe:Secrets:Sources:<name>:Type plus the settings of that type
+        options.Secrets.CacheSeconds = builder.Configuration.GetValue("Pipe:Secrets:CacheSeconds", options.Secrets.CacheSeconds);
+        foreach (var source in builder.Configuration.GetSection("Pipe:Secrets:Sources").GetChildren())
+        {
+            var configured = new PipeSecretSourceOptions { Type = source["Type"] ?? "env" };
+            foreach (var setting in source.GetChildren().Where(s => s.Value is not null && !s.Key.Equals("Type", StringComparison.OrdinalIgnoreCase)))
+            {
+                configured.Settings[setting.Key] = setting.Value;
+            }
+            options.Secrets.Sources[source.Key] = configured;
+        }
         foreach (var variable in builder.Configuration.GetSection("Pipe:Variables").GetChildren())
         {
             options.Variables[variable.Key] = variable.GetChildren()
