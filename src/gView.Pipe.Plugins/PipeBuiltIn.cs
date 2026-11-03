@@ -36,6 +36,7 @@ static public class PipeBuiltInNodes
     public const string Crypto = "0cfe2067-05cc-4d62-9922-e380979ed6f4";
     public const string Compression = "4d279dad-5d3a-488b-80d4-5c95cebb0269";
     public const string FormTrigger = "a6d0c1f4-3b52-4e8a-9c17-72e5b0d84f31";
+    public const string FileTrigger = "096772ad-7fb1-41f1-9b34-19c8e2634355";
     public const string Result = "d93e7a58-1f06-4b2c-8a4d-6c0b51e92a7f";
 }
 

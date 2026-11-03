@@ -6,6 +6,7 @@ A trigger is the first node of a workflow. It decides when the workflow starts.
 |---|---|
 | Manual Trigger | When you run it in the editor. |
 | Cron Trigger | On a schedule (5 or 6 field cron expression), while the workflow is active. |
+| File Trigger | When new files appear in a folder, while the workflow is active (see [below](#file-trigger)). |
 | Webhook Trigger | When its URL is called, while the workflow is active. |
 | Execute Workflow Trigger | When another workflow calls this one with the Execute Workflow node. |
 | Error Trigger | When a run of another workflow fails (see [Error handling](error-handling.md)). |
@@ -117,3 +118,28 @@ curl -i -X POST http://localhost:5240/webhook/demo -H "Content-Type: application
 ```
 
 In Windows PowerShell, `Invoke-RestMethod` hides the body of an error answer. Use `curl.exe -i` (with `-k` for the development certificate on `https://localhost:7240`) to see the status code and the body.
+
+## File Trigger
+
+Starts the workflow when new files appear in a folder. The folder is one that the host released with `Pipe:FileRoots`, the same as for Read File and Write File; you name it and, if you like, a subfolder.
+
+The trigger looks at the folder every *Check every* seconds (10 by default). A file is reported when its size and time were the same in two checks in a row and no other program still writes to it, so a file that is being copied is not picked up half done. That takes up to two intervals.
+
+Each check that finds new files starts **one run** with **one item per file** (at most 100 per run; the rest follows with the next check):
+
+| Field | Content |
+|---|---|
+| `folder` | the name of the released folder |
+| `path` | the path of the file relative to that folder, with `/` |
+| `name` | the file name |
+| `size` | the size in bytes |
+| `modified` | the time of the last change (ISO 8601, UTC) |
+| `event` | `created`, or `changed` |
+
+The items hold no content. Read File reads it: use `{{ $json.path }}` as its *Path* and the same folder.
+
+- **Which files:** *File pattern* (`*.csv`) and *Include subfolders*. *Events* is *Created* (default) or *Created or changed*.
+- **Files that are already there** when the workflow is activated, or when the app starts, are not reported. The trigger keeps nothing on disk; after a restart it knows only what is in the folder then. A file that disappears and comes back is new.
+- **Move or delete the file** at the end of the workflow (Write File), if it must not be seen again.
+- If the workflow is busy and its queue is full ([Error handling](error-handling.md)), the files wait and are offered with the next check. If the folder can't be read, the trigger waits for it and writes one warning to the log.
+- A file that keeps changing, or stays open for another program, is not reported; the log says so after 30 checks.

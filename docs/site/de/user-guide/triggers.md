@@ -6,6 +6,7 @@ Ein Trigger ist der erste Node eines Workflows. Er bestimmt, wann der Workflow s
 |---|---|
 | Manual Trigger | Wenn du ihn im Editor ausführst. |
 | Cron Trigger | Nach Zeitplan (Cron-Ausdruck mit 5 oder 6 Feldern), solange der Workflow aktiv ist. |
+| File Trigger | Wenn neue Dateien in einem Ordner erscheinen, solange der Workflow aktiv ist (siehe [unten](#file-trigger)). |
 | Webhook Trigger | Wenn seine URL aufgerufen wird, solange der Workflow aktiv ist. |
 | Execute Workflow Trigger | Wenn ein anderer Workflow diesen mit dem Node Execute Workflow aufruft. |
 | Error Trigger | Wenn ein Lauf eines anderen Workflows fehlschlägt (siehe [Fehlerbehandlung](error-handling.md)). |
@@ -117,3 +118,28 @@ curl -i -X POST http://localhost:5240/webhook/demo -H "Content-Type: application
 ```
 
 In Windows PowerShell versteckt `Invoke-RestMethod` den Body einer Fehlerantwort. Nimm `curl.exe -i` (mit `-k` für das Entwicklungszertifikat auf `https://localhost:7240`), dann siehst du Statuscode und Body.
+
+## File Trigger
+
+Startet den Workflow, wenn neue Dateien in einem Ordner erscheinen. Der Ordner ist einer, den der Host mit `Pipe:FileRoots` freigegeben hat, derselbe wie bei Read File und Write File; du nennst ihn und, wenn du willst, einen Unterordner.
+
+Der Trigger sieht alle *Check every* Sekunden (standardmäßig 10) in den Ordner. Eine Datei wird gemeldet, wenn Größe und Zeit in zwei Abfragen hintereinander gleich waren und kein anderes Programm mehr hineinschreibt; eine Datei, die gerade kopiert wird, wird also nicht halbfertig aufgenommen. Das dauert bis zu zwei Intervalle.
+
+Jede Abfrage, die neue Dateien findet, startet **einen Lauf** mit **einem Item pro Datei** (höchstens 100 pro Lauf, der Rest folgt mit der nächsten Abfrage):
+
+| Feld | Inhalt |
+|---|---|
+| `folder` | der Name des freigegebenen Ordners |
+| `path` | der Pfad der Datei relativ zu diesem Ordner, mit `/` |
+| `name` | der Dateiname |
+| `size` | die Größe in Bytes |
+| `modified` | der Zeitpunkt der letzten Änderung (ISO 8601, UTC) |
+| `event` | `created` oder `changed` |
+
+Die Items enthalten keinen Inhalt. Den liest Read File: nimm `{{ $json.path }}` als *Path* und denselben Ordner.
+
+- **Welche Dateien:** *File pattern* (`*.csv`) und *Include subfolders*. *Events* ist *Created* (Standard) oder *Created or changed*.
+- **Dateien, die schon da sind**, wenn der Workflow aktiviert wird oder die App startet, werden nicht gemeldet. Der Trigger merkt sich nichts auf der Platte; nach einem Neustart kennt er nur, was dann im Ordner liegt. Eine Datei, die verschwindet und wiederkommt, ist neu.
+- **Verschiebe oder lösche die Datei** am Ende des Workflows (Write File), wenn sie nicht noch einmal auftauchen soll.
+- Ist der Workflow beschäftigt und seine Warteschlange voll ([Fehlerbehandlung](error-handling.md)), warten die Dateien und werden mit der nächsten Abfrage wieder angeboten. Kann der Ordner nicht gelesen werden, wartet der Trigger darauf und schreibt eine Warnung ins Log.
+- Eine Datei, die sich ständig ändert oder für ein anderes Programm offen bleibt, wird nicht gemeldet; das Log sagt es nach 30 Abfragen.

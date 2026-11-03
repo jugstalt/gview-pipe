@@ -1,9 +1,10 @@
-using gView.Pipe.Abstraction.Security;
+﻿using gView.Pipe.Abstraction.Security;
 using gView.Pipe.AspNetCore.Authentication;
 using gView.Pipe.AspNetCore.Extensions.Builder;
 using gView.Pipe.AspNetCore.Extensions.DependencyInjection;
 using gView.Pipe.AspNetCore.Extensions.Routing;
 using gView.Pipe.Core.Extensions.DependencyInjection;
+using gView.Pipe.Core.Options;
 using gView.Pipe.Razor.Extensions.DependencyInjection;
 using gView.Pipe.Shell;
 using gView.Pipe.Shell.Components;
