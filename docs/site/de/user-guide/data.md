@@ -79,3 +79,21 @@ Nimm das HMAC-Geheimnis aus einer geheimen Variable (`{{ $vars.WEBHOOK_SECRET }}
 | GZip / GUnzip | komprimiert oder entpackt einen Anhang |
 
 Das Entpacken bricht mit einem Fehler ab, wenn der Inhalt größer als *Max size* (500 MB) wird, damit ein kleines Archiv den Server nicht füllen kann. Archive werden nie auf die Festplatte entpackt: Pfade im Archiv sind in den Items nur Text.
+
+## SFTP
+
+Der Node **SFTP** (Plugin `gView.Pipe.Plugins.Sftp`) listet, lädt herunter, lädt hoch, löscht und benennt Dateien auf einem SFTP-Server um. Er läuft einmal pro Eingabe-Item über eine Verbindung, und die Pfade erlauben Ausdrücke.
+
+Lege zuerst ein [Credential](credentials.md) **SFTP Server** an: Host, Port, Benutzername, ein Passwort und/oder einen privaten Schlüssel und den **Fingerabdruck des Host-Keys** des Servers (`SHA256:…`). Der Fingerabdruck ist Pflicht: Ein Server mit einem anderen wird abgelehnt, und die Fehlermeldung zeigt den, den er vorgelegt hat. So kannst du ihn mit dem Betreiber des Servers prüfen und eintragen. Passwort, Schlüssel und Passphrase können aus einer [Secret-Quelle](../admin-guide/secrets.md) kommen.
+
+| Operation | Was sie tut |
+|---|---|
+| List | Ein Item pro Datei in *Path* (`fileName`, `path`, `size`, `modifiedAt`, `isDirectory`). *File pattern* filtert (`*.csv`), *Include subfolders* geht tiefer, *Include folders* nimmt auch Ordner auf. Mehr als 10000 Einträge sind ein Fehler. |
+| Download | Holt die Datei in *Path* (genau eine, kein Muster) und hängt sie ans Item, standardmäßig als `data`. Dateien über *Max file size (MB)* (100) werden abgelehnt, bevor sie geladen werden. |
+| Upload | Schreibt den Anhang des Items nach *Path*. Eine vorhandene Datei ist ein Fehler, außer *Overwrite* ist an; ein fehlender Ordner ist ein Fehler, außer *Create folders* ist an. |
+| Delete | Löscht die Datei in *Path*. |
+| Rename | Benennt *Path* in *New path* um oder verschiebt ihn. Ein vorhandenes Ziel ist ein Fehler, außer *Overwrite* ist an. |
+
+Ein Upload geht zuerst nach `<Name>.part` und wird umbenannt, wenn er vollständig ist, sodass ein Leser auf dem Server nie eine halbe Datei sieht. Mit *Overwrite* wird die alte Datei kurz vor diesem Umbenennen gelöscht.
+
+Lokale Dateien rührt dieser Node nicht an: Inhalte reisen als Anhänge. Kombiniere ihn mit Read File und Write File, um eine Datei vom Server in einen freigegebenen Ordner zu holen oder von dort zu senden. Ein typischer Ablauf: **List** → **Download** (mit `{{ $json.path }}` als *Path*) → verarbeiten → **Rename** in einen Archivordner auf dem Server.

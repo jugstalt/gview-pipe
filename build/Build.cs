@@ -65,6 +65,7 @@ class Build : NukeBuild
         (RelativePath)"src/gView.Pipe.Plugins.Office/gView.Pipe.Plugins.Office.csproj",
         (RelativePath)"src/gView.Pipe.Plugins.Scripts/gView.Pipe.Plugins.Scripts.csproj",
         (RelativePath)"src/gView.Pipe.Plugins.Secrets/gView.Pipe.Plugins.Secrets.csproj",
+        (RelativePath)"src/gView.Pipe.Plugins.Sftp/gView.Pipe.Plugins.Sftp.csproj",
     };
 
     AbsolutePath AssetsDirectory => RootDirectory / "publish";

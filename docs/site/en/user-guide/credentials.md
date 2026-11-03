@@ -27,6 +27,7 @@ The list shows the name, the type and the **id** of each credential. The id is w
 | API Key Header | HTTP Request, Webhook Trigger | header name, value |
 | OAuth2 Client Credentials | HTTP Request | token URL, client id, client secret, scope, audience, how the client credentials are sent (header or body) |
 | Connection String | SQL | provider (`sqlserver`, `postgres` or `sqlite`), connection string |
+| SFTP Server | SFTP | host, port, user name, password and/or private key (with passphrase), fingerprint of the host key |
 | SMTP | Send Email | host, port, security (auto, SSL on connect, StartTLS, none), user name, password, sender address |
 
 The exact fields are listed in the [credential types](nodes/credential-types.md) of the node reference.

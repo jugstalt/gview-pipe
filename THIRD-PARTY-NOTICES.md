@@ -56,6 +56,15 @@ The PostgreSQL License is a permissive license similar to MIT/BSD: https://opens
 |---|---|---|---|---|---|
 | MiniExcel | 1.46.0 | Apache-2.0 | Copyright (c) Wei Lin, 2021 onwards | directly | https://github.com/mini-software/MiniExcel |
 
+### SFTP plugin
+
+`gView.Pipe.Plugins.Sftp` is installed as an external plugin (`plugins/gView.Pipe.Plugins.Sftp/`) and brings these components:
+
+| Component | Version | License | Copyright | Referenced | Project |
+|---|---|---|---|---|---|
+| SSH.NET | 2026.0.0 | MIT | Copyright (c) Renci 2010-2026 | directly | https://github.com/sshnet/SSH.NET |
+| BouncyCastle.Cryptography | 2.7.0 | MIT | Copyright (c) Legion of the Bouncy Castle Inc. | transitively via SSH.NET | https://www.bouncycastle.org |
+
 ### Secrets plugin
 
 `gView.Pipe.Plugins.Secrets` is installed as an external plugin (`plugins/gView.Pipe.Plugins.Secrets/`) and brings these components:

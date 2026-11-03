@@ -16,6 +16,7 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
   - Building it copies the output into `src/gView.Pipe.Shell/plugins/gView.Pipe.Plugins.Database/` (ignored by Git).
   - Values reach SQL only as parameters; the SQL text is read from `RawParameters` and never evaluated.
 - `gView.Pipe.Plugins.Secrets`: the secret sources Azure Key Vault and the secrets vault of IdentityServer.NET (ADR 0033), as an external plugin like the database plugin. The source `env` and the resolver are in Core. Credentials and variables hold references `secret:<source>/<name>`, resolved at run time; never log or store the value.
+- `gView.Pipe.Plugins.Sftp`: the SFTP node and the credential type SFTP Server (ADR 0037), as an external plugin with SSH.NET. The node talks to `ISftpConnector`, so tests use a fake server; the host key fingerprint of the credential is required and checked.
 - `gView.Pipe.Plugins.Scripts`: Run Script, Run Scripts Folder and Run Scripts Repo (bat/cmd, PowerShell, Python, sh) from released script folders or configured Git servers (Gitea/GitHub API, temporary clones via git CLI); see ADR 0011. Installed into the Shell like the database plugin.
 - `gView.Pipe.Razor`: MudBlazor UI components.
   - Depends on Abstraction only.

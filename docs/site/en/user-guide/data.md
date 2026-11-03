@@ -79,3 +79,21 @@ Take the HMAC secret from a secret variable (`{{ $vars.WEBHOOK_SECRET }}`, see [
 | GZip / GUnzip | compresses or decompresses one attachment |
 
 Unpacking stops with an error when the content gets larger than *Max size* (500 MB), so a small archive can't fill the server. Archives are never unpacked to disk: paths in the archive are only text in the items.
+
+## SFTP
+
+The **SFTP** node (plugin `gView.Pipe.Plugins.Sftp`) lists, downloads, uploads, deletes and renames files on an SFTP server. It runs once per input item over one connection, and the paths accept expressions.
+
+First create an **SFTP Server** [credential](credentials.md): host, port, user name, a password and/or a private key, and the **fingerprint of the server's host key** (`SHA256:…`). The fingerprint is required: a server with another one is refused, and the error shows the fingerprint it presented, so you can check it with the owner of the server and enter it. Password, key and passphrase can come from a [secret source](../admin-guide/secrets.md).
+
+| Operation | What it does |
+|---|---|
+| List | One item per file in *Path* (`fileName`, `path`, `size`, `modifiedAt`, `isDirectory`). *File pattern* filters (`*.csv`), *Include subfolders* goes deeper, *Include folders* adds folders. More than 10000 entries are an error. |
+| Download | Gets the file in *Path* (one file, no pattern) and attaches it to the item, by default as `data`. Files larger than *Max file size (MB)* (100) are refused before they are loaded. |
+| Upload | Writes the attachment of the item to *Path*. A file that exists is an error unless *Overwrite* is on; a missing folder is an error unless *Create folders* is on. |
+| Delete | Deletes the file in *Path*. |
+| Rename | Renames or moves *Path* to *New path*. A target that exists is an error unless *Overwrite* is on. |
+
+An upload goes to `<name>.part` first and is renamed when it is complete, so a reader on the server never sees half a file. With *Overwrite*, the old file is deleted just before that rename.
+
+Local files are not touched by this node: content travels as attachments. Combine it with Read File and Write File to fetch a file from the server into a released folder, or to send one from there. A typical flow: **List** → **Download** (with `{{ $json.path }}` as *Path*) → process → **Rename** into an archive folder on the server.

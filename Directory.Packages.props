@@ -30,6 +30,9 @@
     <PackageVersion Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.6.1" />
     <PackageVersion Include="IdentityServerNET.Aspire.Hosting" Version="7.26.2902" />
   </ItemGroup>
+  <ItemGroup Label="SFTP (gView.Pipe.Plugins.Sftp)">
+    <PackageVersion Include="SSH.NET" Version="2026.0.0" />
+  </ItemGroup>
   <ItemGroup Label="Secret sources">
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.11.2" />

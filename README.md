@@ -63,7 +63,7 @@ The settings (`Pipe:*`) live in `src/gView.Pipe.Shell/_config/pipe.config`, crea
 | `gView.Pipe.Core` | Headless engine, plugin loader, JavaScript engine, scheduler, trigger manager, file and memory stores. |
 | `gView.Pipe.AspNetCore` | ASP.NET Core integration: webhooks, the REST API and the sign-in of the UI. |
 | `gView.Pipe.Plugins` | Built-in nodes and credential types. They use only the Abstraction, exactly like external plugins. |
-| `gView.Pipe.Plugins.Database`, `.Scripts`, `.Office` | External plugins: SQL, scripts and Excel files. Building one installs it into `src/gView.Pipe.Shell/plugins/`. Install the Scripts plugin only where running scripts is wanted. |
+| `gView.Pipe.Plugins.Database`, `.Scripts`, `.Office`, `.Sftp`, `.Secrets` | External plugins: SQL, scripts, Excel files, SFTP and secret sources. Building one installs it into `src/gView.Pipe.Shell/plugins/`. Install the Scripts plugin only where running scripts is wanted. |
 | `gView.Pipe.Razor` | MudBlazor components: workflow list with groups, credential list and the editor. |
 | `gView.Pipe.Shell` | The app: layout, routing and service composition. |
 | `gView.Pipe.Portal` | The user portal, a standalone Blazor app that runs published workflows through a backend. |
