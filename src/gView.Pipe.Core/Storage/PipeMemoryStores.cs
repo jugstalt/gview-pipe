@@ -34,6 +34,16 @@ internal sealed class PipeMemoryWorkflowStore : IPipeWorkflowStore
     }
 }
 
+/// <summary>The memory store keeps no versions (ADR 0031).</summary>
+internal sealed class PipeMemoryWorkflowVersionStore : IPipeWorkflowVersionStore
+{
+    public Task<IReadOnlyList<PipeWorkflowVersionInfo>> ListAsync(string workflowId, CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<PipeWorkflowVersionInfo>>([]);
+
+    public Task<PipeWorkflow?> GetAsync(string workflowId, string versionId, CancellationToken cancellationToken = default)
+        => Task.FromResult<PipeWorkflow?>(null);
+}
+
 internal sealed class PipeMemoryWorkflowGroupStore : IPipeWorkflowGroupStore
 {
     private readonly ConcurrentDictionary<string, PipeWorkflowGroup> _groups = new();

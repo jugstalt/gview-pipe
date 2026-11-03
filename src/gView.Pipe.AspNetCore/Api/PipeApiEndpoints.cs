@@ -73,6 +73,7 @@ static public class PipeApiEndpoints
         api.MapGet("/workflows/{id}", GetWorkflowAsync).Need(PipeApiRights.Read).WithSummary("Gets a workflow; the ETag is its version for If-Match");
         api.MapPut("/workflows/{id}", PutWorkflowAsync).Need(PipeApiRights.Deploy).WithSummary("Creates or replaces a workflow");
         api.MapDelete("/workflows/{id}", DeleteWorkflowAsync).Need(PipeApiRights.Deploy).WithSummary("Deletes a workflow");
+        api.MapGet("/workflows/{id}/versions", ListVersionsAsync).Need(PipeApiRights.Read).WithSummary("Lists the saved versions of a workflow, newest first");
         api.MapPost("/workflows/{id}/activate", (string id, HttpContext context) => SetActiveAsync(id, true, context)).Need(PipeApiRights.Deploy).WithSummary("Activates the triggers of a workflow");
         api.MapPost("/workflows/{id}/deactivate", (string id, HttpContext context) => SetActiveAsync(id, false, context)).Need(PipeApiRights.Deploy).WithSummary("Deactivates the triggers of a workflow");
         api.MapPost("/workflows/{id}/run", RunAsync).Need(PipeApiRights.Run).WithSummary("Starts a run");
@@ -145,6 +146,16 @@ static public class PipeApiEndpoints
         }
         context.Response.Headers.ETag = ETag(workflow);
         return Json(workflow);
+    }
+
+    static private async Task<IResult> ListVersionsAsync(string id, HttpContext context)
+    {
+        if (await VisibleWorkflowAsync(id, context) is null)
+        {
+            return NotFound($"Workflow '{id}'");
+        }
+        var versions = await context.RequestServices.GetRequiredService<IPipeWorkflowVersionStore>().ListAsync(id, context.RequestAborted);
+        return Json(versions);
     }
 
     static private async Task<IResult> PutWorkflowAsync(string id, HttpContext context)

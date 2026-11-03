@@ -16,6 +16,8 @@ The first release, 0.1.0. Until it is tagged, everything below is part of it.
 - Visual workflow editor on a canvas with a node palette and parameter forms generated from the parameter classes of the nodes. Undo and redo, copy and paste (also between workflows), duplicate, insert a node onto a connection, resizable side panels and sticky notes (ADR 0004, 0024).
 - The workflow panel is divided into sections you can open and close. A ? button explains each section and links to the matching page of the documentation; the toolbar, the panel header, the node panel and the app bar link to the documentation too. The address is `Pipe:DocsUrl`, by default the built-in `/docs` or the public documentation.
 - Code fields in Monaco, expression autocomplete, a dark mode (ADR 0019).
+- Workflow versions: every changing save keeps a copy; the workflow panel lists them with a summary and restores one into the editor; `GET /api/v1/workflows/{id}/versions` (ADR 0031).
+- OpenTelemetry metrics of the engine under the meter `gView.Pipe`: runs, duration, skipped and active runs per workflow (ADR 0032).
 - Inspect every node: input, output and log of the latest run or of any execution; items as JSON or as text; live output while a node runs. Pin the output of a node, run to a node, replay a run from a node (ADR 0015).
 
 **Engine and nodes**

@@ -48,6 +48,14 @@ Filter by person, area, object id and time, and export what is shown as CSV (*Ex
 
 The entries are kept as one file of JSON lines per month in `data/audit/` and deleted after `Pipe:AuditRetentionDays` (365, in whole months). Every entry is also written to the application log (category `gView.Pipe.Audit`). Who can write the data folder can change the files; if you need proof, keep the entries of a central log system.
 
+## Workflow versions
+
+Every save that changes a workflow keeps a copy in `data/workflow-versions/<workflow id>/`, up to `Pipe:WorkflowVersions` per workflow (50; `0` switches it off). The *Versions* section of the workflow panel in the editor lists them with a summary of what changed. *Restore* loads a version into the editor like an unsaved change: undo brings the current state back, and saving makes the restored state a new version. Deleting a workflow deletes its versions. The API lists them with `GET /api/v1/workflows/{id}/versions`.
+
+## Metrics
+
+The meter `gView.Pipe` publishes OpenTelemetry metrics: `gview.pipe.runs` (finished runs by workflow, `status` and `mode`), `gview.pipe.run.duration` (seconds), `gview.pipe.runs.skipped` (runs dropped because the workflow was busy and its queue full) and `gview.pipe.runs.active`. Errors per workflow are the runs with `status=error`. The service defaults of the Aspire AppHost collect them; in your own host add the meter with `AddMeter("gView.Pipe")` and set `OTEL_EXPORTER_OTLP_ENDPOINT` to export.
+
 ## Backup
 
 Back up the whole `data` folder, plus `files` and `scripts` if you use them:

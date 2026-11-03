@@ -38,6 +38,7 @@ The API is described in `/api/v1/openapi.json` (OpenAPI 3). Load it into a tool 
 | `GET /api/v1/workflows/{id}` | read | The workflow as JSON, with its version as `ETag`. |
 | `PUT /api/v1/workflows/{id}` | deploy | Creates or replaces the workflow (see below). |
 | `DELETE /api/v1/workflows/{id}` | deploy | Deletes the workflow. |
+| `GET /api/v1/workflows/{id}/versions` | read | The saved versions, newest first, with a summary of each change. |
 | `POST /api/v1/workflows/{id}/activate`, `/deactivate` | deploy | Switches its triggers on or off. |
 | `POST /api/v1/workflows/{id}/run` | run | Starts a run (see below). |
 | `GET /api/v1/executions` | read | Executions, newest first. Filters: `workflowId`, `status`, `mode`, `from`, `before`, `limit`. |

@@ -74,6 +74,7 @@ builder.Services
     .AddPipeFileStore(options =>
     {
         options.RootPath = builder.Configuration["Pipe:DataPath"] ?? "data";
+        options.WorkflowVersions = builder.Configuration.GetValue("Pipe:WorkflowVersions", options.WorkflowVersions);
         options.SeedWorkflowsPath = Path.Combine(AppContext.BaseDirectory, "samples", "workflows");
         options.SeedGroupsPath = Path.Combine(AppContext.BaseDirectory, "samples", "groups.json");
     })

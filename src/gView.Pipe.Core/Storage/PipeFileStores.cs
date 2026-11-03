@@ -20,6 +20,8 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
     private readonly string? _seedGroups;
     private readonly string _groupsFile;
     private readonly string _healthFolder;
+    private readonly string _versionsFolder;
+    private readonly int _keepVersions;
     private readonly PipeSecretValues _secrets;
     private readonly ILogger<PipeFileWorkflowStore> _logger;
     private readonly Lock _seedLock = new();
@@ -33,6 +35,8 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
         _seedGroups = options.Value.SeedGroupsPath is { } groups ? Path.GetFullPath(groups) : null;
         _groupsFile = PipeFileWorkflowGroupStore.FileOf(options.Value);
         _healthFolder = PipeFileWorkflowHealthStore.FolderOf(options.Value);
+        _versionsFolder = PipeFileWorkflowVersionStore.FolderOf(options.Value);
+        _keepVersions = options.Value.WorkflowVersions;
         _logger = logger;
     }
 
@@ -75,7 +79,7 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
         return workflow;
     }
 
-    public Task SaveAsync(PipeWorkflow workflow, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(PipeWorkflow workflow, CancellationToken cancellationToken = default)
     {
         EnsureSeeded();
         PipeStoreIds.Prepare(workflow);
@@ -85,7 +89,18 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
             stored = PipeJson.Clone(workflow);
             stored.Variables = _secrets.Protected(workflow.Variables);
         }
-        return PipeFiles.WriteAtomicAsync(PathOf(workflow.Id), PipeJson.Serialize(stored), cancellationToken);
+        var json = PipeJson.Serialize(stored);
+        await PipeFiles.WriteAtomicAsync(PathOf(workflow.Id), json, cancellationToken);
+
+        try
+        {
+            await PipeFileWorkflowVersionStore.AddAsync(_versionsFolder, workflow.Id, json, _keepVersions, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // the save itself worked; a missing version must not fail it
+            _logger.LogWarning(ex, "Can't store a version of workflow {WorkflowId}", workflow.Id);
+        }
     }
 
     public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
@@ -94,6 +109,7 @@ internal sealed class PipeFileWorkflowStore : IPipeWorkflowStore
         File.Delete(PathOf(id));
         // an open failure (ADR 0025) goes with the workflow
         PipeFileWorkflowHealthStore.DeleteFile(_healthFolder, id);
+        PipeFileWorkflowVersionStore.DeleteAll(_versionsFolder, id);
         return Task.CompletedTask;
     }
 
@@ -414,6 +430,121 @@ internal sealed class PipeFileCredentialStore : IPipeCredentialStore
         public string Name { get; set; } = "";
         public Guid TypeId { get; set; }
         public string ProtectedData { get; set; } = "";
+    }
+}
+
+/// <summary>Copies of saved workflows: <c>{root}/workflow-versions/{workflowId}/{yyyyMMddHHmmssfff}.json</c> (ADR 0031).</summary>
+internal sealed class PipeFileWorkflowVersionStore : IPipeWorkflowVersionStore
+{
+    private const string Stamp = "yyyyMMddHHmmssfff";
+
+    private readonly string _folder;
+    private readonly PipeSecretValues _secrets;
+
+    public PipeFileWorkflowVersionStore(IOptions<PipeFileStoreOptions> options, PipeSecretValues secrets)
+    {
+        _folder = FolderOf(options.Value);
+        _secrets = secrets;
+    }
+
+    static public string FolderOf(PipeFileStoreOptions options) => Path.Combine(Path.GetFullPath(options.RootPath), "workflow-versions");
+
+    static public void DeleteAll(string folder, string workflowId)
+    {
+        var directory = Path.Combine(folder, PipeStoreIds.Validate(workflowId));
+        if (Directory.Exists(directory))
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    /// <summary>Stores the saved JSON as the newest version, unless it equals the newest one; prunes to <paramref name="keep"/>.</summary>
+    static public async Task AddAsync(string folder, string workflowId, string json, int keep, CancellationToken cancellationToken)
+    {
+        if (keep <= 0)
+        {
+            return;
+        }
+
+        var directory = Path.Combine(folder, PipeStoreIds.Validate(workflowId));
+        var files = Directory.Exists(directory) ? Directory.GetFiles(directory, "*.json").Order().ToList() : [];
+
+        if (files.Count > 0 && SameContent(await File.ReadAllTextAsync(files[^1], cancellationToken), json))
+        {
+            return;
+        }
+
+        var name = DateTimeOffset.UtcNow.ToString(Stamp, CultureInfo.InvariantCulture);
+        // two saves in the same millisecond: the later one wins the name
+        await PipeFiles.WriteAtomicAsync(Path.Combine(directory, $"{name}.json"), json, cancellationToken);
+
+        files = [.. Directory.GetFiles(directory, "*.json").Order()];
+        foreach (var old in files.Take(Math.Max(0, files.Count - keep)))
+        {
+            File.Delete(old);
+        }
+    }
+
+    // updatedAt differs with every save, so it doesn't count as a change
+    static private bool SameContent(string a, string b)
+    {
+        try
+        {
+            var x = JsonNode.Parse(a)?.AsObject();
+            var y = JsonNode.Parse(b)?.AsObject();
+            x?.Remove("updatedAt");
+            y?.Remove("updatedAt");
+            return x?.ToJsonString() == y?.ToJsonString();
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    public async Task<IReadOnlyList<PipeWorkflowVersionInfo>> ListAsync(string workflowId, CancellationToken cancellationToken = default)
+    {
+        var directory = Path.Combine(_folder, PipeStoreIds.Validate(workflowId));
+        if (!Directory.Exists(directory))
+        {
+            return [];
+        }
+
+        var list = new List<PipeWorkflowVersionInfo>();
+        PipeWorkflow? previous = null;
+        foreach (var file in Directory.GetFiles(directory, "*.json").Order())
+        {
+            var id = Path.GetFileNameWithoutExtension(file);
+            if (!DateTimeOffset.TryParseExact(id, Stamp, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var savedAt)
+                || Read(await File.ReadAllTextAsync(file, cancellationToken)) is not { } workflow)
+            {
+                continue;
+            }
+
+            list.Add(new PipeWorkflowVersionInfo
+            {
+                Id = id,
+                SavedAt = savedAt,
+                Summary = previous is null ? "first version" : PipeWorkflowChanges.Describe(previous, workflow)
+            });
+            previous = workflow;
+        }
+
+        list.Reverse();
+        return list;
+    }
+
+    public async Task<PipeWorkflow?> GetAsync(string workflowId, string versionId, CancellationToken cancellationToken = default)
+    {
+        var path = Path.Combine(_folder, PipeStoreIds.Validate(workflowId), $"{PipeStoreIds.Validate(versionId)}.json");
+        return File.Exists(path) ? Read(await File.ReadAllTextAsync(path, cancellationToken)) : null;
+    }
+
+    private PipeWorkflow? Read(string json)
+    {
+        var workflow = PipeJson.Deserialize<PipeWorkflow>(json);
+        _secrets.Unprotect(workflow?.Variables);
+        return workflow;
     }
 }
 

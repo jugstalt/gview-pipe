@@ -44,7 +44,9 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    // runs, duration and errors per workflow (ADR 0032)
+                    .AddMeter("gView.Pipe");
             })
             .WithTracing(tracing =>
             {

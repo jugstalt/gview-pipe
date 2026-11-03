@@ -75,6 +75,7 @@ static public class ServicesExtensions
         services.AddHostedService(sp => sp.GetRequiredService<PipeTriggerManager>());
 
         services.TryAddSingleton<IPipeWorkflowStore, PipeMemoryWorkflowStore>();
+        services.TryAddSingleton<IPipeWorkflowVersionStore, PipeMemoryWorkflowVersionStore>();
         services.TryAddSingleton<IPipeWorkflowGroupStore, PipeMemoryWorkflowGroupStore>();
         services.TryAddSingleton<IPipeExecutionStore, PipeMemoryExecutionStore>();
         services.TryAddSingleton<IPipeCredentialStore, PipeMemoryCredentialStore>();
@@ -108,6 +109,7 @@ static public class ServicesExtensions
         }
 
         services.Replace(ServiceDescriptor.Singleton<IPipeWorkflowStore, PipeFileWorkflowStore>());
+        services.Replace(ServiceDescriptor.Singleton<IPipeWorkflowVersionStore, PipeFileWorkflowVersionStore>());
         services.Replace(ServiceDescriptor.Singleton<IPipeWorkflowGroupStore, PipeFileWorkflowGroupStore>());
         services.Replace(ServiceDescriptor.Singleton<IPipeExecutionStore, PipeFileExecutionStore>());
         services.Replace(ServiceDescriptor.Singleton<IPipeCredentialStore, PipeFileCredentialStore>());

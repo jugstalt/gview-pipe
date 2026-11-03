@@ -8,6 +8,9 @@ public class PipeFileStoreOptions
     /// </summary>
     public string RootPath { get; set; } = "data";
 
+    /// <summary>Versions kept per workflow in <c>workflow-versions/</c>; 0 = none (ADR 0031).</summary>
+    public int WorkflowVersions { get; set; } = 50;
+
     /// <summary>
     /// Folder with workflow JSON files copied into <c>workflows/</c> when it contains no workflow yet
     /// (first start). Null disables seeding.

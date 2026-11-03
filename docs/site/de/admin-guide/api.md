@@ -38,6 +38,7 @@ Die API ist in `/api/v1/openapi.json` (OpenAPI 3) beschrieben. Lade die Datei in
 | `GET /api/v1/workflows/{id}` | read | Der Workflow als JSON, mit seiner Version als `ETag`. |
 | `PUT /api/v1/workflows/{id}` | deploy | Legt den Workflow an oder ersetzt ihn (siehe unten). |
 | `DELETE /api/v1/workflows/{id}` | deploy | Löscht den Workflow. |
+| `GET /api/v1/workflows/{id}/versions` | read | Die gespeicherten Versionen, neueste zuerst, mit einer Zusammenfassung jeder Änderung. |
 | `POST /api/v1/workflows/{id}/activate`, `/deactivate` | deploy | Schaltet seine Trigger ein oder aus. |
 | `POST /api/v1/workflows/{id}/run` | run | Startet einen Lauf (siehe unten). |
 | `GET /api/v1/executions` | read | Executions, die neueste zuerst. Filter: `workflowId`, `status`, `mode`, `from`, `before`, `limit`. |

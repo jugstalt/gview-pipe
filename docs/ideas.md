@@ -2,7 +2,7 @@
 
 Backlog of possible features. Internal, not part of the docs site. Larger items get an ADR before they are built.
 
-Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: workflow versions (history, diff, restore; the audit log already records who saved).
+Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: secrets from environment variables or a Key Vault, or flow nodes (loop, throttle).
 
 ## Operations and reliability
 
@@ -11,7 +11,7 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 - [x] Queue for triggered runs (ADR 0016).
 - [x] Failure notifications: inherited error workflow, throttling, Mail/Teams/Slack samples (ADR 0017).
 - [x] "Back to normal" message when a workflow that failed succeeds again: Recovery Trigger (ADR 0025).
-- [ ] Metrics with OpenTelemetry: runs, duration and errors per workflow (the ServiceDefaults are already there).
+- [x] Metrics with OpenTelemetry: runs, duration and errors per workflow (ADR 0032).
 
 ## Nodes
 
@@ -27,7 +27,7 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 - [x] Pinned data, undo/redo and copy/paste of nodes (as JSON, also between workflows) exist already.
 - [x] Sticky notes on the canvas (ADR 0024); comments by several people are not part of it.
 - [x] Expression editor: autocomplete in expression and code fields (ADR 0019); the preview of the value existed already.
-- [ ] Workflow versions: history and diff, export/import with Git.
+- [x] Workflow versions: history with a summary of each change and restore (ADR 0031); a side-by-side diff and export/import with Git are not part of it.
 
 ## Security and multi-user
 

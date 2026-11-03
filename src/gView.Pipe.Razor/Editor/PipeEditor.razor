@@ -14,6 +14,7 @@
 @inject gView.Pipe.Abstraction.Audit.IPipeAuditLog AuditLog
 @inject IPipeWorkflowStore WorkflowStore
 @inject IPipeWorkflowGroupStore GroupStore
+@inject IPipeWorkflowVersionStore VersionStore
 @inject IPipeWorkflowRunner Runner
 @inject IPipeTriggerManager TriggerManager
 @inject IPipeNodeRegistry Registry
@@ -237,6 +238,7 @@
                     <PipeWorkflowPanel Workflow="_workflow" HistoryVersion="_historyVersion" ReadOnly="ReadOnly"
                                        SelectedExecutionId="@_execution?.Id"
                                        OnChanged="@(() => MarkDirty("workflow"))"
+                                       OnRestoreVersion="RestoreVersionAsync"
                                        OnSelectExecution="ShowExecution" />
                 }
             </div>
@@ -784,6 +786,29 @@
         }
         _redo.Clear();
         _current = snapshot;
+    }
+
+    /// <summary>Loads an earlier version like an unsaved change: undo brings the current state back, saving makes it a new version (ADR 0031).</summary>
+    private async Task RestoreVersionAsync(string versionId)
+    {
+        if (_workflow is null || ReadOnly
+            || await VersionStore.GetAsync(_workflow.Id, versionId) is not { } version)
+        {
+            return;
+        }
+
+        // identity and bookkeeping stay those of the workflow as it is now
+        version.Id = _workflow.Id;
+        version.CreatedAt = _workflow.CreatedAt;
+        version.GroupId = _workflow.GroupId;
+        version.Active = _workflow.Active;
+
+        if (_current is not null)
+        {
+            _undo.AddLast(_current);
+        }
+        _redo.Clear();
+        Restore(System.Text.Json.JsonSerializer.Serialize(version, PipeJson.Options));
     }
 
     private void Undo()

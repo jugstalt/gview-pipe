@@ -121,6 +121,7 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
             if (queueLimit <= 0)
             {
                 _logger.LogWarning("Workflow {WorkflowName} already runs {MaxRuns} time(s); run skipped", workflow.Name, maxRuns);
+                PipeMetrics.RunSkipped(workflow.Id, workflow.Name);
                 ticket?.Reject();
                 return null;
             }
@@ -141,9 +142,12 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _monitor.RegisterCancellation(request.ExecutionId!, cancellation);
 
+        PipeMetrics.RunStarted();
+        PipeExecution? finished = null;
         try
         {
             var execution = await _engine.ExecuteAsync(workflow, request, cancellation.Token);
+            finished = execution;
 
             var toStore = execution;
             if (!workflow.Settings.SaveExecutionData)
@@ -184,6 +188,15 @@ internal sealed class PipeWorkflowRunner : IPipeWorkflowRunner
         }
         finally
         {
+            if (finished is not null)
+            {
+                PipeMetrics.RunFinished(finished);
+            }
+            else
+            {
+                // the engine threw: count the run as ended, without status or duration
+                PipeMetrics.RunAborted();
+            }
             _monitor.UnregisterCancellation(request.ExecutionId!);
             slot.Release();
         }

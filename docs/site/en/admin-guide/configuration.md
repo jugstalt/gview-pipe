@@ -32,6 +32,7 @@ The variable `PIPE_CONFIG_PATH` moves the `_config` folder. The start scripts an
 | `Pipe:PublicUrl` | none | Address users open the app at, for example `https://pipe.example.com`. Error workflows get a link to the failed run (`execution.url`). |
 | `Pipe:ExecutionRetention` | `50` | Executions kept per workflow. A workflow can set its own value. |
 | `Pipe:ExecutionRetentionDays` | `0` | Days executions are kept; `0` means no limit. A workflow can set its own value. Older executions are deleted once a day and after each run. |
+| `Pipe:WorkflowVersions` | `50` | Saved [versions](operations.md#workflow-versions) kept per workflow; `0` keeps none. |
 | `Pipe:AuditRetentionDays` | `365` | Days the [audit log](operations.md#audit-log) is kept, in whole months; `0` means no limit. |
 
 Relative paths are resolved against the working directory of the app.

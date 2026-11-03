@@ -4,6 +4,7 @@
 @inject IPipeErrorWorkflows ErrorWorkflows
 @inject IPipeWorkflowStore WorkflowStore
 @inject IPipeAuditLog AuditLog
+@inject IPipeWorkflowVersionStore VersionStore
 @inject IJSRuntime JS
 @inject PipeDocs Docs
 
@@ -233,6 +234,30 @@
     }
 </div>
 
+@* earlier saved states; restoring loads one into the editor, saving makes it the current one (ADR 0031) *@
+@if (_versions.Count > 0)
+{
+    <MudDivider />
+
+    <div class="pa-4">
+        <MudText Typo="Typo.subtitle2">Versions</MudText>
+        @foreach (var version in _versions)
+        {
+            <div class="gview-pipe-history-item gview-pipe-audit-history">
+                <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" Class="mud-text-secondary" />
+                <div class="flex-grow-1">
+                    <div>@version.SavedAt.LocalDateTime.ToString("g")</div>
+                    <div class="mud-text-secondary gview-pipe-history-meta" title="@version.Summary">@version.Summary</div>
+                </div>
+                @if (!ReadOnly)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => OnRestoreVersion.InvokeAsync(version.Id)">Restore</MudButton>
+                }
+            </div>
+        }
+    </div>
+}
+
 @code {
     [Parameter, EditorRequired] public PipeWorkflow Workflow { get; set; } = default!;
     [Parameter] public string? SelectedExecutionId { get; set; }
@@ -244,6 +269,9 @@
     [Parameter] public int HistoryVersion { get; set; }
 
     [Parameter] public EventCallback OnChanged { get; set; }
+
+    /// <summary>The user wants an earlier version back; the argument is the version id.</summary>
+    [Parameter] public EventCallback<string> OnRestoreVersion { get; set; }
     [Parameter] public EventCallback<PipeExecution> OnSelectExecution { get; set; }
 
     private IReadOnlyList<PipeExecution> _executions = [];
@@ -340,9 +368,11 @@
     }
 
     private IReadOnlyList<PipeAuditEntry> _history = [];
+    private IReadOnlyList<PipeWorkflowVersionInfo> _versions = [];
 
     private async Task LoadAsync()
     {
+        _versions = (await VersionStore.ListAsync(Workflow.Id)).Take(20).ToList();
         _executions = await ExecutionStore.ListAsync(Workflow.Id, 20);
         _history = await AuditLog.QueryAsync(new PipeAuditQuery { Area = PipeAuditArea.Workflow, ObjectId = Workflow.Id, MaxCount = 10 });
     }
