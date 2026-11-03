@@ -93,7 +93,9 @@ Open a group to see its workflows and to create new ones in it. Deleting a group
 
 ## Workflow settings
 
-Select no node (click the empty canvas) to see the settings of the workflow:
+Select no node (click the empty canvas) to see the settings of the workflow. They are grouped in sections you can open and close (*General* is open at first; the browser remembers your choice). The ? next to a section title explains it and links to this documentation; the ? in the panel header and in the toolbar open the docs, and the ? of a node opens its page in the node reference.
+
+The sections: *General* (Name, Description, Group), *Execution* (Max concurrent runs, Max queued runs, Error workflow), *Environment*, *Variables*, *Execution data* (Save item data, Executions kept, Days kept) and *User portal*.
 
 | Setting | Meaning |
 |---|---|

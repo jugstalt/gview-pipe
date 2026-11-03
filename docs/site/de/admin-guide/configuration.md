@@ -15,7 +15,8 @@ Die Variable `PIPE_CONFIG_PATH` verlegt den Ordner `_config`. Die Startskripte u
 | Schlüssel | Vorgabe | Bedeutung |
 |---|---|---|
 | `Pipe:DataPath` | `data` | Ordner für `workflows/`, `groups.json`, `executions/`, `credentials/` und die Data-Protection-`keys/`. |
-| `Pipe:DocsPath` | `docs` | Ordner mit der gebauten Dokumentation, die unter `/docs` ausgeliefert wird. ZIP und Docker-Image enthalten sie. Ohne ihn gibt es weder `/docs` noch den Docs-Link. |
+| `Pipe:DocsPath` | `docs` | Ordner mit der gebauten Dokumentation, die unter `/docs` ausgeliefert wird. ZIP und Docker-Image enthalten sie. Ohne ihn führen die Docs-Links zur öffentlichen Dokumentation. |
+| `Pipe:DocsUrl` | | Adresse, auf die die Docs-Links und die ?-Buttons der Oberfläche zeigen. Standard: `/docs`, wenn die gebaute Dokumentation da ist, sonst https://docs.gviewonline.com/other/gview-pipe/. |
 | `Pipe:PluginPath` | `plugins` | Ordner mit externen Plugins, je Plugin ein Unterordner: `plugins/<Name>/<Name>.dll`. |
 | `Pipe:FileRoots` | `files` → `files` | Ordner, die Read File und Write File benutzen dürfen, nach Namen. Außerhalb davon ist nichts erreichbar. |
 | `Pipe:Scripts:ScriptRoots` | `scripts` → `scripts` | Skriptordner für die Skript-Nodes, nach Namen (siehe [Skripte ausführen](scripts.md)). |

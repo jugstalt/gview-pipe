@@ -4,6 +4,8 @@
 @inject IPipeErrorWorkflows ErrorWorkflows
 @inject IPipeWorkflowStore WorkflowStore
 @inject IPipeAuditLog AuditLog
+@inject IJSRuntime JS
+@inject PipeDocs Docs
 
 <div class="gview-pipe-panel-header">
     <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
@@ -11,32 +13,68 @@
         <MudText Typo="Typo.subtitle1">Workflow</MudText>
         <MudText Typo="Typo.caption" Class="mud-text-secondary">Select a node to edit it</MudText>
     </div>
+    <MudSpacer />
+    <MudTooltip Text="Workflow settings in the docs">
+        <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" aria-label="Open the docs" Href="@Docs.Url("user-guide/editor.html#workflow-settings")" Target="_blank" />
+    </MudTooltip>
 </div>
 
 <div class="@(ReadOnly ? "gview-pipe-readonly" : null)" inert="@ReadOnly">
-<MudStack Spacing="3" Class="pa-4">
+<MudExpansionPanels MultiExpansion="true" Dense="true" Elevation="0" Class="gview-pipe-sections">
+    <MudExpansionPanel Expanded='IsOpen("general")' ExpandedChanged='v => SetOpenAsync("general", v)'>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudText Typo="Typo.subtitle2">General</MudText>
+                <span class="ml-1" @onclick:stopPropagation="true">
+                    <PipeHelp Title="General" Text="Name, description and the group of the workflow on the start page." DocsPage="user-guide/editor.html#workflow-settings" />
+                </span>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <MudStack Spacing="3">
     <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
                   Value="@Workflow.Name" ValueChanged="v => ChangeAsync(() => Workflow.Name = string.IsNullOrWhiteSpace(v) ? Workflow.Name : v.Trim())" />
     <MudTextField T="string" Immediate="true" DebounceInterval="300" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
                   Value="@Workflow.Description" ValueChanged="v => ChangeAsync(() => Workflow.Description = v)" />
+    <PipeWorkflowGroupSelect HelperText="Shown in this group on the start page"
+                             Value="@Workflow.GroupId" ValueChanged="v => ChangeAsync(() => Workflow.GroupId = v)" />
+            </MudStack>
+        </ChildContent>
+    </MudExpansionPanel>
+    <MudExpansionPanel Expanded='IsOpen("execution")' ExpandedChanged='v => SetOpenAsync("execution", v)'>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudText Typo="Typo.subtitle2">Execution</MudText>
+                <span class="ml-1" @onclick:stopPropagation="true">
+                    <PipeHelp Title="Execution" Text="How many runs may be active at the same time, how many triggered runs may wait, and what runs when one fails." DocsPage="user-guide/editor.html#workflow-settings" />
+                </span>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <MudStack Spacing="3">
     <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Max concurrent runs" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="100"
                      HelperText="Further runs wait in the queue or are skipped"
                      Value="Workflow.Settings.MaxConcurrentRuns" ValueChanged="v => ChangeAsync(() => Workflow.Settings.MaxConcurrentRuns = v)" />
     <MudNumericField T="int" Immediate="true" DebounceInterval="300" Label="Max queued runs" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="1000"
                      HelperText="Triggered runs (cron, webhook) that wait for a free slot; 0 = skip them"
                      Value="Workflow.Settings.MaxQueuedRuns" ValueChanged="v => ChangeAsync(() => Workflow.Settings.MaxQueuedRuns = v)" />
-    <MudSwitch T="bool" Label="Save item data of executions" Color="Color.Primary"
-               Value="Workflow.Settings.SaveExecutionData" ValueChanged="v => ChangeAsync(() => Workflow.Settings.SaveExecutionData = v)" />
-    <MudStack Row="true" Spacing="2">
-        <MudNumericField T="int?" Immediate="true" DebounceInterval="300" Label="Executions kept" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1"
-                         HelperText="Empty: the instance setting" Clearable="true"
-                         Value="Workflow.Settings.ExecutionRetention" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ExecutionRetention = v)" />
-        <MudNumericField T="int?" Immediate="true" DebounceInterval="300" Label="Days kept" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
-                         HelperText="0: no limit; empty: the instance setting" Clearable="true"
-                         Value="Workflow.Settings.ExecutionRetentionDays" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ExecutionRetentionDays = v)" />
-    </MudStack>
-    <PipeWorkflowGroupSelect HelperText="Shown in this group on the start page"
-                             Value="@Workflow.GroupId" ValueChanged="v => ChangeAsync(() => Workflow.GroupId = v)" />
+    <PipeWorkflowSelect Label="Error workflow" ExcludeId="@Workflow.Id" InheritText="@ErrorInheritText" NoneValue="@PipeErrorWorkflows.None"
+                        HelperText="Runs (via its Error Trigger) when a triggered run of this workflow fails"
+                        Value="@Workflow.Settings.ErrorWorkflowId" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ErrorWorkflowId = v)" />
+            </MudStack>
+        </ChildContent>
+    </MudExpansionPanel>
+    <MudExpansionPanel Expanded='IsOpen("environment")' ExpandedChanged='v => SetOpenAsync("environment", v)'>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudText Typo="Typo.subtitle2">Environment</MudText>
+                <span class="ml-1" @onclick:stopPropagation="true">
+                    <PipeHelp Title="Environment" Text="Where the workflow runs when triggered, and which environments webhook callers may choose." DocsPage="user-guide/variables.html" />
+                </span>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <MudStack Spacing="3">
     <PipeEnvironmentSelect InheritText="@InheritText" HelperText="Where the workflow runs when triggered; the Run button can choose another"
                            Value="@Workflow.Environment" ValueChanged="v => ChangeAsync(() => Workflow.Environment = v)" />
     <MudSelect T="string" Label="Webhook callers may choose" Dense="true" Variant="Variant.Outlined" MultiSelection="true"
@@ -48,16 +86,60 @@
             <MudSelectItem Value="@environment">@environment</MudSelectItem>
         }
     </MudSelect>
-    <div>
-        <MudText Typo="Typo.subtitle2">Variables</MudText>
+            </MudStack>
+        </ChildContent>
+    </MudExpansionPanel>
+    <MudExpansionPanel Expanded='IsOpen("variables")' ExpandedChanged='v => SetOpenAsync("variables", v)'>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudText Typo="Typo.subtitle2">Variables</MudText>
+                <span class="ml-1" @onclick:stopPropagation="true">
+                    <PipeHelp Title="Variables" Text="Variables of this workflow, one value per environment." DocsPage="user-guide/variables.html" />
+                </span>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <MudStack Spacing="3">
         <PipeVariablesEditor Variables="Workflow.Variables" VariablesChanged="v => ChangeAsync(() => Workflow.Variables = v)"
                              Description="Override group and instance variables of the same name; script nodes can override them again." />
-    </div>
-    <PipeWorkflowSelect Label="Error workflow" ExcludeId="@Workflow.Id" InheritText="@ErrorInheritText" NoneValue="@PipeErrorWorkflows.None"
-                        HelperText="Runs (via its Error Trigger) when a triggered run of this workflow fails"
-                        Value="@Workflow.Settings.ErrorWorkflowId" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ErrorWorkflowId = v)" />
-    <div>
-        <MudText Typo="Typo.subtitle2">User portal</MudText>
+            </MudStack>
+        </ChildContent>
+    </MudExpansionPanel>
+    <MudExpansionPanel Expanded='IsOpen("retention")' ExpandedChanged='v => SetOpenAsync("retention", v)'>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudText Typo="Typo.subtitle2">Execution data</MudText>
+                <span class="ml-1" @onclick:stopPropagation="true">
+                    <PipeHelp Title="Execution data" Text="What is stored of every run and for how long." DocsPage="user-guide/executions.html" />
+                </span>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <MudStack Spacing="3">
+    <MudSwitch T="bool" Label="Save item data of executions" Color="Color.Primary"
+               Value="Workflow.Settings.SaveExecutionData" ValueChanged="v => ChangeAsync(() => Workflow.Settings.SaveExecutionData = v)" />
+    <MudStack Row="true" Spacing="2">
+        <MudNumericField T="int?" Immediate="true" DebounceInterval="300" Label="Executions kept" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1"
+                         HelperText="Empty: the instance setting" Clearable="true"
+                         Value="Workflow.Settings.ExecutionRetention" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ExecutionRetention = v)" />
+        <MudNumericField T="int?" Immediate="true" DebounceInterval="300" Label="Days kept" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
+                         HelperText="0: no limit; empty: the instance setting" Clearable="true"
+                         Value="Workflow.Settings.ExecutionRetentionDays" ValueChanged="v => ChangeAsync(() => Workflow.Settings.ExecutionRetentionDays = v)" />
+    </MudStack>
+            </MudStack>
+        </ChildContent>
+    </MudExpansionPanel>
+    <MudExpansionPanel Expanded='IsOpen("portal")' ExpandedChanged='v => SetOpenAsync("portal", v)'>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudText Typo="Typo.subtitle2">User portal</MudText>
+                <span class="ml-1" @onclick:stopPropagation="true">
+                    <PipeHelp Title="User portal" Text="Publish the workflow for the users of the portal." DocsPage="admin-guide/portal.html" />
+                </span>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <MudStack Spacing="3">
         <MudSwitch T="bool" Color="Color.Primary" Label="Publish in portal" Class="ml-n2"
                    Value="Workflow.Settings.Portal?.Published ?? false"
                    ValueChanged="v => ChangeAsync(() => Portal().Published = v)" />
@@ -85,8 +167,10 @@
                               ValueChanged="v => ChangeAsync(() => portal.Roles = gView.Pipe.Abstraction.Portal.PipePortalAccess.Parse(v))" />
             </MudStack>
         }
-    </div>
-</MudStack>
+            </MudStack>
+        </ChildContent>
+    </MudExpansionPanel>
+</MudExpansionPanels>
 </div>
 
 <MudDivider />
@@ -210,6 +294,48 @@
         {
             _loadedVersion = HistoryVersion;
             await LoadAsync();
+        }
+    }
+
+    // the sections that are open are kept per browser
+    private const string OpenKey = "gview-pipe.workflow-sections";
+    private HashSet<string> _open = ["general"];
+
+    private bool IsOpen(string section) => _open.Contains(section);
+
+    private async Task SetOpenAsync(string section, bool open)
+    {
+        if (open ? !_open.Add(section) : !_open.Remove(section))
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", OpenKey, string.Join(',', _open));
+        }
+        catch (Exception)  // storage can be blocked; the sections just don't stay
+        {
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            if (await JS.InvokeAsync<string?>("localStorage.getItem", OpenKey) is { } stored)
+            {
+                _open = stored.Split(',', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
         }
     }
 

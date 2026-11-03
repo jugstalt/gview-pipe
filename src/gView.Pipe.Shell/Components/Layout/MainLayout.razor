@@ -1,7 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
-@inject gView.Pipe.Shell.PipeDocsSite Docs
+@inject gView.Pipe.Razor.Components.PipeDocs DocsLinks
 @inject PipeAuthenticationOptions AuthOptions
 @inject IPipeAuthorization Authorization
 
@@ -29,11 +29,8 @@
                     <MudNavLink Href="audit" Icon="@Icons.Material.Filled.ManageSearch" Class="gview-pipe-shell-nav">Audit</MudNavLink>
                 }
                 <MudSpacer />
-                @if (Docs.Available)
-                {
-                    @* a new tab: the docs are static files, not a route of this app *@
-                    <MudNavLink Href="docs" Target="_blank" Icon="@Icons.Material.Filled.HelpOutline" Class="gview-pipe-shell-nav">Docs</MudNavLink>
-                }
+                @* a new tab: the docs are static files, not a route of this app; without a built site the public docs *@
+                <MudNavLink Href="@DocsLinks.Url()" Target="_blank" Icon="@Icons.Material.Filled.HelpOutline" Class="gview-pipe-shell-nav">Docs</MudNavLink>
                 <MudTooltip Text="@ModeText">
                     <MudIconButton Icon="@ModeIcon" Color="Color.Inherit" aria-label="@ModeText" OnClick="NextModeAsync" />
                 </MudTooltip>

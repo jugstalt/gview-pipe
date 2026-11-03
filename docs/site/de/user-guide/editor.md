@@ -93,7 +93,9 @@ Workflows werden in **Gruppen** einsortiert, die als Kacheln auf der Startseite 
 
 ## Einstellungen des Workflows
 
-Wähle keinen Node (klicke auf die leere Arbeitsfläche), um die Einstellungen des Workflows zu sehen:
+Wähle keinen Node (klicke auf die leere Arbeitsfläche), um die Einstellungen des Workflows zu sehen. Sie sind in Abschnitte gegliedert, die du auf- und zuklappen kannst (*General* ist zuerst offen; der Browser merkt sich deine Wahl). Das ? neben einem Abschnittstitel erklärt ihn und verweist auf diese Dokumentation; das ? im Kopf des Panels und in der Werkzeugleiste öffnet die Docs, das ? eines Nodes seine Seite in der Node-Referenz.
+
+Die Abschnitte: *General* (Name, Description, Group), *Execution* (Max concurrent runs, Max queued runs, Error workflow), *Environment*, *Variables*, *Execution data* (Save item data, Executions kept, Days kept) und *User portal*.
 
 | Einstellung | Bedeutung |
 |---|---|

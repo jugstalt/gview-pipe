@@ -20,6 +20,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject PipeEditorClipboard Clipboard
+@inject PipeDocs Docs
 @inject IJSRuntime JS
 @inject IPipeRunningExecutions RunningExecutions
 @inject IPipeExecutionStore ExecutionStore
@@ -83,6 +84,9 @@
                 <MudIconButton Icon="@Icons.Material.Filled.ContentPaste" aria-label="Paste nodes" OnClick="PasteAsync" Class="mr-2" />
             </MudTooltip>
             }
+            <MudTooltip Text="Documentation">
+                <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" aria-label="Open the docs" Href="@Docs.Url("user-guide/editor.html")" Target="_blank" />
+            </MudTooltip>
             <MudTooltip Text="@(_paletteHidden ? "Show the node palette" : "Hide the node palette")">
                 <MudIconButton Icon="@Icons.Material.Filled.MenuOpen" aria-label="Toggle the node palette" OnClick="() => ToggleSideAsync(ResizeSide.Palette)"
                                Color="@(_paletteHidden ? Color.Default : Color.Primary)" />

@@ -1,0 +1,33 @@
+@inject PipeDocs Docs
+
+@* a ?-button with a longer explanation and, optionally, the page of the docs *@
+<MudMenu Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Dense="true" aria-label="@($"Help: {Title}")"
+         AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Class="gview-pipe-help">
+    <div class="gview-pipe-help-text pa-3">
+        @if (!string.IsNullOrEmpty(Title))
+        {
+            <MudText Typo="Typo.subtitle2">@Title</MudText>
+        }
+        @if (!string.IsNullOrEmpty(Text))
+        {
+            <MudText Typo="Typo.body2">@Text</MudText>
+        }
+        @ChildContent
+        @if (DocsPage is not null)
+        {
+            <MudLink Href="@Docs.Url(DocsPage)" Target="_blank" Typo="Typo.body2" Class="d-block mt-2">Read more in the docs</MudLink>
+        }
+    </div>
+</MudMenu>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Page of the docs, e.g. <c>user-guide/editor.html#workflow-settings</c>.</summary>
+    [Parameter] public string? DocsPage { get; set; }
+
+    /// <summary>More content below the text.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

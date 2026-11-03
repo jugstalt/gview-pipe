@@ -102,6 +102,8 @@ builder.Services.AddPipeAuthentication(options =>
 
 var docs = PipeDocsSite.Find(builder.Configuration["Pipe:DocsPath"]);
 builder.Services.AddSingleton(docs);
+// help links of the UI: the built-in site under /docs, else the public one; Pipe:DocsUrl overrides both
+builder.Services.AddSingleton(new gView.Pipe.Razor.Components.PipeDocs(builder.Configuration["Pipe:DocsUrl"] ?? (docs.Available ? "docs" : null)));
 
 var app = builder.Build();
 

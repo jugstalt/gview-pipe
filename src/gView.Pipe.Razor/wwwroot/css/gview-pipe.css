@@ -1030,3 +1030,8 @@ div.gview-pipe-json-tree {
 [data-mud-theme="dark"] .gview-pipe-note-red { --note-bg: #6e2e2b; --note-border: #a64b47; }
 [data-mud-theme="dark"] .gview-pipe-note-purple { --note-bg: #4a3770; --note-border: #7459a8; }
 [data-mud-theme="dark"] .gview-pipe-note-gray { --note-bg: #484c55; --note-border: #6b717d; }
+
+/* sections of the workflow panel and the ?-popovers */
+.gview-pipe-sections .mud-expand-panel { background: transparent; }
+.gview-pipe-sections .mud-expand-panel-header { padding-inline: 16px; }
+.gview-pipe-help-text { max-width: 300px; }
