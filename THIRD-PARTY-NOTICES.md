@@ -8,7 +8,10 @@ These packages are part of the built application (`gView.Pipe.Shell` and the lib
 
 | Component | Version | License | Copyright | Referenced | Project |
 |---|---|---|---|---|---|
-| MudBlazor | 9.7.0 | MIT | Copyright (c) 2021 MudBlazor | directly (Razor, Shell) | https://mudblazor.com |
+| MudBlazor | 9.12.0 | MIT | Copyright (c) 2021 MudBlazor | directly (Razor, Shell) | https://mudblazor.com |
+| BlazorMonaco | 3.5.0 | MIT | Copyright (c) Serdar Ciplak | directly (Razor) | https://serdarciplak.github.io/BlazorMonaco/ |
+| Monaco Editor (JavaScript, bundled with BlazorMonaco) | bundled | MIT | Copyright (c) Microsoft Corporation | transitively via BlazorMonaco; loaded by the code fields of the editor | https://github.com/microsoft/monaco-editor |
+| Markdig | 0.37.0 | BSD-2-Clause | Copyright (c) Alexandre Mutel | directly (Portal) | https://github.com/lunet-io/markdig |
 | Z.Blazor.Diagrams | 3.0.4.1 | MIT | Copyright (c) Haytam Zanid | directly (Razor) | https://github.com/Blazor-Diagrams/Blazor.Diagrams |
 | Z.Blazor.Diagrams.Core | 3.0.4.1 | MIT | Copyright (c) Haytam Zanid | transitively via Z.Blazor.Diagrams | https://github.com/Blazor-Diagrams/Blazor.Diagrams |
 | SvgPathProperties | 1.1.2 | MIT | Copyright (c) Haytam Zanid | transitively via Z.Blazor.Diagrams.Core | https://github.com/zHaytam/SvgPathProperties |
@@ -16,11 +19,14 @@ These packages are part of the built application (`gView.Pipe.Shell` and the lib
 | Acornima | 1.7.0 | BSD-3-Clause | Copyright (c) Adam Simon | transitively via Jint | https://github.com/adams85/acornima |
 | Cronos | 0.13.0 | MIT | Copyright (c) 2017 Hangfire OÜ | directly (Core) | https://github.com/HangfireIO/Cronos |
 | Polly.Core, Polly.Extensions, Polly.RateLimiting | 8.4.2 | BSD-3-Clause | Copyright (c) 2024, App vNext | transitively via Microsoft.Extensions.Http.Resilience → Microsoft.Extensions.Resilience (ServiceDefaults) | https://github.com/App-vNext/Polly |
-| OpenTelemetry.Extensions.Hosting, OpenTelemetry.Exporter.OpenTelemetryProtocol, OpenTelemetry.Instrumentation.AspNetCore, OpenTelemetry.Instrumentation.Http, OpenTelemetry.Instrumentation.Runtime | 1.20.0 | Apache-2.0 | Copyright The OpenTelemetry Authors | directly (ServiceDefaults) | https://opentelemetry.io |
-| OpenTelemetry, OpenTelemetry.Api, OpenTelemetry.Api.ProviderBuilderExtensions | 1.20.0 | Apache-2.0 | Copyright The OpenTelemetry Authors | transitively via the OpenTelemetry packages above | https://opentelemetry.io |
+| OpenTelemetry.Extensions.Hosting, OpenTelemetry.Exporter.OpenTelemetryProtocol, OpenTelemetry.Instrumentation.AspNetCore, OpenTelemetry.Instrumentation.Http, OpenTelemetry.Instrumentation.Runtime | 1.20.1 | Apache-2.0 | Copyright The OpenTelemetry Authors | directly (ServiceDefaults) | https://opentelemetry.io |
+| OpenTelemetry, OpenTelemetry.Api, OpenTelemetry.Api.ProviderBuilderExtensions | 1.20.1 | Apache-2.0 | Copyright The OpenTelemetry Authors | transitively via the OpenTelemetry packages above | https://opentelemetry.io |
+| Microsoft.Extensions.ServiceDiscovery, Microsoft.Extensions.Http.Resilience | 10.11.0 | MIT | Copyright (c) Microsoft Corporation | directly (ServiceDefaults) | https://github.com/dotnet/extensions |
+| Microsoft.AspNetCore.Authentication.OpenIdConnect, Microsoft.AspNetCore.OpenApi | 10.0.14 | MIT | Copyright (c) Microsoft Corporation | directly (AspNetCore) | https://github.com/dotnet/dotnet |
+| Microsoft.Extensions.Hosting.WindowsServices | 10.0.14 | MIT | Copyright (c) Microsoft Corporation | directly (Shell) | https://github.com/dotnet/dotnet |
 | Microsoft.Extensions.\*, Microsoft.AspNetCore.Components.Web, Microsoft.AspNetCore.DataProtection | 10.x | MIT | Copyright (c) Microsoft Corporation | directly, plus their own Microsoft.Extensions.\* dependencies | https://github.com/dotnet/dotnet |
-| MailKit | 4.18.1 | MIT | Copyright (c) .NET Foundation and Contributors | directly (Plugins) | https://www.mimekit.net |
-| MimeKit | 4.18.1 | MIT | Copyright (c) .NET Foundation and Contributors | transitively via MailKit | https://www.mimekit.net |
+| MailKit | 4.18.2 | MIT | Copyright (c) .NET Foundation and Contributors | directly (Plugins) | https://www.mimekit.net |
+| MimeKit | 4.18.2 | MIT | Copyright (c) .NET Foundation and Contributors | transitively via MailKit | https://www.mimekit.net |
 | BouncyCastle.Cryptography | 2.7.0 | MIT | Copyright (c) Legion of the Bouncy Castle Inc. | transitively via MimeKit | https://www.bouncycastle.org |
 | System.Security.Cryptography.Pkcs | 10.0.14 | MIT | Copyright (c) Microsoft Corporation | directly (Plugins, Plugins.Database), lifting the vulnerable version MimeKit and SqlClient bring | https://github.com/dotnet/dotnet |
 
@@ -41,6 +47,14 @@ These packages are part of the built application (`gView.Pipe.Shell` and the lib
 | SQLite (native e_sqlite3) | bundled | Public domain | — | transitively via SQLitePCLRaw.lib.e_sqlite3 | https://sqlite.org/copyright.html |
 
 The PostgreSQL License is a permissive license similar to MIT/BSD: https://opensource.org/license/postgresql.
+
+### Office plugin
+
+`gView.Pipe.Plugins.Office` is installed as an external plugin (`plugins/gView.Pipe.Plugins.Office/`) and brings one component:
+
+| Component | Version | License | Copyright | Referenced | Project |
+|---|---|---|---|---|---|
+| MiniExcel | 1.46.0 | Apache-2.0 | Copyright (c) Wei Lin, 2021 onwards | directly | https://github.com/mini-software/MiniExcel |
 
 ### Scripts plugin
 
@@ -63,6 +77,9 @@ These packages are used to orchestrate, build or test the solution. They are not
 | xunit.v3 | 4.0.2 | Apache-2.0 | Copyright (c) .NET Foundation | directly (tests), pulls in the other xunit.v3.\* and xunit.analyzers packages | https://github.com/xunit/xunit |
 | xunit.runner.visualstudio | 4.0.1 | Apache-2.0 | Copyright (c) .NET Foundation | directly (tests) | https://github.com/xunit/visualstudio.xunit |
 | bunit | 2.13.3 | MIT | Copyright (c) Egil Hansen | directly (Razor.Tests) | https://bunit.egilhansen.com |
+| Microsoft.Playwright | 1.64.1 | MIT | Copyright (c) Microsoft Corporation | directly (Docs.Screenshots, a build tool); downloads Chromium on first use, which is not part of this repository | https://github.com/microsoft/playwright-dotnet |
+| CommunityToolkit.Aspire.Hosting.MailPit | 13.6.1 | MIT | Copyright (c) .NET Foundation and Contributors | directly (AppHost), optional dev container | https://github.com/CommunityToolkit/Aspire |
+| IdentityServerNET.Aspire.Hosting | 7.26.2902 | Apache-2.0 | Copyright (c) 2026 Jürgen Gstaltmaier | directly (AppHost), optional dev container | https://github.com/jugstalt/identityservernet |
 | Microsoft.NET.Test.Sdk, Microsoft.AspNetCore.TestHost | 18.11.0 / 10.0.14 | MIT | Copyright (c) Microsoft Corporation | directly (tests) | https://github.com/microsoft/vstest |
 
 Aspire.Hosting pulls in further packages transitively, among them gRPC, Google.Protobuf, KubernetesClient, Newtonsoft.Json, StreamJsonRpc, YamlDotNet and its own OpenTelemetry (1.17.0) and Polly.Core. Their licenses are listed in the `THIRD-PARTY-NOTICES.TXT` of the Aspire packages.

@@ -1,32 +1,41 @@
 # gView.Pipe
 
-A workflow automation app in the style of n8n, built on Blazor and .NET 10. Workflows are graphs of nodes that pass JSON items along. A workflow starts manually, on a schedule or through a webhook. Nodes come from plugins, and the editor is a set of Razor components that other Blazor apps can embed.
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10-512bd4)](https://dotnet.microsoft.com/download)
+[![Docs](https://img.shields.io/badge/docs-gviewonline.com-orange)](https://docs.gviewonline.com/other/gview-pipe/index.html)
+
+A workflow automation app in the style of n8n, built on Blazor and .NET 10. Workflows are graphs of nodes that pass JSON items along. A workflow starts manually, on a schedule, through a webhook or from a form. Nodes come from plugins, and the editor is a set of Razor components that other Blazor apps can embed.
 
 ![Workflow editor after a run](docs/site/images/editor-run.png)
 
 ## Documentation
 
-User guide, admin guide and developer guide, in English and German, are built from [`docs/site`](docs/site) with MkDocs (`./build.cmd Docs`). The running app serves them under `/docs`. Architecture decisions are recorded in [`docs/adr`](docs/adr).
+**[docs.gviewonline.com/other/gview-pipe](https://docs.gviewonline.com/other/gview-pipe/index.html)**, in English and German:
+
+- [User guide](https://docs.gviewonline.com/other/gview-pipe/user-guide/index.html): the editor, expressions, triggers and webhooks, variables and environments, recipes, and the [node reference](https://docs.gviewonline.com/other/gview-pipe/user-guide/nodes/index.html).
+- [Admin guide](https://docs.gviewonline.com/other/gview-pipe/admin-guide/index.html): installation (ZIP, Docker), configuration, sign-in and roles, REST API, command line, user portal, plugins, security and operations.
+- [Developer guide](https://docs.gviewonline.com/other/gview-pipe/developer-guide/index.html): writing nodes and plugins, embedding.
+- [Release notes](https://docs.gviewonline.com/other/gview-pipe/release-notes.html) and the [changelog](CHANGELOG.md).
+
+The running app serves the same pages under `/docs`. To build them yourself: `./build.cmd Docs` (needs Python, see [CONTRIBUTING.md](CONTRIBUTING.md)). Architecture decisions are in [`docs/adr`](docs/adr), terms in [GLOSSARY.md](GLOSSARY.md).
 
 ## Features
 
-- **Visual editor.** Build workflows on a canvas (Z.Blazor.Diagrams) with a node palette and parameter forms generated from the node's parameter class (MudBlazor).
-- **Execution engine.** Runs the graph as a DAG. Parallel branches, Switch/If/Merge, retry, timeout and error handling per node (stop, continue or route to an error output).
-- **Inspect every node.** Each node shows the input it received, the output it produced and the log entries it wrote, for the latest run and for any execution in the history. Click a property of the input to insert it as an expression into the parameter you edited last. Items can be shown as JSON or as text (field as heading, value as paragraph, line breaks kept), and what a node logs while it runs (e.g. a script's output) streams live into the side panel.
-- **Fast iteration.** Pin a node's output so manual runs reuse it instead of calling the API again, run only up to a node ("run to here"), duplicate nodes and copy/paste them (Ctrl+C / Ctrl+V on the canvas) within or between workflows. Hold Shift while dragging a node onto a connection to insert it there; the connection lights up before you drop. Undo and redo every change to the workflow (Ctrl+Z / Ctrl+Y on the canvas, or the toolbar). The palette and the side panel can be resized; a wide palette shows its nodes in columns.
-- **JavaScript expressions.** `{{ $json.total * 1.2 }}` in any parameter, plus a Code node for larger transformations. Both run in a sandboxed Jint engine.
-- **Triggers.** Manual, Cron and Webhook.
-- **Credentials.** Stored encrypted with ASP.NET Data Protection. Nodes reference them by id and never see them in the workflow JSON.
-- **Plugins.** A node is a class implementing `IPipeNode<TParameters>`. External plugins are loaded from a folder, each into its own `AssemblyLoadContext`.
-- **Running now.** The start page lists every run in progress, whatever started it (editor, cron, webhook, sub-workflow), with its current node and latest output line; the app bar shows "n running". Click a run to watch it in the editor, live, or stop it.
-- **Groups.** Workflows can be put into groups, shown as tiles on the start page; drag a workflow onto a tile to move it. A search finds workflows in all groups.
-- **Storage.** Workflows, groups, executions and credentials are plain JSON files.
+- **Build.** A visual editor on a canvas with parameter forms generated from the node classes, undo and redo, copy and paste, sticky notes and Monaco for code fields. Every node shows its input, output and log, live while it runs.
+- **Run.** An engine for graphs with parallel branches, retry, timeout and error handling per node. Triggers: manual, cron, webhook (also as a small API) and form. Sub-workflows, error workflows, a queue for triggered runs, failure and recovery notifications.
+- **Test quickly.** Pin the output of a node, run up to a node, replay a stored run from a node.
+- **Expressions.** `{{ $json.total * 1.2 }}` in any parameter and a Code node, both run in a sandbox (Jint) without access to .NET, files or the network.
+- **Configure.** Variables and environments per instance, group and workflow. Credentials are stored encrypted and never appear in the workflow JSON.
+- **Operate.** Sign-in (none, forms or OpenID Connect) with the roles viewer, operator, editor and admin. A REST API with API keys, the command line tool `gview-pipe`, an audit log and an execution history.
+- **Share.** Publish workflows in the **user portal**, a separate app where users run them through a form and see the result.
+- **Extend.** A node is a class implementing `IPipeNode<TParameters>`. Plugins load from a folder, each into its own `AssemblyLoadContext`. Included: SQL (SQL Server, PostgreSQL, SQLite), scripts (bat/cmd, PowerShell, Python, sh) and Excel files.
+- **Embed.** The editor and the lists are Razor components for other Blazor apps.
+- **Store.** Workflows, groups, executions and credentials are plain JSON files.
 
-| Node parameters | Node result (input, output, logs) | Webhook trigger |
+| Node parameters | Node result (input, output, logs) | Workflows of a group |
 |---|---|---|
-| ![Node parameters](docs/site/images/node-parameters.png) | ![Node result](docs/site/images/node-run.png) | ![Webhook trigger](docs/site/images/webhook-trigger.png) |
-
-![Workflow group](docs/site/images/group-page.png)
+| ![Node parameters](docs/site/images/node-parameters.png) | ![Node result](docs/site/images/node-run.png) | ![Workflow group](docs/site/images/group-page.png) |
 
 ## Getting started
 
@@ -36,34 +45,15 @@ You need the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 dotnet run --project src/gView.Pipe.Shell
 ```
 
-Open the URL printed in the console (http://localhost:5240 with the `http` profile). On first start, the sample workflows from [`samples/workflows`](samples/workflows) are copied into the empty store, in the group "Samples":
+Open the URL printed in the console (http://localhost:5240 with the `http` profile). On first start the sample workflows from [`samples/workflows`](samples/workflows) are copied into the group "Samples"; Hello Pipe is the simplest. By default there is no login: switch one on before others can reach the app ([Authentication](https://docs.gviewonline.com/other/gview-pipe/admin-guide/authentication.html)).
 
-- **Hello Pipe**: a manual trigger, Set and Log.
-- **Code Transform**: generates orders with JavaScript, routes them by country with Switch, adds VAT and merges them again.
-- **Item Tools**: splits order lines into items, removes duplicate SKUs, sorts by price, keeps the top 3 and collects them.
-- **Sub-workflow Demo** and **Price Calculator**: a workflow calling another one per batch of two items; failures go to **Error Alerts**, an error workflow.
-- **API Demo**: `POST /webhook/api/greet` answers 200 with a greeting, or 400 without a name, through Respond to Webhook nodes.
-- **File Export**: writes orders as CSV into the folder `files` and reads them back.
-- **Webhook Demo**: answers `POST /webhook/demo` with a greeting. It is inactive until you switch it on.
+Other ways to run it:
 
-To run the Shell with the Aspire dashboard (logs, traces, metrics):
+- **Aspire.** `dotnet run --project src/Aspire/gView.Pipe.AppHost` starts the Shell and the user portal with the Aspire dashboard (logs, traces, metrics) and optional dev containers; see [CLAUDE.md](CLAUDE.md#dev-containers).
+- **Portal.** `dotnet run --project src/gView.Pipe.Portal` after setting `Portal:BackendUrl` and `Portal:ApiKey`; see [User portal](https://docs.gviewonline.com/other/gview-pipe/admin-guide/portal.html).
+- **ZIP or Docker.** `./build.cmd Deploy` builds both; for the installation see [Installation](https://docs.gviewonline.com/other/gview-pipe/admin-guide/installation.html).
 
-```bash
-dotnet run --project src/Aspire/gView.Pipe.AppHost
-```
-
-### Configuration
-
-`src/gView.Pipe.Shell/_config/pipe.config` (not in Git, created on first start from `_setup/proto/pipe.config`):
-
-| Key | Default | Meaning |
-|---|---|---|
-| `Pipe:DataPath` | `data` | Folder for `workflows/`, `groups.json`, `executions/`, `credentials/` and the Data Protection `keys/`. |
-| `Pipe:PluginPath` | `plugins` | Folder with external plugins, one sub folder per plugin: `plugins/<Name>/<Name>.dll`. |
-| `Pipe:FileRoots` | `files` → `files` | Folders Read File and Write File may use, by name. Nothing outside them is reachable. |
-| `Pipe:Scripts` | `ScriptRoots`: `scripts` → `scripts` | Script folders and Git servers (`GitServers`: `Provider` gitea/github, `Url`, `Owner`, `CredentialId` = id of a Pipe credential, `RepositoryFilter`) the script nodes may use, plus `RepositoriesPath`, `Interpreters` and `GitPath`. See ADR 0011. |
-
-The Wait node waits at most one hour; change it with `services.Configure<PipeWaitOptions>(o => o.MaxWait = …)`. Further options (execution retention, script limits, binary thresholds) are on `PipeCoreOptions` and `PipeFileStoreOptions` and can be set in `Program.cs`.
+The settings (`Pipe:*`) live in `src/gView.Pipe.Shell/_config/pipe.config`, created on first start from `_setup/proto/pipe.config` and not in Git. They are listed in [Configuration](https://docs.gviewonline.com/other/gview-pipe/admin-guide/configuration.html).
 
 ## Projects
 
@@ -71,14 +61,16 @@ The Wait node waits at most one hour; change it with `services.Configure<PipeWai
 |---|---|
 | `gView.Pipe.Abstraction` | Plugin SDK: contracts, attributes and models. Small and free of UI dependencies, shared by host and plugins. |
 | `gView.Pipe.Core` | Headless engine, plugin loader, JavaScript engine, scheduler, trigger manager, file and memory stores. |
-| `gView.Pipe.AspNetCore` | ASP.NET Core integration: `app.MapPipeWebhooks()`. |
+| `gView.Pipe.AspNetCore` | ASP.NET Core integration: webhooks, the REST API and the sign-in of the UI. |
 | `gView.Pipe.Plugins` | Built-in nodes and credential types. They use only the Abstraction, exactly like external plugins. |
-| `gView.Pipe.Plugins.Scripts` | Run Script, Run Scripts Folder and Run Scripts Repo: batch, PowerShell, Python and shell scripts from released folders or Git servers. An external plugin; install it only where running scripts is wanted. |
-| `gView.Pipe.Plugins.Database` | SQL node for SQL Server, PostgreSQL and SQLite. An external plugin: building it installs it into `src/gView.Pipe.Shell/plugins/`. |
+| `gView.Pipe.Plugins.Database`, `.Scripts`, `.Office` | External plugins: SQL, scripts and Excel files. Building one installs it into `src/gView.Pipe.Shell/plugins/`. Install the Scripts plugin only where running scripts is wanted. |
 | `gView.Pipe.Razor` | MudBlazor components: workflow list with groups, credential list and the editor. |
 | `gView.Pipe.Shell` | The app: layout, routing and service composition. |
+| `gView.Pipe.Portal` | The user portal, a standalone Blazor app that runs published workflows through a backend. |
+| `gView.Pipe.Cli` | The dotnet tool `gview-pipe`, a client of the REST API. |
+| `gView.Pipe.Docs`, `.Docs.Screenshots` | Build tools for the documentation. Not shipped. |
 | `Aspire/` | AppHost and ServiceDefaults. |
-| `tests/` | xUnit v3 tests for Core, Plugins, the database plugin and the Razor components (bUnit). |
+| `tests/` | xUnit v3 tests, with bUnit for the Razor components. |
 
 ### Embedding in another Blazor app
 
@@ -92,94 +84,13 @@ builder.Services
 app.MapPipeWebhooks();
 ```
 
-The host must reference the MudBlazor and Z.Blazor.Diagrams CSS/JS plus `_content/gView.Pipe.Razor/css/gview-pipe.css`, and render the components interactively without prerendering. See [`App.razor`](src/gView.Pipe.Shell/Components/App.razor) and [ADR 0004](docs/adr/0004-ui-mudblazor-diagrams.md).
-
-## Built-in nodes
-
-| Category | Nodes |
-|---|---|
-| Triggers | Manual Trigger, Cron Trigger, Webhook Trigger, Execute Workflow Trigger, Error Trigger |
-| Flow | If, Switch, Filter, Merge, Wait, Execute Workflow |
-| Transform | Set, Code, Sort, Limit, Aggregate, Split Out, Remove Duplicates |
-| Network | HTTP Request, Respond to Webhook, Send Email |
-| Files | Read File, Write File |
-| Database (plugin) | SQL |
-| Scripts (plugin) | Run Script, Run Scripts Folder, Run Scripts Repo |
-| Utility | Log, No Operation |
-
-Credential types: Basic Auth, Bearer Token, API Key Header, Connection String and SMTP.
-
-- **Read File / Write File** work only inside folders the host releases (`Pipe:FileRoots`); a node names the folder and a path relative to it. Formats: binary attachment, text, JSON and CSV.
-- **SQL** (`gView.Pipe.Plugins.Database`) runs a query or statement per input item over a Connection String credential (provider `sqlserver`, `postgres` or `sqlite`). Values go in as `@name` parameters only; the SQL text itself is never evaluated as an expression.
-- **Send Email** sends one mail per item over SMTP (MailKit), optionally with the item's attachments.
-- **Run Script / Run Scripts Folder / Run Scripts Repo** (`gView.Pipe.Plugins.Scripts`) run `.bat`/`.cmd`, `.ps1`, `.py` or `.sh` files: one file or a list from a released script folder, or a list from a repository of a configured Git server (Gitea or GitHub; needs git installed). Run Scripts Repo clones the branch into a temporary folder per run (`PIPE_WORK_DIRECTORY`) and deletes it afterwards. The list nodes show the scripts found; switch them on and order them. There are no inline scripts. Each runs in its own process; a non-zero exit code or an output line matching the error pattern fails it. Scripts run with the rights of the host process.
-
-## Sub-workflows and error workflows
-
-- **Execute Workflow** runs another workflow that starts with an **Execute Workflow Trigger**: once for all items, per item, or per batch of N items. It outputs what the sub-workflow's last node returned. Calling per item or batch is how loops are built; the engine itself only runs graphs without cycles. Sub-workflows share the caller's binaries and may be nested up to 10 levels.
-- An **error workflow** is chosen in the workflow panel. It starts with an **Error Trigger** and runs when a triggered run (cron, webhook, sub-workflow call) fails, with `{ workflow, execution, node }` of the failed run, e.g. to send a notification.
-
-## Expressions
-
-Every string parameter can contain `{{ … }}` blocks with JavaScript. A parameter that consists of a single block keeps the type of the result (number, object, array); otherwise the results are inserted into the text.
-
-```text
-Hello {{ $json.customer }}!
-{{ Math.round($json.total * 1.2 * 100) / 100 }}
-{{ $node["Generate Orders"].all.length }}
-```
-
-| Variable | Value |
-|---|---|
-| `$json` | JSON of the current item |
-| `$itemIndex` | Index of the current item |
-| `$input.all()`, `$input.first()` | All items of the node's input |
-| `$node["Name"].json`, `$node["Name"].all` | Output of an earlier node |
-| `$workflow`, `$execution` | Information about the workflow and the running execution |
-| `$now` | Current time as ISO string |
-
-The **Code** node runs a script either once for all items (`items` holds them, return an array) or once per item (`$json`, return an object). `console.log` writes to the node's logs.
-
-```js
-// items: the JSON of all input items
-return items
-  .filter(order => order.total > 50)
-  .map(order => ({ ...order, priority: order.total > 200 }));
-```
-
-Scripts run with no access to .NET, the file system or the network, and are limited in time, memory, statements and recursion (`PipeCoreOptions.Scripts`). See [ADR 0007](docs/adr/0007-javascript-expressions.md).
-
-## Webhooks
-
-A Webhook Trigger listens on `/webhook/{path}`. The path is unique across all workflows, and the webhook is armed only while its workflow is active. The request becomes an item with `method`, `path`, `query`, `headers` and `body`; uploaded files become binaries. The `Authorization` and `Cookie` headers are stripped. Optionally the trigger checks a credential.
-
-With response mode **When finished**, the caller gets the output of the last node. With **Immediately**, the caller gets `202 Accepted` and the execution id. With **Using respond node**, a **Respond to Webhook** node decides status code, headers and body, so a workflow can act as a small API (see the API Demo sample).
-
-With the Webhook Demo workflow active:
-
-```bash
-curl -X POST http://localhost:5240/webhook/demo -H "Content-Type: application/json" -d '{"name":"Ada"}'
-```
-
-PowerShell:
-
-```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:5240/webhook/demo -ContentType "application/json" -Body '{"name":"Ada"}'
-```
-
-See [ADR 0008](docs/adr/0008-webhooks.md) for status codes and limits.
+The host must reference the MudBlazor and Z.Blazor.Diagrams CSS/JS plus `_content/gView.Pipe.Razor/css/gview-pipe.css` and render the components interactively without prerendering. See [`App.razor`](src/gView.Pipe.Shell/Components/App.razor) and [ADR 0004](docs/adr/0004-ui-mudblazor-diagrams.md).
 
 ## Writing a node
 
 Reference `gView.Pipe.Abstraction`, describe the parameters as a POCO and implement the node:
 
 ```csharp
-using gView.Pipe.Abstraction.Data;
-using gView.Pipe.Abstraction.Nodes;
-using Microsoft.Extensions.Logging;
-
-namespace MyCompany.Pipe.Nodes;
-
 public sealed class UppercaseParameters
 {
     [PipeParameter(Label = "Field", Placeholder = "name")]
@@ -187,8 +98,7 @@ public sealed class UppercaseParameters
 }
 
 [PipeNode("0d6f3c1e-8a52-4f0b-9b7e-3c2a1d4e5f60", "Uppercase",
-    Category = "Transform",
-    Description = "Converts a text field to upper case.")]
+    Category = "Transform", Description = "Converts a text field to upper case.")]
 public sealed class UppercaseNode : PipeItemNodeBase<UppercaseParameters>
 {
     protected override Task<PipeItem?> ProcessItemAsync(PipeItem item, UppercaseParameters parameters,
@@ -199,18 +109,12 @@ public sealed class UppercaseNode : PipeItemNodeBase<UppercaseParameters>
         {
             result.Json[parameters.Field] = text.ToUpperInvariant();
         }
-        context.Logger.LogInformation("Converted {Field}", parameters.Field);
-
         return Task.FromResult<PipeItem?>(result);
     }
 }
 ```
 
-- The GUID in `[PipeNode]` identifies the node type in saved workflows. Never change it.
-- Parameter values are evaluated per item, so `Field` may itself be an expression.
-- For several outputs, triggers, dynamic ports or parameter migrations, see the built-in nodes in [`src/gView.Pipe.Plugins`](src/gView.Pipe.Plugins) and [CLAUDE.md](CLAUDE.md#writing-a-node).
-
-Build the plugin and copy the output to `plugins/MyCompany.Pipe/MyCompany.Pipe.dll` next to the Shell. Don't ship `gView.Pipe.Abstraction.dll` or `Microsoft.Extensions.*` with it; these always come from the host.
+The GUID identifies the node type in saved workflows and must never change. Triggers, several outputs, dynamic ports, migrations and packaging a plugin are in the [developer guide](https://docs.gviewonline.com/other/gview-pipe/developer-guide/index.html); the built-in nodes in [`src/gView.Pipe.Plugins`](src/gView.Pipe.Plugins) are working examples.
 
 ## Development
 
@@ -219,9 +123,7 @@ dotnet build gView.Pipe.slnx
 dotnet test --solution gView.Pipe.slnx
 ```
 
-Tests run on Microsoft.Testing.Platform (see `global.json`). The sample workflows are executed by the plugin tests, so a broken sample fails the build.
-
-Terms are defined in [GLOSSARY.md](GLOSSARY.md), design decisions are in [docs/adr](docs/adr).
+Tests run on Microsoft.Testing.Platform (see `global.json`). The sample workflows are executed by the plugin tests, so a broken sample fails the build. How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md). Security issues: [SECURITY.md](SECURITY.md).
 
 ## License
 
