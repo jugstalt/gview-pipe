@@ -47,4 +47,5 @@ static public class PipeBuiltInCredentials
     public const string ApiKeyHeader = "c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e13";
     public const string ConnectionString = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f14";
     public const string Smtp = "f697d17c-18a2-4ea9-a4a5-81d45f2c387a";
+    public const string OAuth2ClientCredentials = "b7b000e5-84d5-4cff-8dd3-d3c15df89457";
 }

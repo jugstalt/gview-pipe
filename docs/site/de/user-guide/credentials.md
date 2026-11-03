@@ -25,6 +25,7 @@ Die Liste zeigt Name, Typ und **Id** jedes Credentials. Die Id speichert der Wor
 | Basic Auth | HTTP Request, Webhook Trigger, Git-Server | Benutzername, Passwort |
 | Bearer Token | HTTP Request, Webhook Trigger, Git-Server | Token |
 | API Key Header | HTTP Request, Webhook Trigger | Header-Name, Wert |
+| OAuth2 Client Credentials | HTTP Request | Token-URL, Client-Id, Client-Secret, Scope, Audience, wie die Client-Daten gesendet werden (Header oder Body) |
 | Connection String | SQL | Provider (`sqlserver`, `postgres` oder `sqlite`), Connection String |
 | SMTP | Send Email | Host, Port, Sicherheit (auto, SSL on connect, StartTLS, none), Benutzername, Passwort, Absenderadresse |
 
@@ -39,6 +40,10 @@ Parameter, die ein Credential brauchen, zeigen eine Auswahl mit den Credentials 
 - **SQL:** der Connection String und der Provider.
 - **Send Email:** der SMTP-Server und das Login.
 - **Skript-Nodes:** Die Felder des Credentials gehen als Umgebungsvariablen `PIPE_CREDENTIAL_<FELD>` an das Skript. Die Werte werden in Ausgabe und Logs maskiert.
+
+## OAuth2 Client Credentials
+
+Viele APIs geben kurzlebige Access Tokens aus. Mit diesem Credential holt HTTP Request ein Token von der *Token-URL* (Grant `client_credentials`) und sendet es als `Authorization: Bearer …`. Das Token bleibt im Speicher und wird eine Minute vor Ablauf erneuert, sodass viele Requests und Läufe sich ein Token teilen; ändert man das Credential, gibt es ein neues. Antwortet die API mit `401`, wird das Token verworfen und der nächste Versuch (ein Retry des Nodes, der nächste Lauf) holt ein neues. Unterstützt wird nur dieser Grant, nicht das Login eines Benutzers im Browser. Für das Token eines Benutzers nimm ein Bearer-Token-Credential.
 
 ## Ein Secret aus einer anderen Quelle nehmen
 

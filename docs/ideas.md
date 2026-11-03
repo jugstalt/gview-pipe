@@ -18,7 +18,7 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 - [x] Data and formats: Extract from File / Convert to File (CSV, JSON, XML, Text, Excel via the Office plugin), Date & Time, Crypto, Compression (ADR 0018).
 - [ ] More formats through `IPipeFileFormat`: e.g. YAML, fixed-width text, PDF text extraction.
 - [x] Flow: Split in Batches and a pause between requests or calls (ADR 0034); loops and sub-workflows with a return value existed already through Execute Workflow.
-- [ ] Integrations: FTP/SFTP, S3 or Azure Blob, Teams/Slack webhook, REST with an OAuth2 credential, MQTT or RabbitMQ.
+- [ ] Integrations: FTP/SFTP, S3 or Azure Blob, Teams/Slack webhook, MQTT or RabbitMQ. (REST with an OAuth2 client credentials credential is done, ADR 0035; the authorization code flow is not part of it.)
 - [ ] Triggers: file watcher (folder), incoming mail (IMAP), queue trigger.
 - [ ] AI: an LLM node that classifies, extracts or summarizes items.
 

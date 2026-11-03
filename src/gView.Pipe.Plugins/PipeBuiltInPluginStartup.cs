@@ -1,5 +1,6 @@
 using gView.Pipe.Abstraction.Files;
 using gView.Pipe.Abstraction.Plugins;
+using gView.Pipe.Plugins.Common;
 using gView.Pipe.Plugins.Common.Formats;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -11,6 +12,8 @@ public sealed class PipeBuiltInPluginStartup : IPipePluginStartup
 {
     public void ConfigureServices(IServiceCollection services)
     {
+        // tokens of OAuth2 credentials, shared by all runs (ADR 0035)
+        services.TryAddSingleton<PipeOAuth2TokenCache>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPipeFileFormat, PipeCsvFileFormat>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPipeFileFormat, PipeJsonFileFormat>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPipeFileFormat, PipeXmlFileFormat>());

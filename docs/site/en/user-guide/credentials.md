@@ -25,6 +25,7 @@ The list shows the name, the type and the **id** of each credential. The id is w
 | Basic Auth | HTTP Request, Webhook Trigger, Git servers | user name, password |
 | Bearer Token | HTTP Request, Webhook Trigger, Git servers | token |
 | API Key Header | HTTP Request, Webhook Trigger | header name, value |
+| OAuth2 Client Credentials | HTTP Request | token URL, client id, client secret, scope, audience, how the client credentials are sent (header or body) |
 | Connection String | SQL | provider (`sqlserver`, `postgres` or `sqlite`), connection string |
 | SMTP | Send Email | host, port, security (auto, SSL on connect, StartTLS, none), user name, password, sender address |
 
@@ -39,6 +40,10 @@ Parameters that need a credential show a drop-down with the credentials of the r
 - **SQL:** the connection string and provider.
 - **Send Email:** the SMTP server and login.
 - **Script nodes:** the credential's fields are passed to the script as `PIPE_CREDENTIAL_<FIELD>` environment variables. Values are masked in the output and in the logs.
+
+## OAuth2 client credentials
+
+Many APIs hand out short-lived access tokens. With this credential HTTP Request fetches a token from the *Token URL* (grant `client_credentials`) and sends it as `Authorization: Bearer …`. The token is kept in memory and renewed a minute before it expires, so many requests and runs share one token; editing the credential gets a new one. If the API answers `401`, the token is dropped and the next attempt (a retry of the node, the next run) fetches a new one. Only this grant is supported, not the login of a user in the browser. For a token of a user, use a Bearer Token credential.
 
 ## Take a secret from another source
 

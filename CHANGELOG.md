@@ -24,6 +24,7 @@ The first release, 0.1.0. Until it is tagged, everything below is part of it.
 **Engine and nodes**
 - Execution engine for graphs without cycles: parallel branches, retry, timeout and per-node error handling (stop, continue, error output), a queue for triggered runs (ADR 0005, 0016).
 - Split in Batches node (one item per group of items) and a pause between requests or calls in HTTP Request and Execute Workflow for rate limits (ADR 0034).
+- OAuth2 client credentials credential for HTTP Request: fetches an access token from a token endpoint, keeps it in memory until shortly before it expires and sends it as a bearer token (ADR 0035).
 - JavaScript expressions `{{ … }}` and the Code node, run in a sandbox (Jint) (ADR 0007).
 - Built-in nodes: triggers (Manual, Cron, Webhook, Form, Error, Recovery, Execute Workflow), flow (If, Switch, Filter, Merge, Wait, Execute Workflow), transform (Set, Code, Sort, Limit, Aggregate, Split Out, Remove Duplicates), network (HTTP Request, Respond to Webhook, Send Email), files, data (file formats, date and time, crypto, compression) and utility nodes (ADR 0009, 0018).
 - Webhook triggers with three response modes; Respond to Webhook makes a workflow a small API (ADR 0008).

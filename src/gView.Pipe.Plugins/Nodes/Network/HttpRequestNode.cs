@@ -45,8 +45,8 @@ public sealed class HttpRequestNodeParameters
     [PipeParameter(Label = "Fail on HTTP error status", Expressions = false, Order = 8)]
     public bool FailOnHttpError { get; set; } = true;
 
-    [PipeCredential(PipeBuiltInCredentials.BasicAuth, PipeBuiltInCredentials.BearerToken, PipeBuiltInCredentials.ApiKeyHeader)]
-    [PipeParameter(Label = "Credential", Expressions = false, Order = 9, Description = "Authenticates the request: Basic, Bearer token or an API key header")]
+    [PipeCredential(PipeBuiltInCredentials.BasicAuth, PipeBuiltInCredentials.BearerToken, PipeBuiltInCredentials.ApiKeyHeader, PipeBuiltInCredentials.OAuth2ClientCredentials)]
+    [PipeParameter(Label = "Credential", Expressions = false, Order = 9, Description = "Authenticates the request: Basic, Bearer token, an API key header or OAuth2 client credentials")]
     public string? CredentialId { get; set; }
 
     [PipeParameter(Label = "Pause between requests (ms)", Expressions = false, Order = 10,
@@ -61,10 +61,12 @@ public sealed class HttpRequestNodeParameters
 public sealed class HttpRequestNode : PipeItemNodeBase<HttpRequestNodeParameters>
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly PipeOAuth2TokenCache _tokens;
 
-    public HttpRequestNode(IHttpClientFactory httpClientFactory)
+    public HttpRequestNode(IHttpClientFactory httpClientFactory, PipeOAuth2TokenCache tokens)
     {
         _httpClientFactory = httpClientFactory;
+        _tokens = tokens;
     }
 
     protected override TimeSpan DelayBetweenItems(HttpRequestNodeParameters parameters)
@@ -88,14 +90,21 @@ public sealed class HttpRequestNode : PipeItemNodeBase<HttpRequestNodeParameters
             }
         }
 
+        OAuth2ClientCredentialsCredential? oauth = null;
         if (!string.IsNullOrEmpty(parameters.CredentialId))
         {
-            await ApplyCredentialAsync(request, parameters.CredentialId, context, cancellationToken);
+            oauth = await ApplyCredentialAsync(request, parameters.CredentialId, context, cancellationToken);
         }
 
         var client = _httpClientFactory.CreateClient();
         using var response = await client.SendAsync(request, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (oauth is not null && response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            // the token may be revoked; the next attempt (retry, next run) fetches a new one (ADR 0035)
+            _tokens.Invalidate(parameters.CredentialId!, oauth);
+        }
 
         if (parameters.FailOnHttpError && !response.IsSuccessStatusCode)
         {
@@ -127,7 +136,8 @@ public sealed class HttpRequestNode : PipeItemNodeBase<HttpRequestNodeParameters
         return new Uri(parameters.Url + (parameters.Url.Contains('?') ? "&" : "?") + query);
     }
 
-    static private async Task ApplyCredentialAsync(HttpRequestMessage request, string credentialId, IPipeNodeContext context, CancellationToken cancellationToken)
+    /// <returns>The credential when it is an OAuth2 one, so a 401 can drop its token.</returns>
+    private async Task<OAuth2ClientCredentialsCredential?> ApplyCredentialAsync(HttpRequestMessage request, string credentialId, IPipeNodeContext context, CancellationToken cancellationToken)
     {
         var credential = await context.GetCredentialAsync(credentialId, cancellationToken);
 
@@ -149,9 +159,15 @@ public sealed class HttpRequestNode : PipeItemNodeBase<HttpRequestNodeParameters
                 request.Headers.TryAddWithoutValidation(apiKey.HeaderName, apiKey.Value);
                 break;
 
+            case PipeBuiltInCredentials.OAuth2ClientCredentials:
+                var oauth = await context.GetCredentialAsync<OAuth2ClientCredentialsCredential>(credentialId, cancellationToken);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _tokens.GetTokenAsync(credentialId, oauth, cancellationToken));
+                return oauth;
+
             default:
                 throw new PipeException($"Credential '{credential.Name}' has a type the HTTP Request node can't use");
         }
+        return null;
     }
 
     static private JsonNode? ParseBody(string content, MediaTypeHeaderValue? contentType, HttpResponseFormat format)

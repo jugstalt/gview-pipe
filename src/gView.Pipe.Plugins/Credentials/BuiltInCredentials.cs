@@ -73,3 +73,35 @@ public sealed class SmtpCredential
     [PipeParameter(Label = "Default sender", Order = 6, Placeholder = "Pipe <pipe@example.com>")]
     public string? From { get; set; }
 }
+
+public enum OAuth2ClientAuthentication
+{
+    /// <summary>HTTP Basic with client id and secret in the Authorization header.</summary>
+    Header,
+
+    /// <summary>client_id and client_secret in the form body.</summary>
+    Body
+}
+
+[PipeCredentialType(PipeBuiltInCredentials.OAuth2ClientCredentials, "OAuth2 Client Credentials",
+    Description = "Fetches an access token from a token endpoint (grant client_credentials) and sends it as a bearer token")]
+public sealed class OAuth2ClientCredentialsCredential
+{
+    [Required, PipeParameter(Label = "Token URL", Order = 1, Placeholder = "https://login.example.com/oauth2/token")]
+    public string TokenUrl { get; set; } = "";
+
+    [Required, PipeParameter(Label = "Client id", Order = 2)]
+    public string ClientId { get; set; } = "";
+
+    [Required, Secret, PipeParameter(Label = "Client secret", Order = 3)]
+    public string ClientSecret { get; set; } = "";
+
+    [PipeParameter(Label = "Scope", Order = 4, Description = "Optional; several scopes separated by spaces")]
+    public string? Scope { get; set; }
+
+    [PipeParameter(Label = "Audience", Order = 5, Description = "Optional; sent as the parameter audience, which some providers need")]
+    public string? Audience { get; set; }
+
+    [PipeParameter(Label = "Send client credentials", Order = 6, Description = "In the Authorization header (usual) or in the body")]
+    public OAuth2ClientAuthentication ClientAuthentication { get; set; } = OAuth2ClientAuthentication.Header;
+}
