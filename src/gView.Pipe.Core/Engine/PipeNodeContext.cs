@@ -11,6 +11,7 @@ using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Expressions;
 using gView.Pipe.Core.Options;
+using gView.Pipe.Core.Secrets;
 using Microsoft.Extensions.Options;
 using gView.Pipe.Abstraction.Serialization;
 using Microsoft.Extensions.DependencyInjection;
@@ -75,22 +76,9 @@ internal sealed class PipeNodeContext : IPipeNodeContext
                          ?? throw new PipeException($"Credential '{credentialId}' not found (node '{NodeName}')");
 
         // fields that stand for a secret of an external source are read now (ADR 0033)
-        var resolver = Services.GetRequiredService<IPipeSecretResolver>();
-        foreach (var (field, node) in credential.Data.ToList())
+        foreach (var value in await PipeCredentialSecrets.ResolveAsync(credential, Services.GetRequiredService<IPipeSecretResolver>(), cancellationToken))
         {
-            if (node is JsonValue json && json.TryGetValue<string>(out var text) && PipeSecretReference.TryParse(text, out var reference))
-            {
-                try
-                {
-                    var value = await resolver.ResolveAsync(reference, cancellationToken);
-                    credential.Data[field] = value;
-                    _state.Variables.AddSecretValue(value);
-                }
-                catch (PipeException ex)
-                {
-                    throw new PipeException($"Credential '{credential.Name}', field {field}: {ex.Message}");
-                }
-            }
+            _state.Variables.AddSecretValue(value);
         }
         return credential;
     }

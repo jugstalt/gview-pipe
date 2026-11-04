@@ -2,7 +2,7 @@
 
 Backlog of possible features. Internal, not part of the docs site. Larger items get an ADR before they are built.
 
-Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: S3 or Azure Blob, or incoming mail (IMAP).
+Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: S3 or Azure Blob, or the LLM node.
 
 ## Operations and reliability
 
@@ -20,7 +20,8 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 - [x] Flow: Split in Batches and a pause between requests or calls (ADR 0034); loops and sub-workflows with a return value existed already through Execute Workflow.
 - [ ] Integrations: S3 or Azure Blob, FTP/FTPS (SFTP is done, ADR 0037), Teams/Slack webhook, MQTT or RabbitMQ. (REST with an OAuth2 client credentials credential is done, ADR 0035; the authorization code flow is not part of it.)
 - [x] Triggers: File Trigger for a folder (ADR 0036).
-- [ ] Triggers: incoming mail (IMAP), queue trigger.
+- [x] Triggers: incoming mail through IMAP polling (ADR 0038); OAuth2 sign-in and IDLE are not part of it.
+- [ ] Triggers: queue trigger.
 - [ ] AI: an LLM node that classifies, extracts or summarizes items.
 
 ## Editor and UX

@@ -6,6 +6,7 @@ Ein Trigger ist der erste Node eines Workflows. Er bestimmt, wann der Workflow s
 |---|---|
 | Manual Trigger | Wenn du ihn im Editor ausführst. |
 | Cron Trigger | Nach Zeitplan (Cron-Ausdruck mit 5 oder 6 Feldern), solange der Workflow aktiv ist. |
+| Email Trigger | Wenn ungelesene Mails in einem Postfach (IMAP) liegen, solange der Workflow aktiv ist (siehe [unten](#email-trigger)). |
 | File Trigger | Wenn neue Dateien in einem Ordner erscheinen, solange der Workflow aktiv ist (siehe [unten](#file-trigger)). |
 | Webhook Trigger | Wenn seine URL aufgerufen wird, solange der Workflow aktiv ist. |
 | Execute Workflow Trigger | Wenn ein anderer Workflow diesen mit dem Node Execute Workflow aufruft. |
@@ -143,3 +144,27 @@ Die Items enthalten keinen Inhalt. Den liest Read File: nimm `{{ $json.path }}` 
 - **Verschiebe oder lösche die Datei** am Ende des Workflows (Write File), wenn sie nicht noch einmal auftauchen soll.
 - Ist der Workflow beschäftigt und seine Warteschlange voll ([Fehlerbehandlung](error-handling.md)), warten die Dateien und werden mit der nächsten Abfrage wieder angeboten. Kann der Ordner nicht gelesen werden, wartet der Trigger darauf und schreibt eine Warnung ins Log.
 - Eine Datei, die sich ständig ändert oder für ein anderes Programm offen bleibt, wird nicht gemeldet; das Log sagt es nach 30 Abfragen.
+
+## Email Trigger
+
+Startet den Workflow, wenn in einem Postfach (IMAP) ungelesene Mails liegen. Lege zuerst ein [Credential](credentials.md) **IMAP Server** an: Host, Port (993), Sicherheit (SSL on connect, StartTLS oder none für lokale Testserver), Benutzername und Passwort. Das Zertifikat des Servers wird immer geprüft. Anbieter, die nur eine OAuth2-Anmeldung zulassen, werden noch nicht unterstützt; nimm ein App-Passwort, wo der Anbieter eines anbietet. Das Passwort kann aus einer [Secret-Quelle](../admin-guide/secrets.md) kommen.
+
+Der Trigger verbindet sich alle *Check every (seconds)* (standardmäßig 60, mindestens 10) und nimmt die **ungelesenen** Mails aus *Folder* (`INBOX`), die älteste zuerst. *From contains* und *Subject contains* grenzen auf dem Server ein; andere Mails werden nicht angefasst. Mails, die beim Aktivieren des Workflows schon ungelesen sind, zählen: Sie sind Arbeit, die noch nicht erledigt wurde.
+
+Jede Abfrage, die Mails findet, startet **einen Lauf** mit **einem Item pro Mail** (höchstens 50, der Rest folgt mit der nächsten Abfrage):
+
+| Feld | Inhalt |
+|---|---|
+| `messageId`, `uid`, `folder` | woher die Mail kommt |
+| `from` | `name` und `address` des Absenders |
+| `to`, `cc` | Listen aus `name` und `address` |
+| `subject`, `date` | Betreff und Zeit (ISO 8601) |
+| `text`, `html` | die beiden Inhalte, wenn die Mail sie hat |
+| `attachments` | die Namen der Anhänge |
+| `tooLarge` | `true`, wenn die Mail größer war als *Max message size (MB)* (25): dann sind nur die Kopffelder gefüllt |
+
+Mit *Download attachments* (standardmäßig an) ist jeder Anhang ein Binär-Anhang des Items: `attachment1`, `attachment2`, … in der Reihenfolge von `attachments`. Eingebettete Bilder bleiben weg. Write File oder Send Email können sie verwenden.
+
+**Nachdem der Lauf gestartet ist,** werden die Mails behandelt, wie *After processing* es sagt: *Mark as read* (Standard), *Move to folder* (der *Target folder* wird angelegt, wenn er fehlt) oder *Delete*. Behandelt wird, wenn der Lauf **startet**, nicht wenn er gelingt; ein fehlschlagender Lauf startet also nicht bei jeder Abfrage neu, und der [Fehler-Workflow](error-handling.md) meldet den Fehler. Ist der Workflow beschäftigt und seine Warteschlange voll, bleiben die Mails ungelesen und kommen mit der nächsten Abfrage. Lassen sie sich nicht markieren oder verschieben, steht das im Log, und dieser Trigger startet sie kein zweites Mal.
+
+Der Trigger hält nichts auf der Platte: Das Postfach hält den Zustand, ein Neustart sieht also dieselben ungelesenen Mails. Nimm eine Instanz pro Postfach; zwei könnten dieselbe Mail abholen.

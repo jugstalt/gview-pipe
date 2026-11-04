@@ -105,3 +105,35 @@ public sealed class OAuth2ClientCredentialsCredential
     [PipeParameter(Label = "Send client credentials", Order = 6, Description = "In the Authorization header (usual) or in the body")]
     public OAuth2ClientAuthentication ClientAuthentication { get; set; } = OAuth2ClientAuthentication.Header;
 }
+
+public enum ImapSecurity
+{
+    /// <summary>TLS on connect, usually port 993.</summary>
+    SslOnConnect,
+
+    /// <summary>Starts unencrypted and switches to TLS, usually port 143.</summary>
+    StartTls,
+
+    /// <summary>Unencrypted; only for local test servers.</summary>
+    None
+}
+
+[PipeCredentialType(PipeBuiltInCredentials.ImapServer, "IMAP Server", Description = "Mailbox read by the Email Trigger")]
+public sealed class ImapCredential
+{
+    [Required, PipeParameter(Label = "Host", Order = 1)]
+    public string Host { get; set; } = "";
+
+    [PipeParameter(Label = "Port", Order = 2)]
+    [Range(1, 65535)]
+    public int Port { get; set; } = 993;
+
+    [PipeParameter(Label = "Security", Order = 3, Description = "The certificate of the server is always checked")]
+    public ImapSecurity Security { get; set; } = ImapSecurity.SslOnConnect;
+
+    [Required, PipeParameter(Label = "User name", Order = 4)]
+    public string UserName { get; set; } = "";
+
+    [Required, Secret, PipeParameter(Label = "Password", Order = 5, Description = "An app password if the provider asks for one")]
+    public string Password { get; set; } = "";
+}

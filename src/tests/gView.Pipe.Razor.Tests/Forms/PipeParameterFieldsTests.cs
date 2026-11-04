@@ -14,7 +14,7 @@ public class PipeParameterFieldsTests
     {
         var fields = PipeParameterFields.For(typeof(HttpRequestNodeParameters)).ToDictionary(f => f.Key);
 
-        Assert.Equal(["method", "url", "query", "headers", "body", "contentType", "responseFormat", "failOnHttpError", "credentialId"],
+        Assert.Equal(["method", "url", "query", "headers", "body", "contentType", "responseFormat", "failOnHttpError", "credentialId", "delayMs"],
             PipeParameterFields.For(typeof(HttpRequestNodeParameters)).Select(f => f.Key));
 
         Assert.Equal(PipeFieldKind.Text, fields["url"].Kind);

@@ -37,6 +37,7 @@ static public class PipeBuiltInNodes
     public const string Compression = "4d279dad-5d3a-488b-80d4-5c95cebb0269";
     public const string FormTrigger = "a6d0c1f4-3b52-4e8a-9c17-72e5b0d84f31";
     public const string FileTrigger = "096772ad-7fb1-41f1-9b34-19c8e2634355";
+    public const string EmailTrigger = "916f55de-e11d-43cf-84c8-3afdebe6498d";
     public const string Result = "d93e7a58-1f06-4b2c-8a4d-6c0b51e92a7f";
 }
 
@@ -49,4 +50,5 @@ static public class PipeBuiltInCredentials
     public const string ConnectionString = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f14";
     public const string Smtp = "f697d17c-18a2-4ea9-a4a5-81d45f2c387a";
     public const string OAuth2ClientCredentials = "b7b000e5-84d5-4cff-8dd3-d3c15df89457";
+    public const string ImapServer = "c4a1127b-fac3-4956-bbf1-e6ef1bc04a62";
 }

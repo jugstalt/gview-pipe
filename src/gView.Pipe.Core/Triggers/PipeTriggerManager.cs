@@ -4,12 +4,14 @@ using gView.Pipe.Abstraction.Data;
 using gView.Pipe.Abstraction.Execution;
 using gView.Pipe.Abstraction.Expressions;
 using gView.Pipe.Abstraction.Nodes;
+using gView.Pipe.Abstraction.Secrets;
 using gView.Pipe.Abstraction.Storage;
 using gView.Pipe.Abstraction.Triggers;
 using gView.Pipe.Abstraction.Variables;
 using gView.Pipe.Abstraction.Workflows;
 using gView.Pipe.Core.Expressions;
 using gView.Pipe.Core.Options;
+using gView.Pipe.Core.Secrets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -169,8 +171,14 @@ internal sealed class PipeTriggerManager : IPipeTriggerManager, IHostedService
                 new PipeExpressionScope { WorkflowId = _workflow.Id, WorkflowName = _workflow.Name });
 
         public async Task<PipeCredential> GetCredentialAsync(string credentialId, CancellationToken cancellationToken = default)
-            => await _manager._services.GetRequiredService<IPipeCredentialStore>().GetAsync(credentialId, cancellationToken)
-               ?? throw new PipeException($"Credential '{credentialId}' not found (trigger '{NodeName}')");
+        {
+            var credential = await _manager._services.GetRequiredService<IPipeCredentialStore>().GetAsync(credentialId, cancellationToken)
+                             ?? throw new PipeException($"Credential '{credentialId}' not found (trigger '{NodeName}')");
+
+            // fields from external sources are read now, as for nodes (ADR 0033)
+            await PipeCredentialSecrets.ResolveAsync(credential, _manager._services.GetRequiredService<IPipeSecretResolver>(), cancellationToken);
+            return credential;
+        }
 
         public Task<PipeExecution?> FireAsync(IReadOnlyList<PipeItem> items, CancellationToken cancellationToken, PipeTriggerFireOptions? options = null)
         {

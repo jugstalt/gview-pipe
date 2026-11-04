@@ -6,6 +6,7 @@ A trigger is the first node of a workflow. It decides when the workflow starts.
 |---|---|
 | Manual Trigger | When you run it in the editor. |
 | Cron Trigger | On a schedule (5 or 6 field cron expression), while the workflow is active. |
+| Email Trigger | When unread mails are in a mailbox (IMAP), while the workflow is active (see [below](#email-trigger)). |
 | File Trigger | When new files appear in a folder, while the workflow is active (see [below](#file-trigger)). |
 | Webhook Trigger | When its URL is called, while the workflow is active. |
 | Execute Workflow Trigger | When another workflow calls this one with the Execute Workflow node. |
@@ -143,3 +144,27 @@ The items hold no content. Read File reads it: use `{{ $json.path }}` as its *Pa
 - **Move or delete the file** at the end of the workflow (Write File), if it must not be seen again.
 - If the workflow is busy and its queue is full ([Error handling](error-handling.md)), the files wait and are offered with the next check. If the folder can't be read, the trigger waits for it and writes one warning to the log.
 - A file that keeps changing, or stays open for another program, is not reported; the log says so after 30 checks.
+
+## Email Trigger
+
+Starts the workflow when there are unread mails in a mailbox (IMAP). Create an **IMAP Server** [credential](credentials.md) first: host, port (993), security (SSL on connect, StartTLS or none for local test servers), user name and password. The certificate of the server is always checked. Providers that allow only OAuth2 sign-in are not supported yet; use an app password where the provider offers one. The password can come from a [secret source](../admin-guide/secrets.md).
+
+The trigger connects every *Check every (seconds)* (60 by default, at least 10) and takes the **unread** mails of *Folder* (`INBOX`), oldest first. *From contains* and *Subject contains* narrow them down on the server; other mails are not touched. Mails that are already unread when you activate the workflow count: they are work that was not done.
+
+Each check that finds mails starts **one run** with **one item per mail** (at most 50; the rest follows with the next check):
+
+| Field | Content |
+|---|---|
+| `messageId`, `uid`, `folder` | where the mail comes from |
+| `from` | `name` and `address` of the sender |
+| `to`, `cc` | lists of `name` and `address` |
+| `subject`, `date` | subject and time (ISO 8601) |
+| `text`, `html` | the two bodies, if the mail has them |
+| `attachments` | the names of the attachments |
+| `tooLarge` | `true` if the mail was larger than *Max message size (MB)* (25): then only the header fields are filled |
+
+With *Download attachments* (on by default) each attachment is a binary attachment of the item: `attachment1`, `attachment2`, … in the order of `attachments`. Inline images are left out. Write File or Send Email can use them.
+
+**After the run has started,** the mails are handled as *After processing* says: *Mark as read* (default), *Move to folder* (the *Target folder* is created if it is missing) or *Delete*. Mails are handled when the run **starts**, not when it succeeds, so a failing run doesn't start again at every check; the [error workflow](error-handling.md) tells you about the failure. If the workflow is busy and its queue is full, the mails stay unread and come with the next check. If they can't be marked or moved, the log says so and this trigger doesn't start them a second time.
+
+The trigger keeps nothing on disk: the mailbox holds the state, so a restart sees the same unread mails. Use one instance per mailbox; two could pick the same mail.

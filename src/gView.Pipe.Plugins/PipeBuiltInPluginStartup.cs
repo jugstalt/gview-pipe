@@ -12,6 +12,8 @@ public sealed class PipeBuiltInPluginStartup : IPipePluginStartup
 {
     public void ConfigureServices(IServiceCollection services)
     {
+        // the mailbox of the Email Trigger (ADR 0038); tests replace it
+        services.TryAddSingleton<IPipeMailConnector, MailKitMailConnector>();
         // tokens of OAuth2 credentials, shared by all runs (ADR 0035)
         services.TryAddSingleton<PipeOAuth2TokenCache>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPipeFileFormat, PipeCsvFileFormat>());

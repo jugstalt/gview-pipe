@@ -27,6 +27,8 @@ The first release, 0.1.0. Until it is tagged, everything below is part of it.
 - OAuth2 client credentials credential for HTTP Request: fetches an access token from a token endpoint, keeps it in memory until shortly before it expires and sends it as a bearer token (ADR 0035).
 - File Trigger: starts a workflow when new files appear in a released folder; polls the folder, reports a file once it is complete, one run per check with one item per file (ADR 0036).
 - SFTP node (plugin `gView.Pipe.Plugins.Sftp`): list, download, upload, delete and rename files on an SFTP server over one connection; the credential holds the server's host key fingerprint, which is checked; uploads go through a `.part` file (ADR 0037).
+- Email Trigger (IMAP) with the credential IMAP Server: starts a workflow when unread mails are in a mailbox; one run per check with one item per mail, attachments as binary data; the mails are marked as read, moved or deleted once the run has started (ADR 0038).
+- Triggers read credentials like nodes do: fields that reference an external secret source are resolved (ADR 0033), so e.g. the credential of a Webhook Trigger can take its password from a vault.
 - JavaScript expressions `{{ … }}` and the Code node, run in a sandbox (Jint) (ADR 0007).
 - Built-in nodes: triggers (Manual, Cron, Webhook, Form, Error, Recovery, Execute Workflow), flow (If, Switch, Filter, Merge, Wait, Execute Workflow), transform (Set, Code, Sort, Limit, Aggregate, Split Out, Remove Duplicates), network (HTTP Request, Respond to Webhook, Send Email), files, data (file formats, date and time, crypto, compression) and utility nodes (ADR 0009, 0018).
 - Webhook triggers with three response modes; Respond to Webhook makes a workflow a small API (ADR 0008).
