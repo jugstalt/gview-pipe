@@ -8,6 +8,7 @@ Ein Trigger ist der erste Node eines Workflows. Er bestimmt, wann der Workflow s
 | Cron Trigger | Nach Zeitplan (Cron-Ausdruck mit 5 oder 6 Feldern), solange der Workflow aktiv ist. |
 | Email Trigger | Wenn ungelesene Mails in einem Postfach (IMAP) liegen, solange der Workflow aktiv ist (siehe [unten](#email-trigger)). |
 | File Trigger | Wenn neue Dateien in einem Ordner erscheinen, solange der Workflow aktiv ist (siehe [unten](#file-trigger)). |
+| SFTP Trigger | Wenn Dateien in einem Ordner auf einem SFTP-Server erscheinen, solange der Workflow aktiv ist (Plugin `gView.Pipe.Plugins.Sftp`, siehe [unten](#sftp-trigger)). |
 | Webhook Trigger | Wenn seine URL aufgerufen wird, solange der Workflow aktiv ist. |
 | Execute Workflow Trigger | Wenn ein anderer Workflow diesen mit dem Node Execute Workflow aufruft. |
 | Error Trigger | Wenn ein Lauf eines anderen Workflows fehlschlägt (siehe [Fehlerbehandlung](error-handling.md)). |
@@ -168,3 +169,18 @@ Mit *Download attachments* (standardmäßig an) ist jeder Anhang ein Binär-Anha
 **Nachdem der Lauf gestartet ist,** werden die Mails behandelt, wie *After processing* es sagt: *Mark as read* (Standard), *Move to folder* (der *Target folder* wird angelegt, wenn er fehlt) oder *Delete*. Behandelt wird, wenn der Lauf **startet**, nicht wenn er gelingt; ein fehlschlagender Lauf startet also nicht bei jeder Abfrage neu, und der [Fehler-Workflow](error-handling.md) meldet den Fehler. Ist der Workflow beschäftigt und seine Warteschlange voll, bleiben die Mails ungelesen und kommen mit der nächsten Abfrage. Lassen sie sich nicht markieren oder verschieben, steht das im Log, und dieser Trigger startet sie kein zweites Mal.
 
 Der Trigger hält nichts auf der Platte: Das Postfach hält den Zustand, ein Neustart sieht also dieselben ungelesenen Mails. Nimm eine Instanz pro Postfach; zwei könnten dieselbe Mail abholen.
+
+## SFTP Trigger
+
+Startet den Workflow, wenn in einem Ordner auf einem SFTP-Server Dateien erscheinen (Plugin `gView.Pipe.Plugins.Sftp`). Er nutzt ein [Credential](credentials.md) **SFTP Server** wie der [SFTP-Node](data.md#sftp), einschließlich der Prüfung des Host-Key-Fingerabdrucks.
+
+Der Trigger verbindet sich alle *Check every (seconds)* (standardmäßig 60, mindestens 10) und listet *Path*. *File pattern* (`*.csv`, Groß- und Kleinschreibung egal) und *Include subfolders* grenzen ein. Ordner und Namen, die auf `.part` oder `.tmp` enden, werden nie gemeldet: Uploader schreiben oft unter so einem Namen und benennen um, wenn sie fertig sind. Eine Datei wird gemeldet, wenn Größe und Zeit in zwei Abfragen hintereinander gleich waren; das dauert bis zu zwei Intervalle.
+
+Jede Abfrage, die vollständige Dateien findet, startet **einen Lauf** mit **einem Item pro Datei** (höchstens 100, der Rest folgt mit der nächsten Abfrage). Das Item ist das, was die Operation List des SFTP-Nodes liefert (`fileName`, `path`, `size`, `modifiedAt`, `isDirectory`), dazu `event` (`created` oder `changed`). Den Inhalt holt der SFTP-Node mit *Download* und `{{ $json.path }}` als *Path*.
+
+*After processing* bestimmt, was mit einer Datei geschieht, sobald der Lauf **gestartet** ist, und damit, was als neu gilt:
+
+- **Move to folder** (Standard; *Target folder* ist Pflicht und wird bei Bedarf angelegt) und **Delete**: Jede Datei im Ordner zählt, auch die, die schon vorher da waren. Der Server hält den Zustand, ein Neustart verliert also nichts. Ein Name, der im Ziel schon vergeben ist, bekommt `_2`, `_3`, … vor der Endung. Das Konto braucht Schreibrechte.
+- **Nothing**: Die Dateien der ersten Abfrage sind die Baseline und lösen nichts aus; danach werden nur neue Dateien gemeldet, mit *Events* = *Created or changed* auch geänderte. Der Trigger hält nichts auf der Platte, Dateien, die ankommen, während die App steht, gehören nach einem Neustart also zur Baseline. Nimm das für Konten ohne Schreibrecht.
+
+Dateien werden behandelt, wenn der Lauf **startet**, nicht wenn er gelingt, damit ein fehlschlagender Lauf nicht bei jeder Abfrage neu startet; der [Fehler-Workflow](error-handling.md) meldet den Fehler. Ist der Workflow beschäftigt und seine Warteschlange voll, bleiben die Dateien liegen und werden mit der nächsten Abfrage wieder angeboten. Lässt sich eine Datei nicht verschieben oder löschen, steht das im Log, und dieser Trigger startet sie kein zweites Mal. Ein Server, der nicht erreichbar ist, oder ein Host-Key, der nicht passt, wird protokolliert, und die nächste Abfrage versucht es erneut. Nimm eine Instanz pro Server-Ordner; zwei könnten dieselbe Datei abholen.

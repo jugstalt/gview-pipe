@@ -8,6 +8,7 @@ A trigger is the first node of a workflow. It decides when the workflow starts.
 | Cron Trigger | On a schedule (5 or 6 field cron expression), while the workflow is active. |
 | Email Trigger | When unread mails are in a mailbox (IMAP), while the workflow is active (see [below](#email-trigger)). |
 | File Trigger | When new files appear in a folder, while the workflow is active (see [below](#file-trigger)). |
+| SFTP Trigger | When files appear in a folder on an SFTP server, while the workflow is active (plugin `gView.Pipe.Plugins.Sftp`, see [below](#sftp-trigger)). |
 | Webhook Trigger | When its URL is called, while the workflow is active. |
 | Execute Workflow Trigger | When another workflow calls this one with the Execute Workflow node. |
 | Error Trigger | When a run of another workflow fails (see [Error handling](error-handling.md)). |
@@ -168,3 +169,18 @@ With *Download attachments* (on by default) each attachment is a binary attachme
 **After the run has started,** the mails are handled as *After processing* says: *Mark as read* (default), *Move to folder* (the *Target folder* is created if it is missing) or *Delete*. Mails are handled when the run **starts**, not when it succeeds, so a failing run doesn't start again at every check; the [error workflow](error-handling.md) tells you about the failure. If the workflow is busy and its queue is full, the mails stay unread and come with the next check. If they can't be marked or moved, the log says so and this trigger doesn't start them a second time.
 
 The trigger keeps nothing on disk: the mailbox holds the state, so a restart sees the same unread mails. Use one instance per mailbox; two could pick the same mail.
+
+## SFTP Trigger
+
+Starts the workflow when files appear in a folder on an SFTP server (plugin `gView.Pipe.Plugins.Sftp`). It uses an **SFTP Server** [credential](credentials.md) like the [SFTP node](data.md#sftp), including the check of the host key fingerprint.
+
+The trigger connects every *Check every (seconds)* (60 by default, at least 10) and lists *Path*. *File pattern* (`*.csv`, capitals don't matter) and *Include subfolders* narrow it down. Folders and names ending in `.part` or `.tmp` are never reported: uploaders often write under such a name and rename when they are done. A file is reported when its size and time were the same in two checks in a row, so it comes after up to two intervals.
+
+Each check that finds complete files starts **one run** with **one item per file** (at most 100; the rest follows with the next check). The item is the one the List operation of the SFTP node gives (`fileName`, `path`, `size`, `modifiedAt`, `isDirectory`) plus `event` (`created` or `changed`). The SFTP node with *Download* and `{{ $json.path }}` as *Path* fetches the content.
+
+*After processing* decides what happens to a file once the run has **started**, and with it what counts as new:
+
+- **Move to folder** (default; *Target folder* is required and created if missing) and **Delete**: every file in the folder counts, also those that were there before. The server holds the state, so a restart loses nothing. A name that is taken in the target gets `_2`, `_3`, … before its extension. The account needs write permission.
+- **Nothing**: the files of the first check are the baseline and trigger nothing; only files that are new afterwards are reported, with *Events* = *Created or changed* also changed ones. The trigger keeps nothing on disk, so files that arrive while the app is down are part of the baseline after a restart. Use this for read-only accounts.
+
+Files are handled when the run **starts**, not when it succeeds, so a failing run doesn't start again at every check; the [error workflow](error-handling.md) tells you about the failure. If the workflow is busy and its queue is full, the files stay and are offered with the next check. If a file can't be moved or deleted, the log says so and this trigger doesn't start it a second time. A server that can't be reached, or a host key that doesn't match, is logged, and the next check tries again. Use one instance per server folder; two could pick the same file.

@@ -14,7 +14,7 @@ namespace gView.Pipe.Plugins.Tests.Nodes;
 public sealed class SftpNodeTests
 {
     /// <summary>A server in memory: files, folders and a log of what the node did.</summary>
-    private sealed class FakeServer : ISftpConnector
+    internal sealed class FakeServer : ISftpConnector
     {
         static private readonly DateTimeOffset Modified = new(2026, 11, 3, 12, 0, 0, TimeSpan.Zero);
 
@@ -24,6 +24,11 @@ public sealed class SftpNodeTests
         public int Connections { get; private set; }
         public SftpCredential? Credential { get; private set; }
         public TimeSpan Timeout { get; private set; }
+        public Dictionary<string, DateTimeOffset> Times { get; } = new();
+        public bool FailRename { get; set; }
+
+        /// <summary>Changes the modified time of a file, like a writer that is still at work.</summary>
+        public void Touch(string path) => Times[path] = Times.GetValueOrDefault(path, Modified).AddMinutes(1);
 
         public FakeServer Add(string path, string content = "x")
         {
@@ -50,7 +55,7 @@ public sealed class SftpNodeTests
 
         private sealed class Connection(FakeServer server) : ISftpConnection
         {
-            private SftpEntry FileEntry(string path) => new(path, path[(path.LastIndexOf('/') + 1)..], server.Files[path].Length, Modified, false);
+            private SftpEntry FileEntry(string path) => new(path, path[(path.LastIndexOf('/') + 1)..], server.Files[path].Length, server.Times.GetValueOrDefault(path, Modified), false);
 
             private SftpEntry FolderEntry(string path) => new(path, path[(path.LastIndexOf('/') + 1)..], 0, Modified, true);
 
@@ -101,6 +106,10 @@ public sealed class SftpNodeTests
             public Task RenameAsync(string path, string newPath, CancellationToken cancellationToken)
             {
                 server.Log.Add($"rename {path} {newPath}");
+                if (server.FailRename)
+                {
+                    throw new PipeException("not allowed");
+                }
                 if (server.Files.ContainsKey(newPath))
                 {
                     throw new PipeException("the target exists");

@@ -269,7 +269,7 @@ public sealed class SftpNode : IPipeNode<SftpNodeParameters>
     }
 
     // folders from the top down; a missing one is an error unless it may be created
-    static private async Task EnsureFolderAsync(ISftpConnection connection, string folder, bool create, CancellationToken cancellationToken)
+    static internal async Task EnsureFolderAsync(ISftpConnection connection, string folder, bool create, CancellationToken cancellationToken)
     {
         if (folder is "" or "/")
         {
@@ -327,7 +327,7 @@ public sealed class SftpNode : IPipeNode<SftpNodeParameters>
         json["modifiedAt"] = entry.ModifiedAt.ToUniversalTime().ToString("O");
     }
 
-    static private Regex PatternToRegex(string? pattern)
+    static internal Regex PatternToRegex(string? pattern)
     {
         var text = string.IsNullOrWhiteSpace(pattern) ? "*" : pattern.Trim();
         return new Regex("^" + Regex.Escape(text).Replace("\\*", ".*").Replace("\\?", ".") + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
