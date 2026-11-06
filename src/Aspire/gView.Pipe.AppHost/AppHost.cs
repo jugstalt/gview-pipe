@@ -2,6 +2,8 @@
 #define ADD_MAILPIT
 #define ADD_GITEA
 #define ADD_IDENTITYSERVER
+#define ADD_SFTP
+#define ADD_GREENMAIL
 
 // how users sign in, for the Shell (PIPE_*) and for the portal (PORTAL_*); at most one of the two per app, none: no login.
 // OIDC signs in through the IdentityServer (needs ADD_IDENTITYSERVER), FORMS through fixed users of the AppHost.
@@ -51,6 +53,36 @@ builder.AddContainer("gitea", "gitea/gitea", "latest")
        .WithEntrypoint("/bin/sh")
        .WithArgs("-c", "/usr/bin/entrypoint &\nfor i in $(seq 1 30); do\n  sleep 2\n  su git -c \"gitea admin user create --admin --username gitea --password gitea --email gitea@localhost --must-change-password=false\" && break\n  su git -c \"gitea admin user list\" | grep -q \" gitea \" && break\ndone\nwait")
        .WithContainerName("gview-pipe-gitea")
+       .WithLifetime(ContainerLifetime.Persistent);
+
+#endregion
+#endif
+
+#if ADD_SFTP
+#region SFTP server (SFTP node and SFTP Trigger: localhost:2223, login pipe/pipe, folders in, out, done)
+
+// atmoz/sftp: "user:password:uid:gid:folders" creates the user with the folders below its home (/in, /out, /done for SFTP)
+builder.AddContainer("sftp", "atmoz/sftp", "latest")
+       .WithEndpoint(port: 2223, targetPort: 22, name: "sftp", scheme: "tcp")
+       .WithArgs("pipe:pipe:1001:100:in,out,done")
+       // the host keys live in a volume, so the fingerprint in the credential stays valid when the container is created again
+       .WithVolume("gview-pipe-sftp-keys", "/etc/ssh")
+       .WithVolume("gview-pipe-sftp-home", "/home/pipe")
+       .WithContainerName("gview-pipe-sftp")
+       .WithLifetime(ContainerLifetime.Persistent);
+
+#endregion
+#endif
+
+#if ADD_GREENMAIL
+#region GreenMail (Email Trigger and Send Email: SMTP localhost:3025, IMAP localhost:3143, login pipe/pipe, address pipe@localhost)
+
+// a mail server for tests: whatever is sent to pipe@localhost over SMTP can be read over IMAP; mails live in memory only
+builder.AddContainer("greenmail", "greenmail/standalone", "latest")
+       .WithEndpoint(port: 3025, targetPort: 3025, name: "smtp", scheme: "tcp")
+       .WithEndpoint(port: 3143, targetPort: 3143, name: "imap", scheme: "tcp")
+       .WithEnvironment("GREENMAIL_OPTS", "-Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=pipe:pipe@localhost")
+       .WithContainerName("gview-pipe-greenmail")
        .WithLifetime(ContainerLifetime.Persistent);
 
 #endregion
