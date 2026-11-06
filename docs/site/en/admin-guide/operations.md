@@ -54,7 +54,7 @@ Every save that changes a workflow keeps a copy in `data/workflow-versions/<work
 
 ## Metrics
 
-The meter `gView.Pipe` publishes OpenTelemetry metrics: `gview.pipe.runs` (finished runs by workflow, `status` and `mode`), `gview.pipe.run.duration` (seconds), `gview.pipe.runs.skipped` (runs dropped because the workflow was busy and its queue full) and `gview.pipe.runs.active`. Errors per workflow are the runs with `status=error`. The service defaults of the Aspire AppHost collect them; in your own host add the meter with `AddMeter("gView.Pipe")` and set `OTEL_EXPORTER_OTLP_ENDPOINT` to export.
+The meter `gView.Pipe` publishes OpenTelemetry metrics: `gview.pipe.runs` (finished runs by workflow, `status` and `mode`), `gview.pipe.run.duration` (seconds), `gview.pipe.runs.skipped` (runs dropped because the workflow was busy and its queue full) and `gview.pipe.runs.active`. Errors per workflow are the runs with `status=error`. With the AI plugin, `gview.pipe.ai.tokens` counts the tokens of the [AI node](../user-guide/ai.md) by `model`, `direction` (input, output) and workflow. The service defaults of the Aspire AppHost collect them; in your own host add the meter with `AddMeter("gView.Pipe")` and set `OTEL_EXPORTER_OTLP_ENDPOINT` to export.
 
 ## Backup
 

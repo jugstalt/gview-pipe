@@ -22,6 +22,8 @@ Die Liste zeigt Name, Typ und **Id** jedes Credentials. Die Id speichert der Wor
 
 | Typ | Benutzt von | Felder |
 |---|---|---|
+| Anthropic API | AI | API-Key |
+| Azure OpenAI | AI | Anmeldung (API-Key oder Managed Identity), Endpoint, Deployment, API-Version, API-Key |
 | Azure Storage | Azure Blob, Azure Blob Trigger | Anmeldung (Connection String, Managed Identity oder SAS-Token), Connection String, Account-URL, SAS-Token |
 | Basic Auth | HTTP Request, Webhook Trigger, Git-Server | Benutzername, Passwort |
 | Bearer Token | HTTP Request, Webhook Trigger, Git-Server | Token |

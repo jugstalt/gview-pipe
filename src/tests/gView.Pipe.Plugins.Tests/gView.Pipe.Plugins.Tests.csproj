@@ -15,6 +15,8 @@
     <ProjectReference Include="..\..\gView.Pipe.Portal\gView.Pipe.Portal.csproj" />
     <!-- the Excel format: referenced directly here, the Shell loads it from its plugin folder -->
     <ProjectReference Include="..\..\gView.Pipe.Plugins.Office\gView.Pipe.Plugins.Office.csproj" AdditionalProperties="InstallPipePlugin=false" />
+    <!-- the AI node: tested with a fake provider; the Shell loads the plugin from its plugin folder -->
+    <ProjectReference Include="..\..\gView.Pipe.Plugins.AI\gView.Pipe.Plugins.AI.csproj" AdditionalProperties="InstallPipePlugin=false" />
     <!-- the Azure Blob node and trigger: tested with a fake storage; the Shell loads the plugin from its plugin folder -->
     <ProjectReference Include="..\..\gView.Pipe.Plugins.AzureStorage\gView.Pipe.Plugins.AzureStorage.csproj" AdditionalProperties="InstallPipePlugin=false" />
     <!-- the SFTP node: tested with a fake server; the Shell loads the plugin from its plugin folder -->

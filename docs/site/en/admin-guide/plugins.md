@@ -4,6 +4,7 @@ All nodes come from plugins. The built-in nodes (`gView.Pipe.Plugins.dll`) are a
 
 | Plugin | Nodes | Why separate |
 |---|---|---|
+| `gView.Pipe.Plugins.AI` | AI | Sends data of the items to a language model (Anthropic API or Azure OpenAI). Not installing it means no data goes to a model. |
 | `gView.Pipe.Plugins.AzureStorage` | Azure Blob, Azure Blob Trigger | The Azure Storage SDK. |
 | `gView.Pipe.Plugins.Database` | SQL | SQL Server, PostgreSQL and SQLite drivers. |
 | `gView.Pipe.Plugins.Office` | none; adds the format *Excel* to Extract from File and Convert to File | The Excel library (MiniExcel). |

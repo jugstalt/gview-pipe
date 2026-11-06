@@ -57,6 +57,7 @@ plugins:
             Credentials: Credentials
             Executions: Executions
             Recipes: Rezepte
+            AI: KI
             Installation: Installation
             Configuration: Konfiguration
             Authentication: Anmeldung
@@ -82,6 +83,7 @@ nav:
       - Variables and environments: user-guide/variables.md
       - Credentials: user-guide/credentials.md
       - Files and data: user-guide/data.md
+      - AI: user-guide/ai.md
       - Error handling: user-guide/error-handling.md
       - Failure notifications: user-guide/notifications.md
       - Executions: user-guide/executions.md

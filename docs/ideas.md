@@ -2,7 +2,7 @@
 
 Backlog of possible features. Internal, not part of the docs site. Larger items get an ADR before they are built.
 
-Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: the LLM node, or S3.
+Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. Suggested next: S3, or more file formats (YAML, PDF text).
 
 ## Operations and reliability
 
@@ -22,7 +22,7 @@ Priority: everything gView.Pipe needs apart from geo; the GIS nodes come last. S
 - [x] Triggers: File Trigger for a folder (ADR 0036).
 - [x] Triggers: incoming mail through IMAP polling (ADR 0038); OAuth2 sign-in and IDLE are not part of it.
 - [ ] Triggers: queue trigger.
-- [ ] AI: an LLM node that classifies, extracts or summarizes items.
+- [x] AI: a node that answers prompts, classifies, extracts or summarizes items with Claude (ADR 0041), also with Azure OpenAI (ADR 0042); other providers (e.g. a local model) can follow behind the same interface.
 
 ## Editor and UX
 

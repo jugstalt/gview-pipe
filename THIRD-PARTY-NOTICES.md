@@ -56,6 +56,17 @@ The PostgreSQL License is a permissive license similar to MIT/BSD: https://opens
 |---|---|---|---|---|---|
 | MiniExcel | 1.46.0 | Apache-2.0 | Copyright (c) Wei Lin, 2021 onwards | directly | https://github.com/mini-software/MiniExcel |
 
+### AI plugin
+
+`gView.Pipe.Plugins.AI` is installed as an external plugin (`plugins/gView.Pipe.Plugins.AI/`) and brings these components:
+
+| Component | Version | License | Copyright | Referenced | Project |
+|---|---|---|---|---|---|
+| Anthropic | 13.6.0 | Apache-2.0 | Copyright 2023 Anthropic, PBC. | directly | https://github.com/anthropics/anthropic-sdk-csharp |
+| Microsoft.Extensions.AI.Abstractions | 10.5.1 | MIT | Copyright (c) Microsoft Corporation | transitively via Anthropic | https://github.com/dotnet/extensions |
+| Azure.Identity, Azure.Core, System.ClientModel, System.Memory.Data, Microsoft.Bcl.AsyncInterfaces | 1.21.0, 1.53.0, 1.10.0, 10.0.3, 10.0.3 | MIT | Copyright (c) Microsoft Corporation | directly (managed identity for Azure OpenAI) / via Azure.Identity | https://github.com/Azure/azure-sdk-for-net |
+| Microsoft.Identity.Client (+ .Extensions.Msal), Microsoft.IdentityModel.Abstractions, System.Security.Cryptography.ProtectedData | 4.83.1, 8.14.0, 4.5.0 | MIT | Copyright (c) Microsoft Corporation | transitively via Azure.Identity | https://github.com/AzureAD/microsoft-authentication-library-for-dotnet |
+
 ### Azure Storage plugin
 
 `gView.Pipe.Plugins.AzureStorage` is installed as an external plugin (`plugins/gView.Pipe.Plugins.AzureStorage/`) and brings these components:

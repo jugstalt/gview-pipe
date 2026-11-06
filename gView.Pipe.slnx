@@ -29,6 +29,7 @@
     <Project Path="src/gView.Pipe.AspNetCore/gView.Pipe.AspNetCore.csproj" />
     <Project Path="src/gView.Pipe.Razor/gView.Pipe.Razor.csproj" />
     <Project Path="src/gView.Pipe.Plugins/gView.Pipe.Plugins.csproj" />
+    <Project Path="src/gView.Pipe.Plugins.AI/gView.Pipe.Plugins.AI.csproj" />
     <Project Path="src/gView.Pipe.Plugins.AzureStorage/gView.Pipe.Plugins.AzureStorage.csproj" />
     <Project Path="src/gView.Pipe.Plugins.Database/gView.Pipe.Plugins.Database.csproj" />
     <Project Path="src/gView.Pipe.Plugins.Office/gView.Pipe.Plugins.Office.csproj" />

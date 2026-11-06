@@ -61,6 +61,7 @@ class Build : NukeBuild
     // external plugins: published into plugins/<Name>/ of the app
     static readonly RelativePath[] PluginProjects =
     {
+        (RelativePath)"src/gView.Pipe.Plugins.AI/gView.Pipe.Plugins.AI.csproj",
         (RelativePath)"src/gView.Pipe.Plugins.AzureStorage/gView.Pipe.Plugins.AzureStorage.csproj",
         (RelativePath)"src/gView.Pipe.Plugins.Database/gView.Pipe.Plugins.Database.csproj",
         (RelativePath)"src/gView.Pipe.Plugins.Office/gView.Pipe.Plugins.Office.csproj",

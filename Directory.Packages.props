@@ -33,6 +33,9 @@
   <ItemGroup Label="SFTP (gView.Pipe.Plugins.Sftp)">
     <PackageVersion Include="SSH.NET" Version="2026.0.0" />
   </ItemGroup>
+  <ItemGroup Label="AI (gView.Pipe.Plugins.AI)">
+    <PackageVersion Include="Anthropic" Version="13.6.0" />
+  </ItemGroup>
   <ItemGroup Label="Azure Storage (gView.Pipe.Plugins.AzureStorage)">
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.30.1" />
   </ItemGroup>
