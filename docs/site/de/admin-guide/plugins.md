@@ -1,9 +1,10 @@
 # Plugins
 
-Alle Nodes kommen aus Plugins. Die eingebauten Nodes (`gView.Pipe.Plugins.dll`) sind immer Teil der App. Zwei weitere Plugins sind getrennt, weil sie eigene Abhängigkeiten mitbringen oder Code ausführen können:
+Alle Nodes kommen aus Plugins. Die eingebauten Nodes (`gView.Pipe.Plugins.dll`) sind immer Teil der App. Die anderen Plugins sind getrennt, weil sie eigene Abhängigkeiten mitbringen oder Code ausführen können:
 
 | Plugin | Nodes | Warum getrennt |
 |---|---|---|
+| `gView.Pipe.Plugins.AzureStorage` | Azure Blob, Azure Blob Trigger | Das Azure Storage SDK. |
 | `gView.Pipe.Plugins.Database` | SQL | Treiber für SQL Server, PostgreSQL und SQLite. |
 | `gView.Pipe.Plugins.Office` | keine; ergänzt das Format *Excel* in Extract from File und Convert to File | Die Excel-Bibliothek (MiniExcel). |
 | `gView.Pipe.Plugins.Scripts` | Run Script, Run Scripts Folder, Run Scripts Repo | Führt Skripte auf dem Server aus. Ohne dieses Plugin gibt es keine Skriptausführung. |

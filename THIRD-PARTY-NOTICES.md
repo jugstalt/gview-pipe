@@ -56,6 +56,17 @@ The PostgreSQL License is a permissive license similar to MIT/BSD: https://opens
 |---|---|---|---|---|---|
 | MiniExcel | 1.46.0 | Apache-2.0 | Copyright (c) Wei Lin, 2021 onwards | directly | https://github.com/mini-software/MiniExcel |
 
+### Azure Storage plugin
+
+`gView.Pipe.Plugins.AzureStorage` is installed as an external plugin (`plugins/gView.Pipe.Plugins.AzureStorage/`) and brings these components:
+
+| Component | Version | License | Copyright | Referenced | Project |
+|---|---|---|---|---|---|
+| Azure.Storage.Blobs, Azure.Storage.Common, Azure.Identity | 12.30.1, 12.29.0, 1.21.0 | MIT | Copyright (c) Microsoft Corporation | directly / via Azure.Storage.Blobs | https://github.com/Azure/azure-sdk-for-net |
+| Azure.Core, System.ClientModel, System.Memory.Data, System.IO.Hashing, Microsoft.Bcl.AsyncInterfaces | 1.60.0, 1.14.0, 10.0.9, 10.0.9, 10.0.9 | MIT | Copyright (c) Microsoft Corporation | transitively via the Azure SDK | https://github.com/Azure/azure-sdk-for-net |
+| Microsoft.Identity.Client (+ .Extensions.Msal), Microsoft.IdentityModel.Abstractions, System.Security.Cryptography.ProtectedData | 4.84.2, 8.14.0, 4.5.0 | MIT | Copyright (c) Microsoft Corporation | transitively via Azure.Identity | https://github.com/AzureAD/microsoft-authentication-library-for-dotnet |
+| Apache.Arrow | 22.1.0 | Apache-2.0 | Copyright (c) 2016-2025 The Apache Software Foundation | transitively via the Azure SDK | https://arrow.apache.org/ |
+
 ### SFTP plugin
 
 `gView.Pipe.Plugins.Sftp` is installed as an external plugin (`plugins/gView.Pipe.Plugins.Sftp/`) and brings these components:

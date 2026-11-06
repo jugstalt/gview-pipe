@@ -8,6 +8,7 @@ A trigger is the first node of a workflow. It decides when the workflow starts.
 | Cron Trigger | On a schedule (5 or 6 field cron expression), while the workflow is active. |
 | Email Trigger | When unread mails are in a mailbox (IMAP), while the workflow is active (see [below](#email-trigger)). |
 | File Trigger | When new files appear in a folder, while the workflow is active (see [below](#file-trigger)). |
+| Azure Blob Trigger | When blobs appear in a container of Azure Blob Storage, while the workflow is active (plugin `gView.Pipe.Plugins.AzureStorage`, see [below](#azure-blob-trigger)). |
 | SFTP Trigger | When files appear in a folder on an SFTP server, while the workflow is active (plugin `gView.Pipe.Plugins.Sftp`, see [below](#sftp-trigger)). |
 | Webhook Trigger | When its URL is called, while the workflow is active. |
 | Execute Workflow Trigger | When another workflow calls this one with the Execute Workflow node. |
@@ -184,3 +185,12 @@ Each check that finds complete files starts **one run** with **one item per file
 - **Nothing**: the files of the first check are the baseline and trigger nothing; only files that are new afterwards are reported, with *Events* = *Created or changed* also changed ones. The trigger keeps nothing on disk, so files that arrive while the app is down are part of the baseline after a restart. Use this for read-only accounts.
 
 Files are handled when the run **starts**, not when it succeeds, so a failing run doesn't start again at every check; the [error workflow](error-handling.md) tells you about the failure. If the workflow is busy and its queue is full, the files stay and are offered with the next check. If a file can't be moved or deleted, the log says so and this trigger doesn't start it a second time. A server that can't be reached, or a host key that doesn't match, is logged, and the next check tries again. Use one instance per server folder; two could pick the same file.
+
+## Azure Blob Trigger
+
+Starts the workflow when blobs appear in a container of Azure Blob Storage (plugin `gView.Pipe.Plugins.AzureStorage`). It uses an **Azure Storage** [credential](credentials.md) like the [Azure Blob node](data.md#azure-blob) and works like the [SFTP Trigger](#sftp-trigger), with two differences:
+
+- A blob is reported at the **first** check that sees it, because a blob is visible only when it is complete. There is no `.part` rule.
+- *Move to folder* can move into another container: *Target container* (empty: the same; created if it is missing) and *Target folder*.
+
+It checks *Container* and the folder *Path* every *Check every (seconds)* (60 by default, at least 10), with *File pattern* and *Include subfolders*. One run per check with one item per blob (at most 100): the item of the node's List plus `event`. *After processing* is *Move to folder* (default), *Delete* or *Nothing*, with the same meaning as for the SFTP Trigger: Move and Delete take every blob, also older ones, and the storage holds the state; Nothing reports only blobs that are new after the first check. Moving copies the blob on the server and then deletes it.

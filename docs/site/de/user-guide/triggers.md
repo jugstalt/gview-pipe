@@ -8,6 +8,7 @@ Ein Trigger ist der erste Node eines Workflows. Er bestimmt, wann der Workflow s
 | Cron Trigger | Nach Zeitplan (Cron-Ausdruck mit 5 oder 6 Feldern), solange der Workflow aktiv ist. |
 | Email Trigger | Wenn ungelesene Mails in einem Postfach (IMAP) liegen, solange der Workflow aktiv ist (siehe [unten](#email-trigger)). |
 | File Trigger | Wenn neue Dateien in einem Ordner erscheinen, solange der Workflow aktiv ist (siehe [unten](#file-trigger)). |
+| Azure Blob Trigger | Wenn Blobs in einem Container von Azure Blob Storage erscheinen, solange der Workflow aktiv ist (Plugin `gView.Pipe.Plugins.AzureStorage`, siehe [unten](#azure-blob-trigger)). |
 | SFTP Trigger | Wenn Dateien in einem Ordner auf einem SFTP-Server erscheinen, solange der Workflow aktiv ist (Plugin `gView.Pipe.Plugins.Sftp`, siehe [unten](#sftp-trigger)). |
 | Webhook Trigger | Wenn seine URL aufgerufen wird, solange der Workflow aktiv ist. |
 | Execute Workflow Trigger | Wenn ein anderer Workflow diesen mit dem Node Execute Workflow aufruft. |
@@ -184,3 +185,12 @@ Jede Abfrage, die vollständige Dateien findet, startet **einen Lauf** mit **ein
 - **Nothing**: Die Dateien der ersten Abfrage sind die Baseline und lösen nichts aus; danach werden nur neue Dateien gemeldet, mit *Events* = *Created or changed* auch geänderte. Der Trigger hält nichts auf der Platte, Dateien, die ankommen, während die App steht, gehören nach einem Neustart also zur Baseline. Nimm das für Konten ohne Schreibrecht.
 
 Dateien werden behandelt, wenn der Lauf **startet**, nicht wenn er gelingt, damit ein fehlschlagender Lauf nicht bei jeder Abfrage neu startet; der [Fehler-Workflow](error-handling.md) meldet den Fehler. Ist der Workflow beschäftigt und seine Warteschlange voll, bleiben die Dateien liegen und werden mit der nächsten Abfrage wieder angeboten. Lässt sich eine Datei nicht verschieben oder löschen, steht das im Log, und dieser Trigger startet sie kein zweites Mal. Ein Server, der nicht erreichbar ist, oder ein Host-Key, der nicht passt, wird protokolliert, und die nächste Abfrage versucht es erneut. Nimm eine Instanz pro Server-Ordner; zwei könnten dieselbe Datei abholen.
+
+## Azure Blob Trigger
+
+Startet den Workflow, wenn Blobs in einem Container von Azure Blob Storage erscheinen (Plugin `gView.Pipe.Plugins.AzureStorage`). Er nutzt ein [Credential](credentials.md) **Azure Storage** wie der [Azure-Blob-Node](data.md#azure-blob) und arbeitet wie der [SFTP Trigger](#sftp-trigger), mit zwei Unterschieden:
+
+- Ein Blob wird bei der **ersten** Abfrage gemeldet, die ihn sieht, weil ein Blob erst sichtbar ist, wenn er vollständig ist. Eine `.part`-Regel gibt es nicht.
+- *Move to folder* kann in einen anderen Container verschieben: *Target container* (leer: derselbe; wird angelegt, wenn er fehlt) und *Target folder*.
+
+Er prüft *Container* und den Ordner *Path* alle *Check every (seconds)* (standardmäßig 60, mindestens 10), mit *File pattern* und *Include subfolders*. Ein Lauf pro Abfrage mit einem Item pro Blob (höchstens 100): das Item der List-Operation des Nodes plus `event`. *After processing* ist *Move to folder* (Standard), *Delete* oder *Nothing*, mit derselben Bedeutung wie beim SFTP Trigger: Move und Delete nehmen jeden Blob, auch ältere, und der Speicher hält den Zustand; Nothing meldet nur Blobs, die nach der ersten Abfrage neu sind. Verschieben kopiert den Blob auf dem Server und löscht ihn danach.

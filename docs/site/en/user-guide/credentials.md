@@ -22,6 +22,7 @@ The list shows the name, the type and the **id** of each credential. The id is w
 
 | Type | Used by | Fields |
 |---|---|---|
+| Azure Storage | Azure Blob, Azure Blob Trigger | authentication (connection string, managed identity or SAS token), connection string, account URL, SAS token |
 | Basic Auth | HTTP Request, Webhook Trigger, Git servers | user name, password |
 | Bearer Token | HTTP Request, Webhook Trigger, Git servers | token |
 | API Key Header | HTTP Request, Webhook Trigger | header name, value |

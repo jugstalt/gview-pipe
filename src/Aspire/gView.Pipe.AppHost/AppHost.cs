@@ -4,6 +4,7 @@
 #define ADD_IDENTITYSERVER
 #define ADD_SFTP
 #define ADD_GREENMAIL
+#define ADD_AZURITE
 
 // how users sign in, for the Shell (PIPE_*) and for the portal (PORTAL_*); at most one of the two per app, none: no login.
 // OIDC signs in through the IdentityServer (needs ADD_IDENTITYSERVER), FORMS through fixed users of the AppHost.
@@ -83,6 +84,20 @@ builder.AddContainer("greenmail", "greenmail/standalone", "latest")
        .WithEndpoint(port: 3143, targetPort: 3143, name: "imap", scheme: "tcp")
        .WithEnvironment("GREENMAIL_OPTS", "-Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=pipe:pipe@localhost")
        .WithContainerName("gview-pipe-greenmail")
+       .WithLifetime(ContainerLifetime.Persistent);
+
+#endregion
+#endif
+
+#if ADD_AZURITE
+#region Azurite (Azure Blob node and trigger: blob endpoint localhost:10000, connection string UseDevelopmentStorage=true)
+
+// the storage emulator of Microsoft; only the blob service, the data stays in a volume
+builder.AddContainer("azurite", "mcr.microsoft.com/azure-storage/azurite", "latest")
+       .WithEndpoint(port: 10000, targetPort: 10000, name: "blob", scheme: "http")
+       .WithArgs("azurite-blob", "--blobHost", "0.0.0.0", "--location", "/data", "--skipApiVersionCheck")
+       .WithVolume("gview-pipe-azurite", "/data")
+       .WithContainerName("gview-pipe-azurite")
        .WithLifetime(ContainerLifetime.Persistent);
 
 #endregion

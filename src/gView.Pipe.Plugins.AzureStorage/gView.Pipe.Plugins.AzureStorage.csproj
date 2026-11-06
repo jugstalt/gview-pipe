@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Azure Blob node, trigger and credential. An external plugin: loaded from plugins/gView.Pipe.Plugins.AzureStorage/ in its own load context.</Description>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- English messages only; keeps the plugin folder small -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- the contracts come from the host; never ship them with the plugin -->
+    <ProjectReference Include="..\gView.Pipe.Abstraction\gView.Pipe.Abstraction.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Azure.Storage.Blobs" />
+  </ItemGroup>
+
+  <!--
+    Installs the plugin into the Shell for development: src/gView.Pipe.Shell/plugins/<name>/ (ignored by Git).
+    Other hosts copy the build output into their own plugin folder.
+  -->
+  <Target Name="InstallIntoShell" AfterTargets="Build" Condition="'$(InstallPipePlugin)' != 'false'">
+    <ItemGroup>
+      <PluginFiles Include="$(OutDir)**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PluginFiles)" DestinationFiles="@(PluginFiles->'$(MSBuildThisFileDirectory)..\gView.Pipe.Shell\plugins\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" ContinueOnError="true" />
+  </Target>
+
+</Project>

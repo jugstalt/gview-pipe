@@ -97,3 +97,25 @@ Lege zuerst ein [Credential](credentials.md) **SFTP Server** an: Host, Port, Ben
 Ein Upload geht zuerst nach `<Name>.part` und wird umbenannt, wenn er vollständig ist, sodass ein Leser auf dem Server nie eine halbe Datei sieht. Mit *Overwrite* wird die alte Datei kurz vor diesem Umbenennen gelöscht.
 
 Lokale Dateien rührt dieser Node nicht an: Inhalte reisen als Anhänge. Kombiniere ihn mit Read File und Write File, um eine Datei vom Server in einen freigegebenen Ordner zu holen oder von dort zu senden. Ein typischer Ablauf: **List** → **Download** (mit `{{ $json.path }}` als *Path*) → verarbeiten → **Rename** in einen Archivordner auf dem Server.
+
+## Azure Blob
+
+Der Node **Azure Blob** (Plugin `gView.Pipe.Plugins.AzureStorage`) listet, lädt herunter, lädt hoch, löscht und benennt Blobs in Azure Blob Storage um. Er hat dieselben Operationen und Item-Felder wie der [SFTP](#sftp)-Node, dazu `container`, `contentType` und `etag`. Ein Blob hat einen *Container* und einen *Path*; Ordner sind die Teile des Pfads vor einem `/`.
+
+Lege zuerst ein [Credential](credentials.md) **Azure Storage** an. *Authentication* ist eine von:
+
+- **Connection string**: aus den Zugriffsschlüsseln des Kontos. Für den Emulator Azurite ist es `UseDevelopmentStorage=true`.
+- **Managed identity**: nur die *Account URL* (`https://<konto>.blob.core.windows.net`). Die App meldet sich in Azure mit ihrer Managed Identity an, auf deinem Rechner mit deinem Entwickler-Login (Azure CLI, Visual Studio). Die Identität braucht die Rolle *Storage Blob Data Contributor*, oder *Reader* für List und Download.
+- **SAS token**: die *Account URL* und eine Shared Access Signature.
+
+Connection String und SAS-Token können aus einer [Secret-Quelle](../admin-guide/secrets.md) kommen.
+
+| Operation | Was sie tut |
+|---|---|
+| List | Ein Item pro Blob im Ordner *Path* (leer: der ganze Container). *File pattern* filtert die Namen, *Include subfolders* geht tiefer. Mehr als 10000 Blobs sind ein Fehler. |
+| Download | Holt den Blob in *Path* und hängt ihn ans Item (standardmäßig `data`). Blobs über *Max file size (MB)* (100) werden abgelehnt, bevor sie geladen werden. |
+| Upload | Schreibt den Anhang des Items nach *Path*. Ein vorhandener Blob ist ein Fehler, außer *Overwrite* ist an; der Server prüft das in derselben Anfrage. Ein fehlender Container ist ein Fehler, außer *Create container* ist an. |
+| Delete | Löscht den Blob in *Path*. |
+| Rename | Verschiebt *Path* nach *New path*, auch in einen *New container*. Blob Storage kennt kein Umbenennen: Der Blob wird auf dem Server kopiert und dann gelöscht, ein großer Blob braucht also die Zeit einer Kopie. |
+
+Ein Blob wird erst sichtbar, wenn er vollständig hochgeladen ist; einen temporären Namen braucht es deshalb nicht.

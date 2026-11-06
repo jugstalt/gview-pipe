@@ -97,3 +97,25 @@ First create an **SFTP Server** [credential](credentials.md): host, port, user n
 An upload goes to `<name>.part` first and is renamed when it is complete, so a reader on the server never sees half a file. With *Overwrite*, the old file is deleted just before that rename.
 
 Local files are not touched by this node: content travels as attachments. Combine it with Read File and Write File to fetch a file from the server into a released folder, or to send one from there. A typical flow: **List** → **Download** (with `{{ $json.path }}` as *Path*) → process → **Rename** into an archive folder on the server.
+
+## Azure Blob
+
+The **Azure Blob** node (plugin `gView.Pipe.Plugins.AzureStorage`) lists, downloads, uploads, deletes and renames blobs in Azure Blob Storage, with the same operations and item fields as the [SFTP](#sftp) node plus `container`, `contentType` and `etag`. A blob has a *Container* and a *Path*; folders are the parts of the path before a `/`.
+
+First create an **Azure Storage** [credential](credentials.md). *Authentication* is one of:
+
+- **Connection string**: from the access keys of the account. For the emulator Azurite it is `UseDevelopmentStorage=true`.
+- **Managed identity**: only the *Account URL* (`https://<account>.blob.core.windows.net`). The app signs in with its managed identity in Azure, or with your developer login (Azure CLI, Visual Studio) on your machine. The identity needs the role *Storage Blob Data Contributor*, or *Reader* for List and Download.
+- **SAS token**: the *Account URL* and a shared access signature.
+
+The connection string and the SAS token can come from a [secret source](../admin-guide/secrets.md).
+
+| Operation | What it does |
+|---|---|
+| List | One item per blob in the folder *Path* (empty: the whole container). *File pattern* filters the names, *Include subfolders* goes deeper. More than 10000 blobs are an error. |
+| Download | Gets the blob in *Path* and attaches it to the item (default `data`). Blobs larger than *Max file size (MB)* (100) are refused before they are loaded. |
+| Upload | Writes the attachment of the item to *Path*. A blob that exists is an error unless *Overwrite* is on; the server checks that in the same request. A missing container is an error unless *Create container* is on. |
+| Delete | Deletes the blob in *Path*. |
+| Rename | Moves *Path* to *New path*, also into *New container*. Blob Storage has no rename: the blob is copied on the server and then deleted, so a large blob takes the time of a copy. |
+
+A blob becomes visible only when it is completely uploaded, so there is no temporary name.

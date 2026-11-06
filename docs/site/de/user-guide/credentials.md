@@ -22,6 +22,7 @@ Die Liste zeigt Name, Typ und **Id** jedes Credentials. Die Id speichert der Wor
 
 | Typ | Benutzt von | Felder |
 |---|---|---|
+| Azure Storage | Azure Blob, Azure Blob Trigger | Anmeldung (Connection String, Managed Identity oder SAS-Token), Connection String, Account-URL, SAS-Token |
 | Basic Auth | HTTP Request, Webhook Trigger, Git-Server | Benutzername, Passwort |
 | Bearer Token | HTTP Request, Webhook Trigger, Git-Server | Token |
 | API Key Header | HTTP Request, Webhook Trigger | Header-Name, Wert |
