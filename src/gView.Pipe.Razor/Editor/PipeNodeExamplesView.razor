@@ -15,17 +15,16 @@
 @foreach (var example in Examples)
 {
     <div class="gview-pipe-example">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <div class="gview-pipe-example-head">
             <MudText Typo="Typo.subtitle2">@example.Title</MudText>
-            <MudSpacer />
             @if (!ReadOnly && OnUseParameters.HasDelegate)
             {
                 <MudTooltip Text="Put the parameters of this example into the node (Undo brings the old ones back)">
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Input"
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Input" Class="gview-pipe-nowrap"
                                OnClick="() => OnUseParameters.InvokeAsync(example)">Use these parameters</MudButton>
                 </MudTooltip>
             }
-        </MudStack>
+        </div>
         @if (!string.IsNullOrWhiteSpace(example.Description))
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary mt-1">@example.Description</MudText>

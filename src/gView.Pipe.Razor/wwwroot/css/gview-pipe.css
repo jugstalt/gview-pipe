@@ -459,6 +459,13 @@
     padding: 16px;
 }
 
+/* four tabs fit into the narrow side panel without scroll arrows */
+.gview-pipe-panel-tabs .mud-tab {
+    min-width: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
 .gview-pipe-output-tabs .mud-tabs-panels {
     padding-top: 8px;
 }
@@ -1083,6 +1090,19 @@ div.gview-pipe-json-tree {
     border-radius: 6px;
     padding: 10px 12px;
     margin-bottom: 12px;
+}
+
+/* title left, button right; in a narrow panel the button moves below the title instead of wrapping its text */
+.gview-pipe-example-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 8px;
+}
+
+.gview-pipe-nowrap {
+    white-space: nowrap;
 }
 
 .gview-pipe-example-label {
