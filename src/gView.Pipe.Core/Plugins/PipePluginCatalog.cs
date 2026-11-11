@@ -116,7 +116,7 @@ public sealed class PipePluginCatalog
                     }
                     else
                     {
-                        nodes[nodeAttribute.Id] = CreateNodeDescriptor(type, nodeAttribute, source);
+                        nodes[nodeAttribute.Id] = CreateNodeDescriptor(type, nodeAttribute, source, warnings);
                     }
                 }
 
@@ -156,8 +156,18 @@ public sealed class PipePluginCatalog
         return new PipePluginCatalog(assemblies, nodes.Values.ToList(), credentialTypes.Values.ToList(), startups, warnings);
     }
 
-    static private PipeNodeDescriptor CreateNodeDescriptor(Type type, PipeNodeAttribute attribute, string source)
+    static private PipeNodeDescriptor CreateNodeDescriptor(Type type, PipeNodeAttribute attribute, string source, List<string> warnings)
     {
+        IReadOnlyList<PipeNodeExample> examples = [];
+        try
+        {
+            examples = PipeNodeExample.Load(type);
+        }
+        catch (Exception ex)  // broken examples must not cost the node
+        {
+            warnings.Add(ex.Message);
+        }
+
         var isTrigger = typeof(IPipeTriggerNode).IsAssignableFrom(type);
         var parametersType = type.GetInterfaces()
             .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPipeNode<>))
@@ -177,6 +187,7 @@ public sealed class PipePluginCatalog
             HasHints = typeof(IPipeNodeHints).IsAssignableFrom(type),
             HasParameterOptions = typeof(IPipeParameterOptions).IsAssignableFrom(type),
             Obsolete = attribute.Obsolete,
+            Examples = examples,
             Inputs = isTrigger ? [] : attribute.Inputs.Select(p => new PipePort(p)).ToList(),
             Outputs = attribute.Outputs.Select(p => new PipePort(p)).ToList(),
             Source = source

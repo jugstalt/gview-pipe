@@ -22,9 +22,40 @@
 }
 else
 {
+    var fields = PipeParameterFields.For(ParametersType);
+    var visible = fields.Where(f => PipeParameterFields.IsVisible(f, Parameters, fields)).ToList();
+    var advanced = visible.Where(f => f.Advanced).ToList();
     <MudStack Spacing="3">
-        @foreach (var field in PipeParameterFields.For(ParametersType))
+        @foreach (var field in visible.Where(f => !f.Advanced))
         {
+            @FieldView(field)
+        }
+        @if (advanced.Count > 0)
+        {
+            <MudExpansionPanels Elevation="0" Outlined="true" Dense="true" Class="gview-pipe-advanced">
+                <MudExpansionPanel Text="@($"Advanced ({advanced.Count})")" @bind-Expanded="_advancedOpen">
+                    @if (_advancedOpen)
+                    {
+                        <MudStack Spacing="3">
+                            @foreach (var field in advanced)
+                            {
+                                @FieldView(field)
+                            }
+                        </MudStack>
+                    }
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+    </MudStack>
+}
+
+@code {
+    private bool _advancedOpen;
+
+    /// <summary>One parameter's input, by its kind.</summary>
+    private RenderFragment FieldView(PipeParameterField field) => @<text>
+        @{
+
             var value = Parameters[field.Key];
             switch (field.Kind)
             {
@@ -35,11 +66,18 @@ else
                     break;
 
                 case PipeFieldKind.Enum:
-                    <MudSelect T="string" Label="@field.Label" Dense="true" Variant="Variant.Outlined" HelperText="@field.Description"
+                    <MudSelect T="string" Label="@field.Label" Dense="true" Variant="Variant.Outlined" HelperText="@EnumHelperText(field, value)"
+                               ToStringFunc="v => PipeParameterFields.EnumLabel(field, v)"
                                Value="@PipeJsonText.ToText(value)" ValueChanged="v => SetAsync(field, JsonValue.Create(v))">
-                        @foreach (var option in field.EnumValues)
+                        @foreach (var option in field.EnumOptions)
                         {
-                            <MudSelectItem Value="@option">@PipeParameterFields.Humanize(char.ToUpperInvariant(option[0]) + option[1..])</MudSelectItem>
+                            <MudSelectItem Value="@option.Value">
+                                <div>@option.Label</div>
+                                @if (!string.IsNullOrEmpty(option.Description))
+                                {
+                                    <div class="gview-pipe-option-description">@option.Description</div>
+                                }
+                            </MudSelectItem>
                         }
                     </MudSelect>
                     break;
@@ -114,10 +152,18 @@ else
                     break;
             }
         }
-    </MudStack>
-}
+    </text>;
 
-@code {
+    /// <summary>The field's description and what the chosen value does.</summary>
+    static private string? EnumHelperText(PipeParameterField field, JsonNode? value)
+    {
+        var text = PipeJsonText.ToText(value ?? field.DefaultValue);
+        var chosen = field.EnumOptions.FirstOrDefault(o => string.Equals(o.Value, text, StringComparison.OrdinalIgnoreCase))?.Description;
+        return string.IsNullOrEmpty(chosen) ? field.Description
+            : string.IsNullOrEmpty(field.Description) ? chosen
+            : $"{field.Description} · {chosen}";
+    }
+
     /// <summary>Parameter or credential class; null for unknown node types.</summary>
     [Parameter] public Type? ParametersType { get; set; }
 

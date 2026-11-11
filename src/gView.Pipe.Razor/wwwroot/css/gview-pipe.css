@@ -1035,3 +1035,65 @@ div.gview-pipe-json-tree {
 .gview-pipe-sections .mud-expand-panel { background: transparent; }
 .gview-pipe-sections .mud-expand-panel-header { padding-inline: 16px; }
 .gview-pipe-help-text { max-width: 300px; }
+
+/* form: second line of a choice, the folded "Advanced" section (ADR 0043) */
+.gview-pipe-option-description {
+    font-size: .75rem;
+    line-height: 1.2;
+    opacity: .7;
+    white-space: normal;
+}
+
+.gview-pipe-advanced .mud-expand-panel-header {
+    padding: 6px 12px;
+    font-size: .875rem;
+}
+
+/* items as a table: one column per field */
+.gview-pipe-items-table {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.gview-pipe-items-table table {
+    border-collapse: collapse;
+    font-size: .8rem;
+    width: 100%;
+}
+
+.gview-pipe-items-table th,
+.gview-pipe-items-table td {
+    border: 1px solid var(--mud-palette-lines-default);
+    padding: 3px 6px;
+    text-align: left;
+    vertical-align: top;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.gview-pipe-items-table th {
+    font-weight: 600;
+    background: var(--mud-palette-background-gray);
+}
+
+/* examples tab */
+.gview-pipe-example {
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.gview-pipe-example-label {
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .7;
+    margin: 10px 0 4px;
+}
+
+.gview-pipe-example-file {
+    margin: 0 0 6px;
+    font-size: .8rem;
+}

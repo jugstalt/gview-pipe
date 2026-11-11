@@ -74,6 +74,14 @@
         </div>
     </MudTabPanel>
 
+    @if (Model.Descriptor is { } withExamples)
+    {
+        <MudTabPanel Text="Examples" BadgeData="@(withExamples.Examples.Count > 0 ? withExamples.Examples.Count : null)" BadgeColor="Color.Default">
+            <PipeNodeExamplesView Examples="withExamples.Examples" ParametersType="withExamples.ParametersType" ReadOnly="ReadOnly"
+                                  OnUseParameters="UseExampleAsync" />
+        </MudTabPanel>
+    }
+
     <MudTabPanel Text="Settings">
         <div class="@(ReadOnly ? "gview-pipe-readonly" : null)" inert="@ReadOnly">
         <MudStack Spacing="3">
@@ -216,7 +224,8 @@
         _wasRunning = running;
     }
 
-    private const int RunTab = 2;
+    // Parameters, Examples (with a known node type), Settings, Run
+    private int RunTab => Model.Descriptor is null ? 2 : 3;
     private bool _wasRunning;
 
     /// <summary>Only data of a successful run can be pinned; binary content belongs to its execution and is dropped.</summary>
@@ -290,6 +299,37 @@
         var label = _activeField.Key is { } name ? $"{_activeField.Field.Label} › {name}" : _activeField.Field.Label;
         Snackbar.Add($"Inserted {expression} into '{label}'", Severity.Success);
         await ParametersChangedAsync();
+    }
+
+    /// <summary>
+    /// The parameters of an example replace the node's (on top of the defaults); credentials the example doesn't name stay.
+    /// The editor takes a snapshot, so undo brings the old ones back.
+    /// </summary>
+    private async Task UseExampleAsync(PipeNodeExample example)
+    {
+        var parameters = Model.Node.Parameters;
+        var fields = Model.Descriptor?.ParametersType is { } type ? PipeParameterFields.For(type) : [];
+        var kept = fields.Where(f => f.Kind == PipeFieldKind.Credential && !example.Parameters.ContainsKey(f.Key) && parameters[f.Key] is not null)
+            .ToDictionary(f => f.Key, f => parameters[f.Key]!.DeepClone());
+
+        parameters.Clear();
+        foreach (var field in fields.Where(f => f.DefaultValue is not null))
+        {
+            parameters[field.Key] = field.DefaultValue!.DeepClone();
+        }
+        foreach (var (key, value) in example.Parameters)
+        {
+            parameters[key] = value?.DeepClone();
+        }
+        foreach (var (key, value) in kept)
+        {
+            parameters[key] = value;
+        }
+
+        _tab = 0;
+        Snackbar.Add($"Parameters of the example '{example.Title}' applied; Undo in the toolbar brings the old ones back", Severity.Success);
+        UpdateHints();
+        await OnChanged.InvokeAsync(true);
     }
 
     private void UpdateHints()

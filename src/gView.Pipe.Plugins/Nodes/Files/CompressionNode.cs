@@ -8,60 +8,71 @@ namespace gView.Pipe.Plugins.Nodes.Files;
 
 public enum CompressionOperation
 {
+    [PipeEnumValue("Pack attachments into a ZIP archive")]
     Zip,
+
+    [PipeEnumValue("Unpack a ZIP archive into its files")]
     Unzip,
+
+    [PipeEnumValue("Compress one attachment into a .gz file", Label = "GZip")]
     Gzip,
+
+    [PipeEnumValue("Decompress a .gz attachment", Label = "GUnzip")]
     Gunzip
 }
 
 public enum ZipScope
 {
-    /// <summary>One archive per item with its attachments.</summary>
+    [PipeEnumValue("One archive per item with its attachments", Label = "One archive per item")]
     EachItem,
 
-    /// <summary>One archive with the attachments of all items.</summary>
+    [PipeEnumValue("One archive with the attachments of all items", Label = "One archive of all items")]
     AllItems
 }
 
 public enum UnzipOutput
 {
-    /// <summary>One item per entry with the file in <c>data</c>.</summary>
+    [PipeEnumValue("One item per file in the archive, the file attached as data", Label = "One item per file")]
     ItemPerEntry,
 
-    /// <summary>The input item with every entry as an attachment.</summary>
+    [PipeEnumValue("The input item with every file of the archive as an attachment", Label = "Attachments of the item")]
     Attachments
 }
 
 public sealed class CompressionNodeParameters
 {
-    [PipeParameter(Label = "Operation", Order = 1, Expressions = false)]
+    [PipeParameter(Label = "Operation", Order = 1, Expressions = false, Description = "What to do with the attachments")]
     public CompressionOperation Operation { get; set; } = CompressionOperation.Zip;
 
-    [PipeParameter(Label = "Binary properties", Order = 2, Expressions = false, Placeholder = "all",
-        Description = "Zip: attachments to pack, separated by commas; empty packs all. Unzip, GZip, GUnzip: the attachment to read.")]
-    public string? BinaryProperty { get; set; }
-
-    [PipeParameter(Label = "Zip", Order = 3, Expressions = false, Description = "One archive per item, or one of all items")]
+    [PipeParameter(Label = "Zip", Order = 2, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["zip"],
+        Description = "One archive per item, or one of all items")]
     public ZipScope Scope { get; set; } = ZipScope.EachItem;
 
-    [PipeParameter(Label = "Archive name", Order = 4, Placeholder = "archive.zip", Description = "Zip: file name of the archive")]
+    [PipeParameter(Label = "Archive name", Order = 3, Placeholder = "archive.zip", ShowWhen = nameof(Operation), ShowWhenValues = ["zip"],
+        Description = "File name of the archive, e.g. invoices.zip")]
     public string? FileName { get; set; }
 
-    [PipeParameter(Label = "Unzip into", Order = 5, Expressions = false, Description = "One item per entry, or all entries as attachments of the input item")]
+    [PipeParameter(Label = "Unzip into", Order = 4, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["unzip"],
+        Description = "One item per file, or all files as attachments of the input item")]
     public UnzipOutput Output { get; set; } = UnzipOutput.ItemPerEntry;
 
-    [PipeParameter(Label = "Max size (MB)", Order = 6, Expressions = false,
-        Description = "Unzip, GUnzip: stop when the unpacked content gets larger, against archives that unpack to huge sizes")]
+    [PipeParameter(Label = "Attachments", Order = 5, Expressions = false, Placeholder = "all", Advanced = true,
+        Description = "Zip: names of the attachments to pack, separated by commas; empty packs all. Otherwise the one attachment to read, data if empty.")]
+    public string? BinaryProperty { get; set; }
+
+    [PipeParameter(Label = "Max size (MB)", Order = 6, Expressions = false, Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["unzip", "gunzip"],
+        Description = "Stop when the unpacked content gets larger; protects against archives that unpack to huge sizes")]
     public int MaxMegabytes { get; set; } = 500;
 
-    [PipeParameter(Label = "Output property", Order = 7, Expressions = false, Placeholder = "data",
-        Description = "Zip, GZip, GUnzip: attachment for the result")]
+    [PipeParameter(Label = "Result attachment", Order = 7, Expressions = false, Placeholder = "data", Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["zip", "gzip", "gunzip"],
+        Description = "Name of the attachment with the result, data if empty")]
     public string? OutputProperty { get; set; }
 }
 
 [PipeNode(PipeBuiltInNodes.Compression, "Compression",
     Category = "Files",
     Description = "Packs attachments into a ZIP archive and unpacks ZIP archives into items or attachments; compresses and decompresses single attachments with GZip.")]
+[PipeNodeExamples]
 public sealed class CompressionNode : IPipeNode<CompressionNodeParameters>
 {
     public async Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)

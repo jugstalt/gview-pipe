@@ -21,6 +21,9 @@
     <ProjectReference Include="..\..\gView.Pipe.Plugins.AzureStorage\gView.Pipe.Plugins.AzureStorage.csproj" AdditionalProperties="InstallPipePlugin=false" />
     <!-- the SFTP node: tested with a fake server; the Shell loads the plugin from its plugin folder -->
     <ProjectReference Include="..\..\gView.Pipe.Plugins.Sftp\gView.Pipe.Plugins.Sftp.csproj" AdditionalProperties="InstallPipePlugin=false" />
+    <!-- descriptions and examples of all nodes (ADR 0043); the SQL and script nodes have their own tests -->
+    <ProjectReference Include="..\..\gView.Pipe.Plugins.Database\gView.Pipe.Plugins.Database.csproj" AdditionalProperties="InstallPipePlugin=false" />
+    <ProjectReference Include="..\..\gView.Pipe.Plugins.Scripts\gView.Pipe.Plugins.Scripts.csproj" AdditionalProperties="InstallPipePlugin=false" />
   </ItemGroup>
 
   <ItemGroup>

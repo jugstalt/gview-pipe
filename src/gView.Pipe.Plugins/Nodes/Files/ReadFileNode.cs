@@ -13,45 +13,50 @@ namespace gView.Pipe.Plugins.Nodes.Files;
 
 public enum ReadFileFormat
 {
-    /// <summary>The file as binary attachment, plus file information.</summary>
+    [PipeEnumValue("The file as an attachment, plus its name, size and date; for PDFs, images, ZIP archives")]
     Binary,
 
-    /// <summary>The content as text in the field <c>text</c>.</summary>
+    [PipeEnumValue("The content as text in the field text")]
     Text,
 
-    /// <summary>An object becomes one item, an array of objects one item per element.</summary>
+    [PipeEnumValue("Items from the JSON: an object becomes one item, an array one item per element", Label = "JSON")]
     Json,
 
-    /// <summary>One item per row; the first row holds the column names.</summary>
+    [PipeEnumValue("One item per row; the first row holds the column names", Label = "CSV")]
     Csv
 }
 
 public sealed class ReadFileNodeParameters
 {
-    [Required, PipeParameter(Label = "Folder", Order = 1, Expressions = false, Description = "Name of a folder released by the host")]
+    [Required, PipeOptions, PipeParameter(Label = "Folder", Order = 1, Expressions = false,
+        Description = "Where the files are: one of the folders the administrator has set up for workflows")]
     public string Folder { get; set; } = "";
 
     [Required, PipeParameter(Label = "Path", Order = 2, Placeholder = "orders/*.csv",
-        Description = "Relative to the folder; * and ? are allowed in the file name")]
+        Description = "File inside the folder, e.g. report.pdf; * and ? in the file name read all matching files, e.g. orders/*.csv")]
     public string Path { get; set; } = "";
 
-    [PipeParameter(Label = "Read as", Order = 3, Expressions = false)]
+    [PipeParameter(Label = "Read as", Order = 3, Expressions = false, Description = "What becomes of the file content")]
     public ReadFileFormat Format { get; set; } = ReadFileFormat.Binary;
 
-    [PipeParameter(Label = "Include subfolders", Order = 4, Expressions = false, Description = "With wildcards: search below the path's folder too")]
-    public bool IncludeSubfolders { get; set; }
-
-    [PipeParameter(Label = "CSV delimiter", Order = 5, Expressions = false, Description = @"e.g. , or ; or \t")]
+    [PipeParameter(Label = "CSV delimiter", Order = 4, Expressions = false, ShowWhen = nameof(Format), ShowWhenValues = ["csv"],
+        Description = @"Character between the columns, e.g. , or ; or \t for tab")]
     public string CsvDelimiter { get; set; } = ",";
 
-    [PipeParameter(Label = "Binary property", Order = 6, Expressions = false, Description = "Name of the attachment (binary format)")]
+    [PipeParameter(Label = "Include subfolders", Order = 5, Expressions = false, Advanced = true,
+        Description = "Only with * or ? in the path: search the subfolders too, e.g. orders/*.csv then also finds orders/2025/a.csv")]
+    public bool IncludeSubfolders { get; set; }
+
+    [PipeParameter(Label = "Attachment name", Order = 6, Expressions = false, Advanced = true, ShowWhen = nameof(Format), ShowWhenValues = ["binary"],
+        Description = "Name under which later nodes find the file, e.g. in Write File or Send Email")]
     public string BinaryProperty { get; set; } = "data";
 }
 
 [PipeNode(PipeBuiltInNodes.ReadFile, "Read File",
     Category = "Files",
-    Description = "Reads files from a folder released by the host, as binary, text, JSON or CSV. Runs once per input item.")]
-public sealed class ReadFileNode : IPipeNode<ReadFileNodeParameters>, IPipeNodeHints
+    Description = "Reads files from a folder of the server: as an attachment, as text, or as items from JSON or CSV. Runs once per input item.")]
+[PipeNodeExamples]
+public sealed class ReadFileNode : IPipeNode<ReadFileNodeParameters>, IPipeNodeHints, IPipeParameterOptions
 {
     private readonly IPipeFileRoots _roots;
 
@@ -79,7 +84,10 @@ public sealed class ReadFileNode : IPipeNode<ReadFileNodeParameters>, IPipeNodeH
     }
 
     public IReadOnlyList<PipeNodeHint> GetHints(JsonObject parameters)
-        => [PipeFileHints.Folders(_roots)];
+        => PipeFileHints.Folders(_roots);
+
+    public Task<IReadOnlyList<PipeParameterOption>> GetOptionsAsync(string parameter, JsonObject parameters, bool refresh, CancellationToken cancellationToken)
+        => Task.FromResult(PipeFileHints.FolderOptions(_roots, parameter));
 
     private IEnumerable<string> FindFiles(ReadFileNodeParameters parameters)
     {
@@ -140,10 +148,15 @@ public sealed class ReadFileNode : IPipeNode<ReadFileNodeParameters>, IPipeNodeH
 
 static internal class PipeFileHints
 {
-    static public PipeNodeHint Folders(IPipeFileRoots roots)
+    /// <summary>A warning when no folder is set up; the folders themselves are offered in the Folder field.</summary>
+    static public IReadOnlyList<PipeNodeHint> Folders(IPipeFileRoots roots)
         => roots.Names.Count == 0
-            ? new(PipeNodeHintLevel.Warning, "The host has released no folders for workflows (PipeCoreOptions.FileRoots / Pipe:FileRoots).")
-            : new(PipeNodeHintLevel.Info, $"Available folders: {string.Join(", ", roots.Names.Order())}");
+            ? [new(PipeNodeHintLevel.Warning, "No folders are set up for workflows yet: an administrator adds them in pipe.config (Pipe:FileRoots).")]
+            : [];
+
+    /// <summary>The folders set up for workflows, for the parameter <c>folder</c>.</summary>
+    static public IReadOnlyList<PipeParameterOption> FolderOptions(IPipeFileRoots roots, string parameter)
+        => parameter == "folder" ? roots.Names.Order().Select(n => new PipeParameterOption(n)).ToList() : [];
 }
 
 static internal class PipeMimeTypes

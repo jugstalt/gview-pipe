@@ -89,6 +89,7 @@ static internal class NodeReferenceWriter
             if (parameters.Count == 0)
             {
                 text.AppendLine("This node has no parameters.").AppendLine();
+                Examples(text, node);
                 continue;
             }
 
@@ -98,10 +99,76 @@ static internal class NodeReferenceWriter
                 text.AppendLine($"| **{Cell(parameter.Label)}**{(parameter.Required ? " (required)" : "")}<br>`{parameter.Key}` | {Cell(parameter.Type)} | {Cell(parameter.Description)} |");
             }
             text.AppendLine();
+            Examples(text, node);
         }
 
         return text.ToString();
     }
+
+    /// <summary>The examples of a node (ADR 0043) as folded blocks: given files, parameters, input and output.</summary>
+    static private void Examples(StringBuilder text, PipeNodeDescriptor node)
+    {
+        foreach (var example in node.Examples)
+        {
+            text.AppendLine($"??? example \"Example: {example.Title.Replace("\"", "'")}\"");
+            var body = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(example.Description))
+            {
+                body.AppendLine(Html(example.Description.Trim())).AppendLine();
+            }
+            if (example.Given?["files"] is JsonObject files)
+            {
+                foreach (var (path, content) in files)
+                {
+                    body.AppendLine($"Given the file `{path}` in the folder:").AppendLine();
+                    Fence(body, "text", content is JsonValue v && v.TryGetValue<string>(out var s) ? s : content?.ToJsonString() ?? "");
+                }
+            }
+            var other = example.Given?.Where(p => p.Key != "files").ToList() ?? [];
+            if (other.Count > 0)
+            {
+                body.AppendLine("Given:").AppendLine();
+                Fence(body, "json", new JsonObject(other.Select(p => KeyValuePair.Create(p.Key, p.Value?.DeepClone()))).ToJsonString(Indented));
+            }
+            if (example.Parameters.Count > 0)
+            {
+                body.AppendLine("Parameters:").AppendLine();
+                Fence(body, "json", example.Parameters.ToJsonString(Indented));
+            }
+            foreach (var (port, items) in example.Input)
+            {
+                body.AppendLine(example.Input.Count == 1 && port == PipePorts.Main ? "Input:" : $"Input `{port}`:").AppendLine();
+                Fence(body, "json", ItemsJson(items));
+            }
+            foreach (var (port, items) in example.Output)
+            {
+                body.AppendLine(example.Output.Count == 1 && port == PipePorts.Main ? "Output:" : $"Output `{port}`:").AppendLine();
+                Fence(body, "json", ItemsJson(items));
+            }
+
+            foreach (var line in body.ToString().Replace("\r\n", "\n").Split('\n'))
+            {
+                text.AppendLine(line.Length == 0 ? "" : "    " + line);
+            }
+        }
+    }
+
+    static private readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    static private string ItemsJson(IReadOnlyList<PipeExampleItem> items)
+        => new JsonArray(items.Select(i =>
+        {
+            var json = (JsonObject)i.Json.DeepClone();
+            if (i.Binary.Count > 0)
+            {
+                json[PipeExampleItem.BinaryKey] = new JsonObject(i.Binary.Select(b => KeyValuePair.Create(b.Key,
+                    (JsonNode?)new JsonObject { ["fileName"] = b.Value.FileName, ["mimeType"] = b.Value.MimeType })));
+            }
+            return (JsonNode)json;
+        }).ToArray()).ToJsonString(Indented);
+
+    static private void Fence(StringBuilder text, string language, string content)
+        => text.AppendLine($"```{language}").AppendLine(content.TrimEnd()).AppendLine("```").AppendLine();
 
     static private string CredentialTypesPage(IReadOnlyList<PipeCredentialTypeDescriptor> types)
     {
@@ -171,6 +238,32 @@ static internal class NodeReferenceWriter
             if (!string.IsNullOrWhiteSpace(attribute.Description))
             {
                 details.Add(attribute.Description.Trim().TrimEnd('.') + ".");
+            }
+
+            if (type.IsEnum)
+            {
+                var values = type.GetFields(BindingFlags.Public | BindingFlags.Static)
+                    .Select(f => (Name: EnumName(f.Name), Text: f.GetCustomAttribute<PipeEnumValueAttribute>()?.Description))
+                    .Where(v => !string.IsNullOrWhiteSpace(v.Text))
+                    .Select(v => $"`{v.Name}`: {v.Text!.Trim().TrimEnd('.')}.")
+                    .ToList();
+                if (values.Count > 0)
+                {
+                    // Cell() turns the line breaks into <br>
+                    details.Add("\n" + string.Join("\n", values) + "\n");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(attribute.ShowWhen))
+            {
+                var other = properties.FirstOrDefault(p => p.Name == attribute.ShowWhen);
+                var otherLabel = other?.GetCustomAttribute<PipeParameterAttribute>()?.Label ?? Humanize(attribute.ShowWhen);
+                details.Add($"Only when *{otherLabel}* is {string.Join(" or ", (attribute.ShowWhenValues ?? []).Select(v => $"`{EnumName(v)}`"))}.");
+            }
+
+            if (attribute.Advanced)
+            {
+                details.Add("In *Advanced*.");
             }
 
             if (attribute.Code)

@@ -15,6 +15,9 @@ public sealed class PipeNodeDescriptor
     public bool HasHints { get; init; }
     public bool HasParameterOptions { get; init; }
     public bool Obsolete { get; init; }
+
+    /// <summary>Examples of the node (<see cref="PipeNodeExamplesAttribute"/>, ADR 0043).</summary>
+    public IReadOnlyList<PipeNodeExample> Examples { get; init; } = [];
     public required IReadOnlyList<PipePort> Inputs { get; init; }
     public required IReadOnlyList<PipePort> Outputs { get; init; }
 

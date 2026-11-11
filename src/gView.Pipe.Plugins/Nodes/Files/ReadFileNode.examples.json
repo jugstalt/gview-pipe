@@ -1,0 +1,39 @@
+[
+  {
+    "title": "Read a CSV file as items",
+    "description": "Every row becomes an item; the first row holds the column names. All values are text.",
+    "parameters": { "folder": "files", "path": "orders/2025-11.csv", "format": "csv", "csvDelimiter": ";" },
+    "given": { "files": { "orders/2025-11.csv": "id;customer;amount\n1;Anna;120.50\n2;Ben;80.00\n" } },
+    "output": [
+      { "id": "1", "customer": "Anna", "amount": "120.50" },
+      { "id": "2", "customer": "Ben", "amount": "80.00" }
+    ]
+  },
+  {
+    "title": "Read a PDF as an attachment",
+    "description": "The file is attached to the item as data, e.g. to send it by mail or upload it; the item tells its name, size and date.",
+    "parameters": { "folder": "files", "path": "invoices/2025-001.pdf", "format": "binary" },
+    "given": { "files": { "invoices/2025-001.pdf": "%PDF-1.7 (sample)" } },
+    "output": [
+      {
+        "fileName": "2025-001.pdf",
+        "path": "invoices/2025-001.pdf",
+        "size": 17,
+        "modifiedAt": "2026-11-11T08:00:00.0000000Z",
+        "$binary": { "data": { "fileName": "2025-001.pdf", "mimeType": "application/pdf", "text": "%PDF-1.7 (sample)" } }
+      }
+    ],
+    "ignore": [ "modifiedAt" ]
+  },
+  {
+    "title": "Read all text files of a folder",
+    "description": "With * in the path every matching file is read, one item per file, in the order of their names.",
+    "parameters": { "folder": "files", "path": "notes/*.txt", "format": "text" },
+    "given": { "files": { "notes/a.txt": "Call Anna", "notes/b.txt": "Order paper" } },
+    "output": [
+      { "fileName": "a.txt", "path": "notes/a.txt", "size": 9, "modifiedAt": "2026-11-11T08:00:00.0000000Z", "text": "Call Anna" },
+      { "fileName": "b.txt", "path": "notes/b.txt", "size": 11, "modifiedAt": "2026-11-11T08:00:00.0000000Z", "text": "Order paper" }
+    ],
+    "ignore": [ "modifiedAt" ]
+  }
+]

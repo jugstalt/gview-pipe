@@ -1,0 +1,45 @@
+[
+  {
+    "title": "Save all items as a CSV file",
+    "description": "One file with a row per item. The output is one item that tells where the file is and how large it is.",
+    "parameters": { "folder": "files", "path": "export/orders.csv", "content": "itemsAsCsv" },
+    "input": [
+      { "id": 1, "customer": "Anna" },
+      { "id": 2, "customer": "Ben" }
+    ],
+    "output": [
+      { "folder": "files", "path": "export/orders.csv", "size": 28 }
+    ]
+  },
+  {
+    "title": "One text file per item",
+    "description": "The path and the text use expressions, so every item gets its own file. The items go on with the field writtenFile.",
+    "parameters": { "folder": "files", "path": "messages/{{ $json.id }}.txt", "content": "text", "text": "Order {{ $json.id }} received" },
+    "input": [
+      { "id": 17 },
+      { "id": 18 }
+    ],
+    "output": [
+      { "id": 17, "writtenFile": { "folder": "files", "path": "messages/17.txt", "size": 17 } },
+      { "id": 18, "writtenFile": { "folder": "files", "path": "messages/18.txt", "size": 17 } }
+    ]
+  },
+  {
+    "title": "Archive an attachment",
+    "description": "Saves the attachment of each item, e.g. a PDF from Read File or from a mail, under its own name.",
+    "parameters": { "folder": "files", "path": "archive/{{ $json.fileName }}", "content": "binary" },
+    "input": [
+      {
+        "fileName": "2025-001.pdf",
+        "$binary": { "data": { "fileName": "2025-001.pdf", "mimeType": "application/pdf", "text": "%PDF-1.7 (sample)" } }
+      }
+    ],
+    "output": [
+      {
+        "fileName": "2025-001.pdf",
+        "writtenFile": { "folder": "files", "path": "archive/2025-001.pdf", "size": 17 },
+        "$binary": { "data": { "fileName": "2025-001.pdf", "mimeType": "application/pdf", "text": "%PDF-1.7 (sample)" } }
+      }
+    ]
+  }
+]

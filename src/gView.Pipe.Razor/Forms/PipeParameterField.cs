@@ -1,5 +1,6 @@
 using gView.Pipe.Abstraction.Credentials;
 using gView.Pipe.Abstraction.Nodes;
+using gView.Pipe.Abstraction.Serialization;
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
@@ -56,6 +57,20 @@ public sealed class PipeParameterField
     /// <summary>JSON names of the enum members (Kind = Enum).</summary>
     public IReadOnlyList<string> EnumValues { get; init; } = [];
 
+    /// <summary>The enum members with label and description (<see cref="PipeEnumValueAttribute"/>), in the order of <see cref="EnumValues"/>.</summary>
+    public IReadOnlyList<PipeParameterOption> EnumOptions { get; init; } = [];
+
+    /// <summary>Key of the field this one depends on (<see cref="PipeParameterAttribute.ShowWhen"/>); null: always shown.</summary>
+    public string? ShowWhenKey { get; init; }
+
+    public IReadOnlyList<string> ShowWhenValues { get; init; } = [];
+
+    /// <summary>In the folded "Advanced" section.</summary>
+    public bool Advanced { get; init; }
+
+    /// <summary>Value of a new parameter object (the default of the class); used while the JSON has none.</summary>
+    public JsonNode? DefaultValue { get; init; }
+
     public IReadOnlyList<Guid> CredentialTypeIds { get; init; } = [];
 
     /// <summary>Options (<see cref="PipeOptionsAttribute"/>): offer a refresh button.</summary>
@@ -72,13 +87,48 @@ static public class PipeParameterFields
     static public IReadOnlyList<PipeParameterField> For(Type type) => Cache.GetOrAdd(type, Build);
 
     static private IReadOnlyList<PipeParameterField> Build(Type type)
-        => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+    {
+        object? defaults = null;
+        try
+        {
+            defaults = Activator.CreateInstance(type);
+        }
+        catch (Exception ex) when (ex is MissingMethodException or TargetInvocationException)
+        {
+            // no default constructor: no defaults
+        }
+
+        return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.CanRead && p.CanWrite)
-            .Select((p, index) => Create(p, index))
+            .Select((p, index) => Create(p, index, defaults))
             .OrderBy(f => f.Order)
             .ToList();
+    }
 
-    static private PipeParameterField Create(PropertyInfo property, int index)
+    /// <summary>
+    /// Whether the field shows for these parameters (<see cref="PipeParameterAttribute.ShowWhen"/>):
+    /// the value of the field it depends on, or its default, is one of the values.
+    /// </summary>
+    static public bool IsVisible(PipeParameterField field, JsonObject parameters, IReadOnlyList<PipeParameterField> fields)
+    {
+        if (field.ShowWhenKey is not { } key)
+        {
+            return true;
+        }
+
+        var value = parameters.TryGetPropertyValue(key, out var node) && node is not null
+            ? node
+            : fields.FirstOrDefault(f => f.Key == key)?.DefaultValue;
+        var text = PipeJsonText.ToText(value);
+        return field.ShowWhenValues.Any(v => string.Equals(v, text, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Label of a value of an enum field: the <see cref="PipeEnumValueAttribute"/> label or the humanized name.</summary>
+    static public string EnumLabel(PipeParameterField field, string? value)
+        => field.EnumOptions.FirstOrDefault(o => string.Equals(o.Value, value, StringComparison.OrdinalIgnoreCase))?.Label
+           ?? (string.IsNullOrEmpty(value) ? "" : Humanize(char.ToUpperInvariant(value[0]) + value[1..]));
+
+    static private PipeParameterField Create(PropertyInfo property, int index, object? defaults)
     {
         var parameter = property.GetCustomAttribute<PipeParameterAttribute>();
         var credential = property.GetCustomAttribute<PipeCredentialAttribute>();
@@ -119,9 +169,23 @@ static public class PipeParameterFields
             EnumValues = propertyType.IsEnum
                 ? Enum.GetNames(propertyType).Select(JsonNamingPolicy.CamelCase.ConvertName).ToList()
                 : [],
+            EnumOptions = propertyType.IsEnum ? EnumOptionsOf(propertyType) : [],
+            ShowWhenKey = string.IsNullOrEmpty(parameter?.ShowWhen) ? null : JsonNamingPolicy.CamelCase.ConvertName(parameter.ShowWhen),
+            ShowWhenValues = parameter?.ShowWhenValues ?? [],
+            Advanced = parameter?.Advanced ?? false,
+            DefaultValue = defaults is null ? null : JsonSerializer.SerializeToNode(property.GetValue(defaults), property.PropertyType, PipeJson.Options),
             CredentialTypeIds = credential?.CredentialTypeIds ?? []
         };
     }
+
+    static private IReadOnlyList<PipeParameterOption> EnumOptionsOf(Type enumType)
+        => enumType.GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Select(f =>
+            {
+                var attribute = f.GetCustomAttribute<PipeEnumValueAttribute>();
+                return new PipeParameterOption(JsonNamingPolicy.CamelCase.ConvertName(f.Name), attribute?.Label ?? Humanize(f.Name), attribute?.Description);
+            })
+            .ToList();
 
     static private PipeFieldKind KindOf(Type type)
     {

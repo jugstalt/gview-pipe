@@ -138,4 +138,33 @@ public class PipeParameterFormTests : BunitContext
 
         Assert.Equal("= https://x/7", preview.TextContent.Trim());
     }
+
+    [Fact]
+    public void A_conditional_field_shows_only_for_its_values_and_keeps_its_value_while_hidden()
+    {
+        // the default format is binary: no CSV delimiter
+        var parameters = new JsonObject { ["path"] = "orders/*.csv", ["csvDelimiter"] = ";" };
+        var form = RenderForm(typeof(gView.Pipe.Plugins.Nodes.Files.ReadFileNodeParameters), parameters);
+        Assert.DoesNotContain("CSV delimiter", form.Markup);
+
+        parameters["format"] = "csv";
+        form.Render();
+        Assert.Contains("CSV delimiter", form.Markup);
+        Assert.Equal(";", (string?)parameters["csvDelimiter"]);
+    }
+
+    [Fact]
+    public void Advanced_fields_are_in_a_folded_section_and_choices_show_their_description()
+    {
+        var form = RenderForm(typeof(gView.Pipe.Plugins.Nodes.Files.ReadFileNodeParameters), new JsonObject());
+
+        Assert.Contains("Advanced (2)", form.Markup);
+        Assert.DoesNotContain("Include subfolders", form.Markup);
+        // the helper text of the select tells what the chosen value does
+        Assert.Contains("The file as an attachment, plus its name, size and date", form.Markup);
+
+        form.Find(".gview-pipe-advanced .mud-expand-panel-header").Click();
+        Assert.Contains("Include subfolders", form.Markup);
+        Assert.Contains("Attachment name", form.Markup);
+    }
 }

@@ -9,10 +9,10 @@ namespace gView.Pipe.Plugins.Nodes.Files;
 
 public enum ExtractOutput
 {
-    /// <summary>One item per row or object; the fields of the input item are not kept.</summary>
+    [PipeEnumValue("One item per row or object; the fields of the input item are not kept", Label = "One item per row")]
     Items,
 
-    /// <summary>The input item with all rows or objects in one field.</summary>
+    [PipeEnumValue("The input item stays one item and gets all rows or objects as a list in one field", Label = "All rows in one field")]
     Field
 }
 
@@ -22,44 +22,47 @@ public sealed class ExtractFromFileNodeParameters
         Description = "Format of the file. Excel needs the Office plugin.")]
     public string Format { get; set; } = "csv";
 
-    [PipeParameter(Label = "Binary property", Order = 2, Expressions = false, Description = "Attachment to read")]
-    public string BinaryProperty { get; set; } = "data";
-
-    [PipeParameter(Label = "Output", Order = 3, Expressions = false,
-        Description = "Items: one item per row or object. Field: the input item with all of them in one field.")]
+    [PipeParameter(Label = "Output", Order = 2, Expressions = false, Description = "How the rows come out")]
     public ExtractOutput Output { get; set; } = ExtractOutput.Items;
 
-    [PipeParameter(Label = "Field", Order = 4, Expressions = false, Description = "Output 'Field': name of the field")]
+    [PipeParameter(Label = "Field", Order = 3, Expressions = false, ShowWhen = nameof(Output), ShowWhenValues = ["field"],
+        Description = "Name of the field that gets the list, e.g. rows")]
     public string Field { get; set; } = "rows";
 
-    [PipeParameter(Label = "Header row", Order = 5, Expressions = false,
-        Description = "CSV, Excel: the first row holds the column names; otherwise the columns are column1, column2, …")]
+    [PipeParameter(Label = "Header row", Order = 4, Expressions = false, ShowWhen = nameof(Format), ShowWhenValues = ["csv", "xlsx"],
+        Description = "The first row holds the column names; otherwise the columns are column1, column2, …")]
     public bool Header { get; set; } = true;
 
-    [PipeParameter(Label = "Delimiter", Order = 6, Expressions = false, Placeholder = "detect",
-        Description = @"CSV: e.g. , or ; or \t; empty detects it from the first row")]
+    [PipeParameter(Label = "Delimiter", Order = 5, Expressions = false, Placeholder = "detect", ShowWhen = nameof(Format), ShowWhenValues = ["csv"],
+        Description = @"Character between the columns, e.g. , or ; or \t; empty detects it from the first row")]
     public string? Delimiter { get; set; }
 
-    [PipeParameter(Label = "Encoding", Order = 7, Expressions = false, Placeholder = "utf-8",
-        Description = "CSV, JSON, XML, Text: e.g. utf-8, windows-1252, iso-8859-1, utf-16; a byte order mark wins")]
-    public string? Encoding { get; set; }
-
-    [PipeParameter(Label = "Sheet", Order = 8, Placeholder = "first sheet", Description = "Excel: name of the sheet to read")]
+    [PipeParameter(Label = "Sheet", Order = 6, Placeholder = "first sheet", ShowWhen = nameof(Format), ShowWhenValues = ["xlsx"],
+        Description = "Name of the sheet to read; empty reads the first")]
     public string? Sheet { get; set; }
 
-    [PipeParameter(Label = "Item element", Order = 9, Expressions = false, Placeholder = "the whole document",
-        Description = "XML: every element of this name becomes an item, e.g. order")]
+    [PipeParameter(Label = "Item element", Order = 7, Expressions = false, Placeholder = "the whole document", ShowWhen = nameof(Format), ShowWhenValues = ["xml"],
+        Description = "Every element of this name becomes an item, e.g. order; empty makes the whole document one item")]
     public string? ItemElement { get; set; }
 
-    [PipeParameter(Label = "Always array", Order = 10, Expressions = false,
-        Description = "XML: element names, separated by commas, read as arrays even when they occur once")]
+    [PipeParameter(Label = "Always array", Order = 8, Expressions = false, Advanced = true, ShowWhen = nameof(Format), ShowWhenValues = ["xml"],
+        Description = "Element names, separated by commas, that become lists even when they occur once, e.g. line")]
     public string? AlwaysArray { get; set; }
+
+    [PipeParameter(Label = "Encoding", Order = 9, Expressions = false, Placeholder = "utf-8", Advanced = true, ShowWhen = nameof(Format), ShowWhenValues = ["csv", "json", "xml", "text"],
+        Description = "Character set of the file, e.g. utf-8, windows-1252, iso-8859-1; a byte order mark wins")]
+    public string? Encoding { get; set; }
+
+    [PipeParameter(Label = "Attachment name", Order = 10, Expressions = false, Advanced = true,
+        Description = "Name of the attachment to read; data unless an earlier node named it differently")]
+    public string BinaryProperty { get; set; } = "data";
 }
 
 [PipeNode(PipeBuiltInNodes.ExtractFromFile, "Extract from File",
     Category = "Files",
-    Description = "Turns an attachment (a file from a webhook, a mail, an HTTP response, Read File) into items: CSV, JSON, XML, text, "
+    Description = "Turns an attached file (from a webhook, a mail, an HTTP response, Read File) into items: CSV, JSON, XML, text, "
                   + "and Excel with the Office plugin. Runs once per input item.")]
+[PipeNodeExamples]
 public sealed class ExtractFromFileNode : IPipeNode<ExtractFromFileNodeParameters>, IPipeParameterOptions
 {
     private readonly IEnumerable<IPipeFileFormat> _formats;
@@ -116,10 +119,10 @@ public sealed class ExtractFromFileNode : IPipeNode<ExtractFromFileNodeParameter
 
 public enum ConvertMode
 {
-    /// <summary>All items into one file; tables always do this.</summary>
+    [PipeEnumValue("One file with all items; CSV and Excel always do this", Label = "One file of all items")]
     AllItems,
 
-    /// <summary>One file per item (JSON, XML, Text).</summary>
+    [PipeEnumValue("One file per item, attached to the item (JSON, XML, Text)", Label = "One file per item")]
     EachItem
 }
 
@@ -129,47 +132,52 @@ public sealed class ConvertToFileNodeParameters
         Description = "Format of the file. Excel needs the Office plugin.")]
     public string Format { get; set; } = "csv";
 
-    [PipeParameter(Label = "Files", Order = 2, Expressions = false,
-        Description = "All items into one file, or one file per item (JSON, XML, Text). CSV and Excel always make one file.")]
+    [PipeParameter(Label = "Files", Order = 2, Expressions = false, ShowWhen = nameof(Format), ShowWhenValues = ["json", "xml", "text"],
+        Description = "One file of all items, or one file per item")]
     public ConvertMode Mode { get; set; } = ConvertMode.AllItems;
 
     [PipeParameter(Label = "File name", Order = 3, Placeholder = "data.csv",
-        Description = "Name of the file; empty: data plus the format's extension. One file of all items uses the first item for expressions.")]
+        Description = "Name of the file, e.g. orders.csv; empty: data plus the extension of the format")]
     public string? FileName { get; set; }
 
-    [PipeParameter(Label = "Binary property", Order = 4, Expressions = false, Description = "Attachment to write")]
-    public string BinaryProperty { get; set; } = "data";
-
-    [PipeParameter(Label = "Header row", Order = 5, Expressions = false, Description = "CSV, Excel: write the column names as the first row")]
+    [PipeParameter(Label = "Header row", Order = 4, Expressions = false, ShowWhen = nameof(Format), ShowWhenValues = ["csv", "xlsx"],
+        Description = "Write the column names as the first row")]
     public bool Header { get; set; } = true;
 
-    [PipeParameter(Label = "Delimiter", Order = 6, Expressions = false, Placeholder = ",", Description = @"CSV: e.g. , or ; or \t")]
+    [PipeParameter(Label = "Delimiter", Order = 5, Expressions = false, Placeholder = ",", ShowWhen = nameof(Format), ShowWhenValues = ["csv"],
+        Description = @"Character between the columns, e.g. , or ; or \t")]
     public string? Delimiter { get; set; }
 
-    [PipeParameter(Label = "Encoding", Order = 7, Expressions = false, Placeholder = "utf-8",
-        Description = "CSV, JSON, XML, Text: e.g. utf-8, windows-1252, iso-8859-1, utf-16")]
-    public string? Encoding { get; set; }
-
-    [PipeParameter(Label = "Sheet", Order = 8, Placeholder = "Sheet1", Description = "Excel: name of the sheet")]
+    [PipeParameter(Label = "Sheet", Order = 6, Placeholder = "Sheet1", ShowWhen = nameof(Format), ShowWhenValues = ["xlsx"],
+        Description = "Name of the sheet, e.g. Orders")]
     public string? Sheet { get; set; }
 
-    [PipeParameter(Label = "Sheet per field", Order = 9, Expressions = false,
-        Description = "Excel: one sheet per value of this field, e.g. region")]
+    [PipeParameter(Label = "Sheet per field", Order = 7, Expressions = false, Advanced = true, ShowWhen = nameof(Format), ShowWhenValues = ["xlsx"],
+        Description = "One sheet per value of this field, e.g. region makes a sheet per region")]
     public string? SheetPerField { get; set; }
 
-    [PipeParameter(Label = "Root element", Order = 10, Placeholder = "items",
-        Description = "XML: name of the root element; for one file per item, the element of the item")]
+    [PipeParameter(Label = "Root element", Order = 8, Placeholder = "items", ShowWhen = nameof(Format), ShowWhenValues = ["xml"],
+        Description = "Name of the outer element, e.g. orders; for one file per item, the element of the item")]
     public string? RootElement { get; set; }
 
-    [PipeParameter(Label = "Item element", Order = 11, Expressions = false, Placeholder = "item",
-        Description = "XML, all items into one file: the element of each item")]
+    [PipeParameter(Label = "Item element", Order = 9, Expressions = false, Placeholder = "item", ShowWhen = nameof(Format), ShowWhenValues = ["xml"],
+        Description = "Element of each item in one file of all items, e.g. order")]
     public string? ItemElement { get; set; }
 
-    [PipeParameter(Label = "Text field", Order = 12, Expressions = false, Placeholder = "text",
-        Description = "Text: the field of the items to write, one item per line")]
+    [PipeParameter(Label = "Text field", Order = 10, Expressions = false, Placeholder = "text", ShowWhen = nameof(Format), ShowWhenValues = ["text"],
+        Description = "Field of the items to write, one item per line, e.g. line")]
     public string? TextField { get; set; }
+
+    [PipeParameter(Label = "Encoding", Order = 11, Expressions = false, Placeholder = "utf-8", Advanced = true, ShowWhen = nameof(Format), ShowWhenValues = ["csv", "json", "xml", "text"],
+        Description = "Character set of the file, e.g. utf-8, windows-1252, iso-8859-1, utf-16")]
+    public string? Encoding { get; set; }
+
+    [PipeParameter(Label = "Attachment name", Order = 12, Expressions = false, Advanced = true,
+        Description = "Name of the new attachment, under which later nodes find the file")]
+    public string BinaryProperty { get; set; } = "data";
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.ConvertToFile, "Convert to File",
     Category = "Files",
     Description = "Turns items into a file attachment, e.g. to send it by mail, upload it or save it with Write File: CSV, JSON, XML, text, "

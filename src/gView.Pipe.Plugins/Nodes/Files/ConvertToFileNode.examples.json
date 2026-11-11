@@ -1,0 +1,31 @@
+[
+  {
+    "title": "All items as one CSV file",
+    "description": "One item comes out with the file attached as data, e.g. for Send Email or Write File.",
+    "parameters": { "format": "csv", "fileName": "orders.csv" },
+    "input": [
+      { "id": 1, "customer": "Anna" },
+      { "id": 2, "customer": "Ben" }
+    ],
+    "output": [
+      {
+        "format": "csv",
+        "count": 2,
+        "$binary": { "data": { "fileName": "orders.csv", "mimeType": "text/csv", "text": "id,customer\n1,Anna\n2,Ben\n" } }
+      }
+    ]
+  },
+  {
+    "title": "One JSON file per item",
+    "description": "Every item keeps its fields and gets its own file, named with an expression.",
+    "parameters": { "format": "json", "mode": "eachItem", "fileName": "order-{{ $json.id }}.json" },
+    "input": [
+      { "id": 1, "customer": "Anna" },
+      { "id": 2, "customer": "Ben" }
+    ],
+    "output": [
+      { "id": 1, "customer": "Anna", "$binary": { "data": { "fileName": "order-1.json", "mimeType": "application/json" } } },
+      { "id": 2, "customer": "Ben", "$binary": { "data": { "fileName": "order-2.json", "mimeType": "application/json" } } }
+    ]
+  }
+]

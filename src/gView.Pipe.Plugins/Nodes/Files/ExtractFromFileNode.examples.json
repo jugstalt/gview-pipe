@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Rows of an attached CSV file as items",
+    "description": "E.g. after a Webhook Trigger with an upload or an Email Trigger: every row becomes an item. All values are text.",
+    "parameters": { "format": "csv", "delimiter": ";" },
+    "input": [
+      { "$binary": { "data": { "fileName": "orders.csv", "mimeType": "text/csv", "text": "id;customer\n1;Anna\n2;Ben\n" } } }
+    ],
+    "output": [
+      { "id": "1", "customer": "Anna" },
+      { "id": "2", "customer": "Ben" }
+    ]
+  },
+  {
+    "title": "A JSON array into one field of the item",
+    "description": "With Output 'All rows in one field' the item keeps its fields and gets the list, e.g. to count or loop over it later.",
+    "parameters": { "format": "json", "output": "field", "field": "lines" },
+    "input": [
+      {
+        "order": "A-17",
+        "$binary": { "data": { "fileName": "lines.json", "mimeType": "application/json", "text": "[{\"sku\":\"P-1\",\"qty\":2},{\"sku\":\"P-7\",\"qty\":1}]" } }
+      }
+    ],
+    "output": [
+      {
+        "order": "A-17",
+        "lines": [ { "sku": "P-1", "qty": 2 }, { "sku": "P-7", "qty": 1 } ],
+        "$binary": { "data": { "fileName": "lines.json", "mimeType": "application/json", "text": "[{\"sku\":\"P-1\",\"qty\":2},{\"sku\":\"P-7\",\"qty\":1}]" } }
+      }
+    ]
+  }
+]

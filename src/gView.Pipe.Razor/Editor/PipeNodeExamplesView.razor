@@ -1,0 +1,108 @@
+@using System.Text
+@using System.Text.Json.Nodes
+@using gView.Pipe.Abstraction.Data
+@using gView.Pipe.Abstraction.Nodes
+
+@*
+    The examples of a node (ADR 0043): what it needs, its parameters, input and output.
+    "Use these parameters" hands the example to the host, which puts its parameters into the node.
+*@
+
+@if (Examples.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">This node has no examples yet.</MudText>
+}
+@foreach (var example in Examples)
+{
+    <div class="gview-pipe-example">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudText Typo="Typo.subtitle2">@example.Title</MudText>
+            <MudSpacer />
+            @if (!ReadOnly && OnUseParameters.HasDelegate)
+            {
+                <MudTooltip Text="Put the parameters of this example into the node (Undo brings the old ones back)">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Input"
+                               OnClick="() => OnUseParameters.InvokeAsync(example)">Use these parameters</MudButton>
+                </MudTooltip>
+            }
+        </MudStack>
+        @if (!string.IsNullOrWhiteSpace(example.Description))
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-1">@example.Description</MudText>
+        }
+
+        @if (Files(example) is { Count: > 0 } files)
+        {
+            <div class="gview-pipe-example-label">Given: files in the folder</div>
+            @foreach (var (path, content) in files)
+            {
+                <div class="gview-pipe-example-file">
+                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.InsertDriveFile">@path</MudChip>
+                    <pre class="gview-pipe-code">@content</pre>
+                </div>
+            }
+        }
+        @if (OtherGiven(example) is { } other)
+        {
+            <div class="gview-pipe-example-label">Given</div>
+            <pre class="gview-pipe-code">@other</pre>
+        }
+
+        @if (example.Parameters.Count > 0)
+        {
+            <div class="gview-pipe-example-label">Parameters</div>
+            <pre class="gview-pipe-code">@ParameterText(example)</pre>
+        }
+
+        @if (example.Input.Count > 0)
+        {
+            <div class="gview-pipe-example-label">Input</div>
+            <PipeItemsView Items="@example.Input.ToDictionary(p => p.Key, p => Items(p.Value))" DefaultMode="table" />
+        }
+
+        <div class="gview-pipe-example-label">Output</div>
+        <PipeItemsView Items="@example.Output.ToDictionary(p => p.Key, p => Items(p.Value))" DefaultMode="table" EmptyText="No output items." />
+
+        @if (!example.Verified)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Illustration: the output may differ in details.</MudText>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<PipeNodeExample> Examples { get; set; } = [];
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>Parameter class of the node: parameters are shown with their labels.</summary>
+    [Parameter] public Type? ParametersType { get; set; }
+
+    [Parameter] public EventCallback<PipeNodeExample> OnUseParameters { get; set; }
+
+    /// <summary>Example items as items of a run; attachments get a reference that points nowhere.</summary>
+    static private List<PipeItem> Items(IReadOnlyList<PipeExampleItem> items)
+        => items.Select(i => new PipeItem((JsonObject)i.Json.DeepClone())
+        {
+            Binary = i.Binary.ToDictionary(b => b.Key, b => new PipeBinaryRef("example", b.Value.FileName, b.Value.MimeType, Encoding.UTF8.GetByteCount(b.Value.Text ?? "")))
+        }).ToList();
+
+    static private List<KeyValuePair<string, string>> Files(PipeNodeExample example)
+        => example.Given?["files"] is JsonObject files
+            ? files.Select(f => new KeyValuePair<string, string>(f.Key, PipeJsonText.ToText(f.Value))).ToList()
+            : [];
+
+    static private string? OtherGiven(PipeNodeExample example)
+    {
+        if (example.Given is null)
+        {
+            return null;
+        }
+        var other = new JsonObject(example.Given.Where(p => p.Key != "files").Select(p => KeyValuePair.Create(p.Key, p.Value?.DeepClone())));
+        return other.Count == 0 ? null : PipeJsonText.ToIndentedJson(other);
+    }
+
+    // one line per parameter: "path: orders/*.csv"
+    static private string ParameterText(PipeNodeExample example)
+        => string.Join("\n", example.Parameters.Select(p => $"{p.Key}: {(p.Value is JsonValue ? PipeJsonText.ToText(p.Value) : p.Value?.ToJsonString())}"));
+}

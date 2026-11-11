@@ -13,4 +13,11 @@
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
   </PropertyGroup>
 
+  <!-- examples of nodes next to their class (ADR 0043), found by PipeNodeExample.Load -->
+  <ItemGroup>
+    <None Remove="**\*.examples.json" />
+    <Content Remove="**\*.examples.json" />
+    <EmbeddedResource Include="**\*.examples.json" Exclude="bin\**;obj\**" />
+  </ItemGroup>
+
 </Project>

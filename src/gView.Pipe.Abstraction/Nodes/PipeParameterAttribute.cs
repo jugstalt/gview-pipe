@@ -22,6 +22,37 @@ public sealed class PipeParameterAttribute : Attribute
 
     /// <summary>Language of a <see cref="Code"/> field for syntax highlighting, e.g. <c>javascript</c> or <c>sql</c>.</summary>
     public string? CodeLanguage { get; set; }
+
+    /// <summary>
+    /// Name of another property of the parameter class (use <c>nameof</c>): this field shows only while that property
+    /// has one of <see cref="ShowWhenValues"/>. A hidden field keeps its value. See ADR 0043.
+    /// </summary>
+    public string? ShowWhen { get; set; }
+
+    /// <summary>
+    /// Values of <see cref="ShowWhen"/> that show this field, compared without case: enum names, option values,
+    /// <c>true</c>/<c>false</c> for a bool.
+    /// </summary>
+    public string[]? ShowWhenValues { get; set; }
+
+    /// <summary>Rarely needed: the field is in the folded "Advanced" section of the form.</summary>
+    public bool Advanced { get; set; }
+}
+
+/// <summary>Label and description of an enum member offered as a parameter value (dropdown and node reference).</summary>
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class PipeEnumValueAttribute : Attribute
+{
+    public PipeEnumValueAttribute(string description)
+    {
+        Description = description;
+    }
+
+    /// <summary>One line: what this choice does.</summary>
+    public string Description { get; }
+
+    /// <summary>Shown instead of the humanized member name.</summary>
+    public string? Label { get; set; }
 }
 
 /// <summary>

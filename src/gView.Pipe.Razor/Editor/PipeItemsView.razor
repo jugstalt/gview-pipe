@@ -3,7 +3,7 @@
 @inject IJSRuntime JS
 
 @*
-    Items per port: one tab per port. Shown as indented JSON, or as text: every field a heading, its value a paragraph
+    Items per port: one tab per port. Shown as a table (one column per field), as indented JSON, or as text: every field a heading, its value a paragraph
     with line breaks kept (readable output of scripts, HTTP bodies, …). The choice is kept in the browser.
 *@
 
@@ -23,8 +23,9 @@ else
 {
     <div class="gview-pipe-items-mode">
         <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
-            <MudButton Variant="@(_textMode ? Variant.Outlined : Variant.Filled)" OnClick="() => SetModeAsync(false)">JSON</MudButton>
-            <MudButton Variant="@(_textMode ? Variant.Filled : Variant.Outlined)" OnClick="() => SetModeAsync(true)">Text</MudButton>
+            <MudButton Variant="@(_mode == TableMode ? Variant.Filled : Variant.Outlined)" OnClick="() => SetModeAsync(TableMode)">Table</MudButton>
+            <MudButton Variant="@(_mode == JsonMode ? Variant.Filled : Variant.Outlined)" OnClick="() => SetModeAsync(JsonMode)">JSON</MudButton>
+            <MudButton Variant="@(_mode == TextMode ? Variant.Filled : Variant.Outlined)" OnClick="() => SetModeAsync(TextMode)">Text</MudButton>
         </MudButtonGroup>
     </div>
     <MudTabs Elevation="0" Rounded="false" Class="gview-pipe-output-tabs" MinimumTabWidth="60px">
@@ -35,11 +36,55 @@ else
                 {
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">No items.</MudText>
                 }
-                @foreach (var (item, index) in items.Take(MaxItems).Select((item, index) => (item, index)))
+                @if (_mode == TableMode && items.Count > 0)
+                {
+                    var shown = items.Take(MaxItems).ToList();
+                    var columns = shown.SelectMany(i => i.Json.Select(p => p.Key)).Distinct().ToList();
+                    var files = shown.Any(i => i.Binary.Count > 0);
+                    <div class="gview-pipe-items-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    @foreach (var column in columns)
+                                    {
+                                        <th>@column</th>
+                                    }
+                                    @if (files)
+                                    {
+                                        <th>Attachments</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var (item, index) in shown.Select((item, index) => (item, index)))
+                                {
+                                    <tr>
+                                        <td>@index</td>
+                                        @foreach (var column in columns)
+                                        {
+                                            <td>@(item.Json.TryGetPropertyValue(column, out var cell) ? CellText(cell) : "")</td>
+                                        }
+                                        @if (files)
+                                        {
+                                            <td>
+                                                @foreach (var (name, binary) in item.Binary)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.AttachFile">@name: @binary.FileName</MudChip>
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                @foreach (var (item, index) in items.Take(_mode == TableMode ? 0 : MaxItems).Select((item, index) => (item, index)))
                 {
                     <div class="gview-pipe-item">
                         <div class="gview-pipe-item-index">#@index</div>
-                        @if (_textMode)
+                        @if (_mode == TextMode)
                         {
                             <PipeItemText Value="item.Json" />
                         }
@@ -80,7 +125,14 @@ else
     /// <summary>When set, properties are clickable (JSON view) and report their path (e.g. <c>$json.a.b</c>).</summary>
     [Parameter] public EventCallback<string> OnSelectPath { get; set; }
 
-    private bool _textMode;
+    private const string TableMode = "table", JsonMode = "json", TextMode = "text";
+
+    /// <summary>The view until the user picks one (kept in the browser): <c>json</c>, <c>table</c> or <c>text</c>.</summary>
+    [Parameter] public string DefaultMode { get; set; } = JsonMode;
+
+    private string? _mode;
+
+    protected override void OnParametersSet() => _mode ??= DefaultMode;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -90,22 +142,28 @@ else
         }
         try
         {
-            if (await JS.InvokeAsync<string?>("localStorage.getItem", ModeKey) == "text")
+            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", ModeKey);
+            if (stored is TableMode or JsonMode or TextMode && stored != _mode)
             {
-                _textMode = true;
+                _mode = stored;
                 StateHasChanged();
             }
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException) { }
+    }
+
+    private async Task SetModeAsync(string mode)
+    {
+        _mode = mode;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", ModeKey, mode);
         }
         catch (JSException) { }
     }
 
-    private async Task SetModeAsync(bool text)
-    {
-        _textMode = text;
-        try
-        {
-            await JS.InvokeVoidAsync("localStorage.setItem", ModeKey, text ? "text" : "json");
-        }
-        catch (JSException) { }
-    }
+    static private string CellText(System.Text.Json.Nodes.JsonNode? value)
+        => value is System.Text.Json.Nodes.JsonValue v && v.GetValueKind() == System.Text.Json.JsonValueKind.String
+            ? v.GetValue<string>()
+            : value?.ToJsonString() ?? "null";
 }

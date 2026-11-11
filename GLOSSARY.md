@@ -23,6 +23,9 @@
 | **Error workflow** | Workflow named in another workflow's settings; its Error Trigger runs when a triggered (not manual) run of that workflow fails. | `PipeWorkflowSettings.ErrorWorkflowId`, `IPipeErrorTrigger` |
 | **Webhook** | Trigger that starts a workflow when `/webhook/{path}` is called. The path is unique across all active workflows. It answers immediately (202) or with the output of the last node. | `PipeWebhookRegistration`, `IPipeWebhookRouter` |
 | **Node hint** | An info or warning a node shows in the editor depending on its parameters (e.g. the webhook URL). | `IPipeNodeHints` |
+| **Node example** | A sample of what a node does: parameters, the world it needs (`given`), input and output items. Stored as `<NodeClass>.examples.json` next to the node, shown in the Examples tab of the node panel and in the node reference, and run by a test. See ADR 0043. | `PipeNodeExamplesAttribute`, `PipeNodeExample` |
+| **Advanced parameter** | A parameter in the folded *Advanced* section of the node form; rarely needed. | `PipeParameterAttribute.Advanced` |
+| **Conditional parameter** | A parameter shown only while another one has certain values (e.g. the CSV delimiter only for CSV). A hidden parameter keeps its value. | `PipeParameterAttribute.ShowWhen` |
 | **Active workflow** | A workflow whose triggers are armed (e.g. its cron schedule runs). | `PipeWorkflow.Active`, `IPipeTriggerManager` |
 | **Execution** | One run of a workflow, with status and output items per node. | `PipeExecution`, `PipeNodeRun` |
 | **Start node** | Where an execution begins: the firing trigger, or for manual runs all nodes without incoming connections. Only nodes reachable from start nodes take part. | `PipeExecutionRequest.StartNodeId` |

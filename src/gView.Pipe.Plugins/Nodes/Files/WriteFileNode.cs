@@ -13,56 +13,65 @@ namespace gView.Pipe.Plugins.Nodes.Files;
 
 public enum WriteFileContent
 {
-    /// <summary>One file per item: the item's attachment.</summary>
+    [PipeEnumValue("One file per item: the item's attachment, e.g. a PDF from Read File or a mail", Label = "Attachment")]
     Binary,
 
-    /// <summary>One file per item: the <see cref="WriteFileNodeParameters.Text"/> parameter.</summary>
+    [PipeEnumValue("One file per item with the text below")]
     Text,
 
-    /// <summary>One file with all items as a JSON array.</summary>
+    [PipeEnumValue("One file with all items as a JSON array", Label = "All items as JSON")]
     ItemsAsJson,
 
-    /// <summary>One file with all items as CSV rows.</summary>
+    [PipeEnumValue("One file with all items as CSV rows, one column per field", Label = "All items as CSV")]
     ItemsAsCsv
 }
 
 public enum WriteFileIfExists
 {
+    [PipeEnumValue("Replace the file")]
     Overwrite,
+
+    [PipeEnumValue("Add to the end of the file; CSV adds rows without a second header, JSON can't be appended")]
     Append,
+
+    [PipeEnumValue("Stop with an error and keep the file")]
     Fail
 }
 
 public sealed class WriteFileNodeParameters
 {
-    [Required, PipeParameter(Label = "Folder", Order = 1, Expressions = false, Description = "Name of a folder released by the host")]
+    [Required, PipeOptions, PipeParameter(Label = "Folder", Order = 1, Expressions = false,
+        Description = "Where to write: one of the folders the administrator has set up for workflows")]
     public string Folder { get; set; } = "";
 
     [Required, PipeParameter(Label = "Path", Order = 2, Placeholder = "export/{{ $json.id }}.pdf",
-        Description = "Relative to the folder; missing subfolders are created")]
+        Description = "File inside the folder, e.g. export/orders.csv; missing subfolders are created")]
     public string Path { get; set; } = "";
 
-    [PipeParameter(Label = "Write", Order = 3, Expressions = false)]
+    [PipeParameter(Label = "Write", Order = 3, Expressions = false, Description = "What goes into the file")]
     public WriteFileContent Content { get; set; } = WriteFileContent.Binary;
 
-    [PipeParameter(Label = "Binary property", Order = 4, Expressions = false, Description = "Attachment to write (binary)")]
-    public string BinaryProperty { get; set; } = "data";
-
-    [PipeParameter(Label = "Text", Order = 5, Multiline = true, Description = "Content to write (text)")]
+    [PipeParameter(Label = "Text", Order = 4, Multiline = true, ShowWhen = nameof(Content), ShowWhenValues = ["text"],
+        Description = "Content of the file, e.g. Order {{ $json.id }} received")]
     public string? Text { get; set; }
 
-    [PipeParameter(Label = "If the file exists", Order = 6, Expressions = false,
-        Description = "Append adds CSV rows without a header; it isn't possible for JSON")]
+    [PipeParameter(Label = "CSV delimiter", Order = 5, Expressions = false, ShowWhen = nameof(Content), ShowWhenValues = ["itemsAsCsv"],
+        Description = @"Character between the columns, e.g. , or ; or \t for tab")]
+    public string CsvDelimiter { get; set; } = ",";
+
+    [PipeParameter(Label = "If the file exists", Order = 6, Expressions = false, Description = "What happens when the file is already there")]
     public WriteFileIfExists IfExists { get; set; } = WriteFileIfExists.Overwrite;
 
-    [PipeParameter(Label = "CSV delimiter", Order = 7, Expressions = false, Description = @"e.g. , or ; or \t")]
-    public string CsvDelimiter { get; set; } = ",";
+    [PipeParameter(Label = "Attachment name", Order = 7, Expressions = false, Advanced = true, ShowWhen = nameof(Content), ShowWhenValues = ["binary"],
+        Description = "Name of the attachment to write; data unless an earlier node named it differently")]
+    public string BinaryProperty { get; set; } = "data";
 }
 
 [PipeNode(PipeBuiltInNodes.WriteFile, "Write File",
     Category = "Files",
-    Description = "Writes attachments or text (one file per item), or all items as JSON or CSV (one file), into a folder released by the host.")]
-public sealed class WriteFileNode : IPipeNode<WriteFileNodeParameters>, IPipeNodeHints
+    Description = "Writes files into a folder of the server: attachments or text (one file per item), or all items as JSON or CSV (one file).")]
+[PipeNodeExamples]
+public sealed class WriteFileNode : IPipeNode<WriteFileNodeParameters>, IPipeNodeHints, IPipeParameterOptions
 {
     static private readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
 
@@ -103,7 +112,10 @@ public sealed class WriteFileNode : IPipeNode<WriteFileNodeParameters>, IPipeNod
     }
 
     public IReadOnlyList<PipeNodeHint> GetHints(JsonObject parameters)
-        => [PipeFileHints.Folders(_roots)];
+        => PipeFileHints.Folders(_roots);
+
+    public Task<IReadOnlyList<PipeParameterOption>> GetOptionsAsync(string parameter, JsonObject parameters, bool refresh, CancellationToken cancellationToken)
+        => Task.FromResult(PipeFileHints.FolderOptions(_roots, parameter));
 
     private async Task<JsonObject> WriteBinaryAsync(IPipeNodeContext context, WriteFileNodeParameters parameters, PipeItem item, CancellationToken cancellationToken)
     {

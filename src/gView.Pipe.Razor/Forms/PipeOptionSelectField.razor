@@ -2,10 +2,16 @@
 
 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start">
     <MudSelect T="string" Label="@(Field.Required ? Field.Label + " *" : Field.Label)" Dense="true" Variant="Variant.Outlined" Clearable="true"
-               HelperText="@Field.Description" Value="@Value" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
+               HelperText="@Field.Description" Value="@Value" ToStringFunc="Label" ValueChanged="v => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v)">
         @foreach (var option in _options)
         {
-            <MudSelectItem Value="@option.Value">@(option.Label ?? option.Value)</MudSelectItem>
+            <MudSelectItem Value="@option.Value">
+                <div>@(option.Label ?? option.Value)</div>
+                @if (!string.IsNullOrEmpty(option.Description))
+                {
+                    <div class="gview-pipe-option-description">@option.Description</div>
+                }
+            </MudSelectItem>
         }
         @if (!string.IsNullOrEmpty(Value) && _loaded && _options.All(o => o.Value != Value))
         {
@@ -39,5 +45,14 @@
         _loadedVersion = Version;
         _options = OptionsProvider is null ? [] : await OptionsProvider(Field.Key, refresh);
         _loaded = true;
+
+        // the only possible value of a required field: take it (e.g. the one released folder)
+        if (string.IsNullOrEmpty(Value) && Field.Required && _options.Count == 1)
+        {
+            await ValueChanged.InvokeAsync(_options[0].Value);
+        }
     }
+
+    private string Label(string? value)
+        => _options.FirstOrDefault(o => o.Value == value) is { } option ? option.Label ?? option.Value : value ?? "";
 }

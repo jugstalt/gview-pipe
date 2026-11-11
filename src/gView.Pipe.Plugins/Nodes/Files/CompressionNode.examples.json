@@ -1,0 +1,44 @@
+[
+  {
+    "title": "Pack the files of all items into one ZIP",
+    "description": "E.g. after Read File with invoices/*.pdf: one item comes out with the archive attached as data.",
+    "parameters": { "operation": "zip", "scope": "allItems", "fileName": "invoices.zip" },
+    "input": [
+      { "fileName": "2025-001.pdf", "$binary": { "data": { "fileName": "2025-001.pdf", "mimeType": "application/pdf", "text": "%PDF-1.7 (one)" } } },
+      { "fileName": "2025-002.pdf", "$binary": { "data": { "fileName": "2025-002.pdf", "mimeType": "application/pdf", "text": "%PDF-1.7 (two)" } } }
+    ],
+    "output": [
+      { "count": 2, "entries": 2, "$binary": { "data": { "fileName": "invoices.zip", "mimeType": "application/zip" } } }
+    ]
+  },
+  {
+    "title": "Unpack a ZIP archive",
+    "description": "Every file of the archive becomes an item with the file attached as data, e.g. to read each one with Extract from File.",
+    "parameters": { "operation": "unzip" },
+    "input": [
+      { "$binary": { "data": { "fileName": "invoices.zip", "mimeType": "application/zip" } } }
+    ],
+    "output": [
+      {
+        "fileName": "2025-001.pdf", "path": "2025-001.pdf", "size": 14, "modifiedAt": "2026-11-11T08:00:00.0000000+00:00", "archive": "invoices.zip",
+        "$binary": { "data": { "fileName": "2025-001.pdf", "mimeType": "application/pdf" } }
+      },
+      {
+        "fileName": "2025-002.pdf", "path": "2025-002.pdf", "size": 14, "modifiedAt": "2026-11-11T08:00:00.0000000+00:00", "archive": "invoices.zip",
+        "$binary": { "data": { "fileName": "2025-002.pdf", "mimeType": "application/pdf" } }
+      }
+    ],
+    "verified": false
+  },
+  {
+    "title": "Compress a file with GZip",
+    "description": "The attachment is replaced by its compressed version; the name gets .gz.",
+    "parameters": { "operation": "gzip" },
+    "input": [
+      { "$binary": { "data": { "fileName": "export.csv", "mimeType": "text/csv", "text": "id,customer\n1,Anna\n" } } }
+    ],
+    "output": [
+      { "$binary": { "data": { "fileName": "export.csv.gz", "mimeType": "application/gzip" } } }
+    ]
+  }
+]
