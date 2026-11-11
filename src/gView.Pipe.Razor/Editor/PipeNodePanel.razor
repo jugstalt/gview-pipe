@@ -76,7 +76,7 @@
 
     @if (Model.Descriptor is { } withExamples)
     {
-        <MudTabPanel Text="Examples" BadgeData="@(withExamples.Examples.Count > 0 ? withExamples.Examples.Count : null)" BadgeColor="Color.Default">
+        <MudTabPanel Text="Examples">
             <PipeNodeExamplesView Examples="withExamples.Examples" ParametersType="withExamples.ParametersType" ReadOnly="ReadOnly"
                                   OnUseParameters="UseExampleAsync" />
         </MudTabPanel>

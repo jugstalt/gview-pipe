@@ -651,7 +651,8 @@ div.gview-pipe-json-tree {
 .gview-pipe-items-mode {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: -4px;
+    /* room for the tab bar below, which would otherwise cover the lower edge of the buttons */
+    margin-bottom: 4px;
 }
 
 .gview-pipe-item-text-name {
