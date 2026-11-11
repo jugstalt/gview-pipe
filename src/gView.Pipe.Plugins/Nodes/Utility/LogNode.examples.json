@@ -1,0 +1,13 @@
+[
+  {
+    "title": "Write a line per order",
+    "description": "The log gets 'Order 17 received'; the items pass unchanged.",
+    "parameters": { "message": "Order {{ $json.id }} received", "level": "information" },
+    "input": [
+      { "id": 17 }
+    ],
+    "output": [
+      { "id": 17 }
+    ]
+  }
+]

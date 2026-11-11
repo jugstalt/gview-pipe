@@ -12,43 +12,46 @@ namespace gView.Pipe.Plugins.Nodes.Triggers;
 
 public enum FileTriggerEvents
 {
-    /// <summary>Only files that weren't there before.</summary>
+    [PipeEnumValue("Only files that weren't there before", Label = "New files")]
     Created,
 
-    /// <summary>New files, and files whose size or time changed.</summary>
+    [PipeEnumValue("New files, and files whose size or time changed", Label = "New or changed files")]
     CreatedOrChanged
 }
 
 public sealed class FileTriggerNodeParameters
 {
-    [Required, PipeParameter(Label = "Folder", Order = 1, Expressions = false, Description = "Name of a folder released by the host")]
+    [Required, PipeOptions, PipeParameter(Label = "Folder", Order = 1, Expressions = false,
+        Description = "Which folder to watch: one of the folders the administrator has set up for workflows")]
     public string Folder { get; set; } = "";
 
-    [PipeParameter(Label = "Path", Order = 2, Expressions = false, Placeholder = "incoming", Description = "A subfolder of the folder; empty for the folder itself")]
+    [PipeParameter(Label = "Path", Order = 2, Expressions = false, Placeholder = "incoming", Description = "A subfolder of the folder, e.g. incoming; empty for the folder itself")]
     public string Path { get; set; } = "";
 
-    [PipeParameter(Label = "File pattern", Order = 3, Expressions = false, Placeholder = "*.csv", Description = "* and ? are allowed")]
+    [PipeParameter(Label = "File pattern", Order = 3, Expressions = false, Placeholder = "*.csv", Description = "Which files count, e.g. *.csv or order-*.xml; * for all")]
     public string Pattern { get; set; } = "*";
 
-    [PipeParameter(Label = "Include subfolders", Order = 4, Expressions = false)]
+    [PipeParameter(Label = "Include subfolders", Order = 4, Expressions = false, Advanced = true,
+        Description = "Watch the subfolders of the path too")]
     public bool IncludeSubfolders { get; set; }
 
-    [PipeParameter(Label = "Events", Order = 5, Expressions = false)]
+    [PipeParameter(Label = "Events", Order = 5, Expressions = false, Description = "Which files start the workflow")]
     public FileTriggerEvents Events { get; set; } = FileTriggerEvents.Created;
 
-    [PipeParameter(Label = "Check every (seconds)", Order = 6, Expressions = false,
+    [PipeParameter(Label = "Check every (seconds)", Order = 6, Expressions = false, Advanced = true,
         Description = "A file is reported when it was unchanged in two checks in a row, so it comes after up to two intervals")]
     [Range(1, 86400)]
     public int IntervalSeconds { get; set; } = 10;
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.FileTrigger, "File Trigger",
     Category = "Triggers",
     Description = "Starts the workflow when new files appear in a folder released by the host, while the workflow is active. "
                   + "Checks the folder at an interval and reports a file once it is complete. One run per check, with one item per file: "
                   + "folder, path, name, size, modified and event. Files that exist when the workflow is activated are not reported. "
                   + "Read File reads the content.")]
-public sealed class FileTriggerNode : IPipeTriggerNode, IPipeNode<FileTriggerNodeParameters>
+public sealed class FileTriggerNode : IPipeTriggerNode, IPipeNode<FileTriggerNodeParameters>, IPipeParameterOptions
 {
     private readonly IPipeFileRoots _roots;
 
@@ -56,6 +59,9 @@ public sealed class FileTriggerNode : IPipeTriggerNode, IPipeNode<FileTriggerNod
     {
         _roots = roots;
     }
+
+    public Task<IReadOnlyList<PipeParameterOption>> GetOptionsAsync(string parameter, JsonObject parameters, bool refresh, CancellationToken cancellationToken)
+        => Task.FromResult(Files.PipeFileHints.FolderOptions(_roots, parameter));
 
     public Task<IAsyncDisposable?> ActivateAsync(IPipeTriggerContext context, CancellationToken cancellationToken)
     {

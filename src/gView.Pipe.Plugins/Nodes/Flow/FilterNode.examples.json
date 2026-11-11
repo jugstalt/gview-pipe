@@ -1,0 +1,27 @@
+[
+  {
+    "title": "Only orders above 100",
+    "description": "Items that don't match are dropped.",
+    "parameters": { "value1": "{{ $json.amount }}", "operation": "greaterThan", "value2": 100 },
+    "input": [
+      { "id": 1, "amount": 120 },
+      { "id": 2, "amount": 80 },
+      { "id": 3, "amount": 450 }
+    ],
+    "output": [
+      { "id": 1, "amount": 120 },
+      { "id": 3, "amount": 450 }
+    ]
+  },
+  {
+    "title": "Only items with an email",
+    "parameters": { "value1": "{{ $json.email }}", "operation": "isNotEmpty" },
+    "input": [
+      { "name": "Anna", "email": "anna@example.com" },
+      { "name": "Ben", "email": "" }
+    ],
+    "output": [
+      { "name": "Anna", "email": "anna@example.com" }
+    ]
+  }
+]

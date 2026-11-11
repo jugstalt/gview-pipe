@@ -8,6 +8,7 @@ public sealed class IfNodeParameters : PipeConditionParameters
 {
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.If, "If",
     Category = "Flow",
     Description = "Routes each item to 'true' or 'false' depending on a condition.",

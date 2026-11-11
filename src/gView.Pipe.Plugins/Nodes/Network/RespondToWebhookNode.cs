@@ -10,35 +10,38 @@ namespace gView.Pipe.Plugins.Nodes.Network;
 
 public enum RespondWith
 {
-    /// <summary>The JSON of the first input item.</summary>
+    [PipeEnumValue("The JSON of the first item")]
     FirstItem,
 
-    /// <summary>An array with the JSON of all input items.</summary>
+    [PipeEnumValue("A list with the JSON of all items")]
     AllItems,
 
-    /// <summary>The <see cref="RespondToWebhookNodeParameters.Body"/> parameter.</summary>
+    [PipeEnumValue("The body below, e.g. { \"ok\": true }")]
     CustomBody,
 
+    [PipeEnumValue("Only the status code, no content")]
     NoBody
 }
 
 public sealed class RespondToWebhookNodeParameters
 {
-    [PipeParameter(Label = "Respond with", Order = 1, Expressions = false)]
+    [PipeParameter(Label = "Respond with", Order = 1, Expressions = false, Description = "What the caller gets back")]
     public RespondWith RespondWith { get; set; } = RespondWith.FirstItem;
 
-    [PipeParameter(Label = "Body", Order = 2, Multiline = true, Placeholder = "{{ { ok: true, id: $json.id } }}",
-        Description = "Custom body: JSON or an expression, evaluated against the first item")]
+    [PipeParameter(Label = "Body", Order = 2, Multiline = true, Placeholder = "{{ { ok: true, id: $json.id } }}", ShowWhen = nameof(RespondWith), ShowWhenValues = ["customBody"],
+        Description = "JSON or an expression, evaluated for the first item, e.g. {{ { ok: true, id: $json.id } }}")]
     public JsonNode? Body { get; set; }
 
-    [PipeParameter(Label = "Status code", Order = 3)]
+    [PipeParameter(Label = "Status code", Order = 3, Description = "HTTP status of the answer, e.g. 200 OK, 201 Created, 400 Bad Request")]
     [Range(100, 599)]
     public int StatusCode { get; set; } = 200;
 
-    [PipeParameter(Label = "Headers", Order = 4, Description = "Response headers; a Content-Type other than JSON sends a text body as is (e.g. text/html)")]
+    [PipeParameter(Label = "Headers", Order = 4, Advanced = true,
+        Description = "Response headers; a Content-Type other than JSON sends a text body as is, e.g. text/html")]
     public Dictionary<string, string> Headers { get; set; } = new();
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.RespondToWebhook, "Respond to Webhook",
     Category = "Network",
     Description = "Answers the webhook call that started the execution (Webhook Trigger with 'Using respond node'). "

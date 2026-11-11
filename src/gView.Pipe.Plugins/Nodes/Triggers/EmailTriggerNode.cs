@@ -15,38 +15,41 @@ namespace gView.Pipe.Plugins.Nodes.Triggers;
 public sealed class EmailTriggerNodeParameters
 {
     [Required, PipeCredential(PipeBuiltInCredentials.ImapServer)]
-    [PipeParameter(Label = "Mail server", Order = 1, Expressions = false, Description = "IMAP Server credential")]
+    [PipeParameter(Label = "Mail server", Order = 1, Expressions = false, Description = "The mailbox to watch: an IMAP Server credential")]
     public string? CredentialId { get; set; }
 
-    [PipeParameter(Label = "Folder", Order = 2, Expressions = false)]
+    [PipeParameter(Label = "Folder", Order = 2, Expressions = false, Description = "Mail folder to watch, e.g. INBOX or INBOX/Orders")]
     public string Folder { get; set; } = "INBOX";
 
-    [PipeParameter(Label = "From contains", Order = 3, Expressions = false, Description = "Only mails from a sender with this text; searched on the server. Empty: all")]
+    [PipeParameter(Label = "From contains", Order = 3, Expressions = false, Description = "Only mails from a sender with this text, e.g. @shop.example; empty: all")]
     public string? FromContains { get; set; }
 
-    [PipeParameter(Label = "Subject contains", Order = 4, Expressions = false, Description = "Only mails with this text in the subject. Empty: all")]
+    [PipeParameter(Label = "Subject contains", Order = 4, Expressions = false, Description = "Only mails with this text in the subject, e.g. Invoice; empty: all")]
     public string? SubjectContains { get; set; }
 
     [PipeParameter(Label = "After processing", Order = 5, Expressions = false,
-        Description = "What happens to a mail once the run has started: mark it as read, move it to the target folder or delete it")]
+        Description = "What happens to a mail once the run has started")]
     public MailAfterProcessing AfterProcessing { get; set; } = MailAfterProcessing.MarkAsRead;
 
-    [PipeParameter(Label = "Target folder", Order = 6, Expressions = false, Description = "Move to folder: created if it doesn't exist")]
+    [PipeParameter(Label = "Target folder", Order = 6, Expressions = false, ShowWhen = nameof(AfterProcessing), ShowWhenValues = ["moveToFolder"],
+        Description = "Folder for processed mails, e.g. Done; created if it doesn't exist")]
     public string? TargetFolder { get; set; }
 
-    [PipeParameter(Label = "Download attachments", Order = 7, Expressions = false, Description = "As binary attachments attachment1, attachment2, …")]
+    [PipeParameter(Label = "Download attachments", Order = 7, Expressions = false,
+        Description = "Attach the files of the mail to the item as attachment1, attachment2, …")]
     public bool DownloadAttachments { get; set; } = true;
 
-    [PipeParameter(Label = "Max message size (MB)", Order = 8, Expressions = false,
+    [PipeParameter(Label = "Max message size (MB)", Order = 8, Expressions = false, Advanced = true,
         Description = "A larger mail is reported with its header only (tooLarge) and handled like the others")]
     [Range(1, 1024)]
     public int MaxMessageSizeMb { get; set; } = 25;
 
-    [PipeParameter(Label = "Check every (seconds)", Order = 9, Expressions = false)]
+    [PipeParameter(Label = "Check every (seconds)", Order = 9, Expressions = false, Advanced = true, Description = "How often the mailbox is checked")]
     [Range(10, 86400)]
     public int IntervalSeconds { get; set; } = 60;
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.EmailTrigger, "Email Trigger",
     Category = "Triggers",
     Description = "Starts the workflow when unread mails are in a mailbox (IMAP), while the workflow is active. "

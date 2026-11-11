@@ -1,0 +1,30 @@
+[
+  {
+    "title": "Add a calculated field and rename one",
+    "description": "Values may be fixed or expressions; numbers stay numbers. Rename happens before the fields are set.",
+    "parameters": {
+      "fields": { "gross": "{{ $json.net * 1.2 }}", "currency": "EUR" },
+      "rename": { "mail": "email" }
+    },
+    "input": [
+      { "customer": "Anna", "mail": "anna@example.com", "net": 100 }
+    ],
+    "output": [
+      { "customer": "Anna", "net": 100, "email": "anna@example.com", "gross": 120, "currency": "EUR" }
+    ]
+  },
+  {
+    "title": "Keep only some fields",
+    "description": "With 'Keep only set fields' everything else is dropped, e.g. before writing a CSV file.",
+    "parameters": {
+      "fields": { "name": "{{ $json.customer.name }}", "city": "{{ $json.customer.address.city }}" },
+      "keepOnlySet": true
+    },
+    "input": [
+      { "id": 7, "customer": { "name": "Anna", "address": { "city": "Graz", "zip": "8010" } } }
+    ],
+    "output": [
+      { "name": "Anna", "city": "Graz" }
+    ]
+  }
+]

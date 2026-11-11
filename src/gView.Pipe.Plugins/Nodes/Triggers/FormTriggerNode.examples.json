@@ -1,0 +1,17 @@
+[
+  {
+    "title": "A request form in the portal",
+    "description": "The portal shows the fields; when the user sends the form, the workflow starts with one item of the values, named as the fields.",
+    "parameters": {
+      "fields": [
+        { "name": "customer", "label": "Customer", "type": "text" },
+        { "name": "amount", "label": "Amount", "type": "number" },
+        { "name": "urgent", "label": "Urgent", "type": "boolean" }
+      ]
+    },
+    "output": [
+      { "customer": "Anna", "amount": 120, "urgent": true }
+    ],
+    "verified": false
+  }
+]

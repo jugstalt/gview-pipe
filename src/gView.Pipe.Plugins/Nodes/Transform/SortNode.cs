@@ -10,13 +10,14 @@ namespace gView.Pipe.Plugins.Nodes.Transform;
 public sealed class SortNodeParameters
 {
     [PipeParameter(Label = "Sort by", Expressions = false, Placeholder = "price desc",
-        Description = "Field paths in order of priority; append ' desc' for descending")]
+        Description = "Fields in order of priority, e.g. customer, then date desc; desc sorts from high to low")]
     public List<string> Fields { get; set; } = new();
 }
 
 [PipeNode(PipeBuiltInNodes.Sort, "Sort",
     Category = "Transform",
-    Description = "Sorts the items by one or more fields.")]
+    Description = "Sorts the items by one or more fields: numbers by value, text alphabetically, missing values last.")]
+[PipeNodeExamples]
 public sealed class SortNode : IPipeNode<SortNodeParameters>
 {
     public Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)

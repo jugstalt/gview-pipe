@@ -1,0 +1,26 @@
+[
+  {
+    "title": "A confirmation per order, with the invoice attached",
+    "description": "One mail per item. The item goes on with sentEmail, e.g. to log or store the message id.",
+    "parameters": {
+      "to": "{{ $json.email }}",
+      "subject": "Your order {{ $json.id }}",
+      "text": "Hello {{ $json.customer }},\nthank you for your order. The invoice is attached.",
+      "attachments": [ "data" ]
+    },
+    "input": [
+      {
+        "id": 17, "customer": "Anna", "email": "anna@example.com",
+        "$binary": { "data": { "fileName": "invoice-17.pdf", "mimeType": "application/pdf" } }
+      }
+    ],
+    "output": [
+      {
+        "id": 17, "customer": "Anna", "email": "anna@example.com",
+        "sentEmail": { "messageId": "<a1b2c3@pipe>", "to": "anna@example.com", "subject": "Your order 17" },
+        "$binary": { "data": { "fileName": "invoice-17.pdf", "mimeType": "application/pdf" } }
+      }
+    ],
+    "verified": false
+  }
+]

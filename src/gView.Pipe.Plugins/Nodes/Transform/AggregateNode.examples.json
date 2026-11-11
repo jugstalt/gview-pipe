@@ -1,0 +1,28 @@
+[
+  {
+    "title": "All items into one list",
+    "description": "Three items become one item with a list, e.g. to send all orders in one HTTP request.",
+    "parameters": { "mode": "allItemData", "destination": "orders" },
+    "input": [
+      { "id": 1, "amount": 120 },
+      { "id": 2, "amount": 80 },
+      { "id": 3, "amount": 45 }
+    ],
+    "output": [
+      { "orders": [ { "id": 1, "amount": 120 }, { "id": 2, "amount": 80 }, { "id": 3, "amount": 45 } ] }
+    ]
+  },
+  {
+    "title": "Collect the values of one field",
+    "description": "One list per field, e.g. all addresses for one mail. Items without the field are left out.",
+    "parameters": { "mode": "individualFields", "fields": [ "email" ] },
+    "input": [
+      { "name": "Anna", "email": "anna@example.com" },
+      { "name": "Ben" },
+      { "name": "Cleo", "email": "cleo@example.com" }
+    ],
+    "output": [
+      { "email": [ "anna@example.com", "cleo@example.com" ] }
+    ]
+  }
+]

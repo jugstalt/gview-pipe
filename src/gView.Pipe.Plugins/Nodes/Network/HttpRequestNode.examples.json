@@ -1,0 +1,38 @@
+[
+  {
+    "title": "Read an order from an API",
+    "description": "One request per item; the answer replaces the item: statusCode, headers and body.",
+    "parameters": { "method": "GET", "url": "https://api.example.com/orders/{{ $json.id }}" },
+    "input": [
+      { "id": 17 }
+    ],
+    "output": [
+      {
+        "statusCode": 200,
+        "headers": { "Content-Type": "application/json; charset=utf-8" },
+        "body": { "id": 17, "customer": "Anna", "status": "paid" }
+      }
+    ],
+    "verified": false
+  },
+  {
+    "title": "Send an item as JSON",
+    "description": "POST with a body built from the item, e.g. to create a ticket in another system.",
+    "parameters": {
+      "method": "POST",
+      "url": "https://api.example.com/tickets",
+      "body": { "title": "{{ $json.subject }}", "priority": "high" }
+    },
+    "input": [
+      { "subject": "Parcel never arrived" }
+    ],
+    "output": [
+      {
+        "statusCode": 201,
+        "headers": { "Content-Type": "application/json; charset=utf-8", "Location": "/tickets/981" },
+        "body": { "id": 981, "title": "Parcel never arrived", "priority": "high" }
+      }
+    ],
+    "verified": false
+  }
+]

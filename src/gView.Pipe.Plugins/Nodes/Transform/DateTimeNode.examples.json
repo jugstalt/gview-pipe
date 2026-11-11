@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Due date 14 days after the invoice date",
+    "parameters": { "operation": "add", "value": "{{ $json.invoiceDate }}", "amount": 14, "unit": "days", "targetField": "dueDate" },
+    "input": [
+      { "invoice": "R-17", "invoiceDate": "2026-11-02T08:30:00+01:00" }
+    ],
+    "output": [
+      { "invoice": "R-17", "invoiceDate": "2026-11-02T08:30:00+01:00", "dueDate": "2026-11-16T08:30:00+01:00" }
+    ]
+  },
+  {
+    "title": "Format a date for people",
+    "parameters": { "operation": "format", "value": "{{ $json.invoiceDate }}", "pattern": "dd.MM.yyyy", "targetField": "printed" },
+    "input": [
+      { "invoiceDate": "2026-11-02T08:30:00+01:00" }
+    ],
+    "output": [
+      { "invoiceDate": "2026-11-02T08:30:00+01:00", "printed": "02.11.2026" }
+    ]
+  },
+  {
+    "title": "Days between two dates",
+    "parameters": { "operation": "difference", "value": "{{ $json.openedAt }}", "until": "{{ $json.closedAt }}", "unit": "days", "targetField": "days" },
+    "input": [
+      { "ticket": 4711, "openedAt": "2026-11-02T00:00:00Z", "closedAt": "2026-11-05T12:00:00Z" }
+    ],
+    "output": [
+      { "ticket": 4711, "openedAt": "2026-11-02T00:00:00Z", "closedAt": "2026-11-05T12:00:00Z", "days": 3.5 }
+    ]
+  }
+]

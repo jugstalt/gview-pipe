@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Pass the items on",
+    "description": "Useful as a placeholder or as a point where several branches meet.",
+    "input": [
+      { "id": 1 },
+      { "id": 2 }
+    ],
+    "output": [
+      { "id": 1 },
+      { "id": 2 }
+    ]
+  }
+]

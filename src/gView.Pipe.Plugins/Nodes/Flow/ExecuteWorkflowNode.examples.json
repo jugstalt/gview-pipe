@@ -1,0 +1,16 @@
+[
+  {
+    "title": "A loop: one call per customer",
+    "description": "The other workflow (here: 'Send reminder') gets one item per call; the output is what its last node returned, all calls together.",
+    "parameters": { "workflowId": "send-reminder", "mode": "eachItem", "delayMs": 1000 },
+    "input": [
+      { "customer": "Anna", "open": 120 },
+      { "customer": "Ben", "open": 80 }
+    ],
+    "output": [
+      { "customer": "Anna", "open": 120, "reminded": true },
+      { "customer": "Ben", "open": 80, "reminded": true }
+    ],
+    "verified": false
+  }
+]

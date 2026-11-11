@@ -7,18 +7,23 @@ namespace gView.Pipe.Plugins.Nodes.Flow;
 
 public enum WaitUnit
 {
+    [PipeEnumValue("Seconds")]
     Seconds,
+
+    [PipeEnumValue("Minutes")]
     Minutes,
+
+    [PipeEnumValue("Hours; long waits are better done with a Cron Trigger")]
     Hours
 }
 
 public sealed class WaitNodeParameters
 {
-    [PipeParameter(Label = "Wait for", Order = 1)]
+    [PipeParameter(Label = "Wait for", Order = 1, Description = "How long, e.g. 30; the items go on unchanged afterwards")]
     [Range(0, double.MaxValue)]
     public double Amount { get; set; } = 5;
 
-    [PipeParameter(Label = "Unit", Expressions = false, Order = 2)]
+    [PipeParameter(Label = "Unit", Expressions = false, Order = 2, Description = "Unit of the time")]
     public WaitUnit Unit { get; set; } = WaitUnit.Seconds;
 }
 
@@ -32,6 +37,7 @@ public sealed class PipeWaitOptions
     public TimeSpan MaxWait { get; set; } = TimeSpan.FromHours(1);
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.Wait, "Wait",
     Category = "Flow",
     Description = "Pauses the execution, then passes the items on. Waits in memory; a restart of the host ends the execution.")]

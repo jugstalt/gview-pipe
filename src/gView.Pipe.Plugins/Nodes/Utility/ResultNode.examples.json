@@ -1,0 +1,24 @@
+[
+  {
+    "title": "A message for the portal user",
+    "description": "The output item describes what the portal shows; put the node at the end of the workflow.",
+    "parameters": { "kind": "text", "title": "Import finished", "content": "{{ $json.count }} orders imported" },
+    "input": [
+      { "count": 17 }
+    ],
+    "output": [
+      { "kind": "text", "title": "Import finished", "text": "17 orders imported" }
+    ]
+  },
+  {
+    "title": "The items as a table",
+    "parameters": { "kind": "table", "title": "Open invoices" },
+    "input": [
+      { "invoice": "R-17", "amount": 120 },
+      { "invoice": "R-18", "amount": 80 }
+    ],
+    "output": [
+      { "kind": "table", "title": "Open invoices", "columns": [ "invoice", "amount" ], "rows": [ [ "R-17", "120" ], [ "R-18", "80" ] ] }
+    ]
+  }
+]

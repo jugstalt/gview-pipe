@@ -1,0 +1,10 @@
+[
+  {
+    "title": "The items of the caller",
+    "description": "Another workflow calls this one with Execute Workflow; its items arrive here unchanged. The output of the last node goes back to the caller.",
+    "output": [
+      { "customer": "Anna", "open": 120 }
+    ],
+    "verified": false
+  }
+]

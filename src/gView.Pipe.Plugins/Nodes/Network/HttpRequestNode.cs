@@ -13,44 +13,52 @@ namespace gView.Pipe.Plugins.Nodes.Network;
 
 public enum HttpResponseFormat
 {
-    /// <summary>JSON if the response says so, text otherwise.</summary>
+    [PipeEnumValue("JSON when the server says so, text otherwise")]
     Auto,
+
+    [PipeEnumValue("Read the answer as JSON", Label = "JSON")]
     Json,
+
+    [PipeEnumValue("Keep the answer as text, e.g. HTML or CSV")]
     Text
 }
 
 public sealed class HttpRequestNodeParameters
 {
-    [PipeParameter(Label = "Method", Order = 1)]
+    [PipeOptions, PipeParameter(Label = "Method", Order = 1, Expressions = false, Description = "What the request does")]
     public string Method { get; set; } = "GET";
 
-    [Required, PipeParameter(Label = "URL", Placeholder = "https://", Order = 2)]
+    [Required, PipeParameter(Label = "URL", Placeholder = "https://", Order = 2,
+        Description = "Address of the request, e.g. https://api.example.com/orders/{{ $json.id }}")]
     public string Url { get; set; } = "";
 
-    [PipeParameter(Label = "Query parameters", Order = 3, Description = "Added to the URL as ?name=value; values are URL-encoded")]
-    public Dictionary<string, string> Query { get; set; } = new();
-
-    [PipeParameter(Label = "Headers", Order = 4, Description = "Request headers, e.g. Accept or Content-Type")]
-    public Dictionary<string, string> Headers { get; set; } = new();
-
-    [PipeParameter(Label = "Body", Description = "JSON, or text if the value is a string", Multiline = true, Order = 5)]
-    public JsonNode? Body { get; set; }
-
-    [PipeParameter(Label = "Content type", Order = 6)]
-    public string ContentType { get; set; } = "application/json";
-
-    [PipeParameter(Label = "Response format", Expressions = false, Order = 7)]
-    public HttpResponseFormat ResponseFormat { get; set; } = HttpResponseFormat.Auto;
-
-    [PipeParameter(Label = "Fail on HTTP error status", Expressions = false, Order = 8)]
-    public bool FailOnHttpError { get; set; } = true;
-
     [PipeCredential(PipeBuiltInCredentials.BasicAuth, PipeBuiltInCredentials.BearerToken, PipeBuiltInCredentials.ApiKeyHeader, PipeBuiltInCredentials.OAuth2ClientCredentials)]
-    [PipeParameter(Label = "Credential", Expressions = false, Order = 9, Description = "Authenticates the request: Basic, Bearer token, an API key header or OAuth2 client credentials")]
+    [PipeParameter(Label = "Credential", Expressions = false, Order = 3, Description = "Signs in at the server: user and password, a token, an API key header or OAuth2 client credentials")]
     public string? CredentialId { get; set; }
 
-    [PipeParameter(Label = "Pause between requests (ms)", Expressions = false, Order = 10,
-        Description = "Waits this long before each request but the first, e.g. for the rate limit of an API. 0 = no pause.")]
+    [PipeParameter(Label = "Query parameters", Order = 4, Description = "Added to the URL as ?name=value, e.g. status → open; values are encoded")]
+    public Dictionary<string, string> Query { get; set; } = new();
+
+    [PipeParameter(Label = "Body", Multiline = true, Order = 5, ShowWhen = nameof(Method), ShowWhenValues = ["POST", "PUT", "PATCH", "DELETE"],
+        Description = "What to send: JSON such as { \"name\": \"{{ $json.name }}\" }, or text")]
+    public JsonNode? Body { get; set; }
+
+    [PipeParameter(Label = "Content type", Order = 6, Advanced = true, ShowWhen = nameof(Method), ShowWhenValues = ["POST", "PUT", "PATCH", "DELETE"],
+        Description = "Kind of the body, e.g. application/json or text/plain")]
+    public string ContentType { get; set; } = "application/json";
+
+    [PipeParameter(Label = "Headers", Order = 7, Advanced = true, Description = "Request headers, e.g. Accept → application/json")]
+    public Dictionary<string, string> Headers { get; set; } = new();
+
+    [PipeParameter(Label = "Response format", Expressions = false, Order = 8, Advanced = true, Description = "How the answer is read into body")]
+    public HttpResponseFormat ResponseFormat { get; set; } = HttpResponseFormat.Auto;
+
+    [PipeParameter(Label = "Fail on HTTP error status", Expressions = false, Order = 9, Advanced = true,
+        Description = "Stop with an error when the server answers 400 or higher; off: the item goes on with the statusCode")]
+    public bool FailOnHttpError { get; set; } = true;
+
+    [PipeParameter(Label = "Pause between requests (ms)", Expressions = false, Order = 10, Advanced = true,
+        Description = "Waits this long before each request but the first, e.g. 1000 for the rate limit of an API; 0 = no pause")]
     [Range(0, 600000)]
     public int DelayMs { get; set; }
 }
@@ -58,7 +66,8 @@ public sealed class HttpRequestNodeParameters
 [PipeNode(PipeBuiltInNodes.HttpRequest, "HTTP Request",
     Category = "Network",
     Description = "Sends one HTTP request per item. Output: statusCode, headers, body.")]
-public sealed class HttpRequestNode : PipeItemNodeBase<HttpRequestNodeParameters>
+[PipeNodeExamples]
+public sealed class HttpRequestNode : PipeItemNodeBase<HttpRequestNodeParameters>, IPipeParameterOptions
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly PipeOAuth2TokenCache _tokens;
@@ -71,6 +80,19 @@ public sealed class HttpRequestNode : PipeItemNodeBase<HttpRequestNodeParameters
 
     protected override TimeSpan DelayBetweenItems(HttpRequestNodeParameters parameters)
         => TimeSpan.FromMilliseconds(Math.Clamp(parameters.DelayMs, 0, 600000));
+
+    static private readonly IReadOnlyList<PipeParameterOption> Methods =
+    [
+        new("GET", null, "Read data"),
+        new("POST", null, "Send new data, e.g. create an order"),
+        new("PUT", null, "Replace data"),
+        new("PATCH", null, "Change parts of data"),
+        new("DELETE", null, "Delete data"),
+        new("HEAD", null, "Only the headers, e.g. to check that a URL exists")
+    ];
+
+    public Task<IReadOnlyList<PipeParameterOption>> GetOptionsAsync(string parameter, JsonObject parameters, bool refresh, CancellationToken cancellationToken)
+        => Task.FromResult(parameter == "method" ? Methods : []);
 
     protected override async Task<PipeItem?> ProcessItemAsync(PipeItem item, HttpRequestNodeParameters parameters, IPipeNodeContext context, CancellationToken cancellationToken)
     {

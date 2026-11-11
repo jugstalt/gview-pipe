@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Receive an order from a shop",
+    "description": "The shop sends POST /webhook/orders/new with JSON; the item holds method, path, query, headers, body and the time. Uploaded files arrive as attachments.",
+    "parameters": { "path": "orders/new", "method": "post", "responseMode": "immediately" },
+    "output": [
+      {
+        "method": "POST",
+        "path": "orders/new",
+        "query": {},
+        "headers": { "Content-Type": "application/json" },
+        "body": { "id": 17, "customer": "Anna", "amount": 120 },
+        "receivedAt": "2026-11-11T08:00:00.0000000+00:00"
+      }
+    ],
+    "verified": false
+  }
+]

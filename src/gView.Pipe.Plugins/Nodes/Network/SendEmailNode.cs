@@ -17,32 +17,35 @@ public sealed class SendEmailNodeParameters
     [PipeParameter(Label = "SMTP credential", Order = 1, Expressions = false, Description = "The SMTP server and login used to send the mail")]
     public string? CredentialId { get; set; }
 
-    [PipeParameter(Label = "From", Order = 2, Placeholder = "Pipe <pipe@example.com>", Description = "Empty: the credential's default sender")]
+    [PipeParameter(Label = "From", Order = 2, Placeholder = "Pipe <pipe@example.com>", Advanced = true,
+        Description = "Sender, e.g. Orders <orders@example.com>; empty: the sender of the credential")]
     public string? From { get; set; }
 
-    [Required, PipeParameter(Label = "To", Order = 3, Placeholder = "ada@example.com, grace@example.com")]
+    [Required, PipeParameter(Label = "To", Order = 3, Placeholder = "ada@example.com, grace@example.com",
+        Description = "Recipients, separated by commas, e.g. {{ $json.email }}")]
     public string To { get; set; } = "";
 
-    [PipeParameter(Label = "Cc", Order = 4)]
+    [PipeParameter(Label = "Cc", Order = 4, Advanced = true, Description = "Copy to these addresses, separated by commas")]
     public string? Cc { get; set; }
 
-    [PipeParameter(Label = "Bcc", Order = 5)]
+    [PipeParameter(Label = "Bcc", Order = 5, Advanced = true, Description = "Hidden copy to these addresses, separated by commas")]
     public string? Bcc { get; set; }
 
-    [Required, PipeParameter(Label = "Subject", Order = 6)]
+    [Required, PipeParameter(Label = "Subject", Order = 6, Description = "e.g. Your order {{ $json.id }}")]
     public string Subject { get; set; } = "";
 
-    [PipeParameter(Label = "Text", Order = 7, Multiline = true)]
+    [PipeParameter(Label = "Text", Order = 7, Multiline = true, Description = "The message as plain text")]
     public string? Text { get; set; }
 
-    [PipeParameter(Label = "HTML", Order = 8, Multiline = true, Description = "Sent next to the text, or alone")]
+    [PipeParameter(Label = "HTML", Order = 8, Multiline = true, Advanced = true, Description = "The message as HTML, sent next to the text or alone")]
     public string? Html { get; set; }
 
     [PipeParameter(Label = "Attachments", Order = 9, Expressions = false,
-        Description = "Names of the item's attachments to send; * for all")]
+        Description = "Names of the item's attachments to send, e.g. data; * sends all")]
     public List<string> Attachments { get; set; } = new();
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.SendEmail, "Send Email",
     Category = "Network",
     Description = "Sends one email per item over SMTP, optionally with the item's attachments.")]

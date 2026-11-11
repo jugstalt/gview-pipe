@@ -1,0 +1,16 @@
+[
+  {
+    "title": "Keep the first two items",
+    "description": "E.g. after Sort: only the top two go on.",
+    "parameters": { "maxItems": 2, "keep": "firstItems" },
+    "input": [
+      { "product": "Lamp", "sold": 42 },
+      { "product": "Desk", "sold": 17 },
+      { "product": "Chair", "sold": 9 }
+    ],
+    "output": [
+      { "product": "Lamp", "sold": 42 },
+      { "product": "Desk", "sold": 17 }
+    ]
+  }
+]

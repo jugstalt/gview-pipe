@@ -1,0 +1,15 @@
+[
+  {
+    "title": "Batches of two",
+    "description": "Five items become three batches, e.g. to call Execute Workflow or an API with at most two items at a time.",
+    "parameters": { "batchSize": 2 },
+    "input": [
+      { "id": 1 }, { "id": 2 }, { "id": 3 }, { "id": 4 }, { "id": 5 }
+    ],
+    "output": [
+      { "batch": 1, "batches": 3, "count": 2, "items": [ { "id": 1 }, { "id": 2 } ] },
+      { "batch": 2, "batches": 3, "count": 2, "items": [ { "id": 3 }, { "id": 4 } ] },
+      { "batch": 3, "batches": 3, "count": 1, "items": [ { "id": 5 } ] }
+    ]
+  }
+]

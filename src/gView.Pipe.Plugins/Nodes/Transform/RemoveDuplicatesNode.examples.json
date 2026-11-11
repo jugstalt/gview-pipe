@@ -1,0 +1,16 @@
+[
+  {
+    "title": "One item per email address",
+    "description": "The first item of each address is kept, later ones are dropped.",
+    "parameters": { "compare": "selectedFields", "fields": [ "email" ] },
+    "input": [
+      { "email": "anna@example.com", "source": "web" },
+      { "email": "ben@example.com", "source": "web" },
+      { "email": "anna@example.com", "source": "fair" }
+    ],
+    "output": [
+      { "email": "anna@example.com", "source": "web" },
+      { "email": "ben@example.com", "source": "web" }
+    ]
+  }
+]

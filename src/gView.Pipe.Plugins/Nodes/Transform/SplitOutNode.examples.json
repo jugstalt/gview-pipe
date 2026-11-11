@@ -1,0 +1,26 @@
+[
+  {
+    "title": "One item per order line",
+    "description": "The list lines becomes two items; with 'Keep the other fields' each line also gets the order number.",
+    "parameters": { "field": "lines", "includeOtherFields": true },
+    "input": [
+      { "order": "A-17", "lines": [ { "sku": "P-1", "qty": 2 }, { "sku": "P-7", "qty": 1 } ] }
+    ],
+    "output": [
+      { "order": "A-17", "sku": "P-1", "qty": 2 },
+      { "order": "A-17", "sku": "P-7", "qty": 1 }
+    ]
+  },
+  {
+    "title": "A list of plain values",
+    "description": "Values that aren't objects keep the name of the field.",
+    "parameters": { "field": "tags" },
+    "input": [
+      { "id": 1, "tags": [ "urgent", "billing" ] }
+    ],
+    "output": [
+      { "tags": "urgent" },
+      { "tags": "billing" }
+    ]
+  }
+]

@@ -18,40 +18,52 @@ namespace gView.Pipe.Plugins.Nodes.Triggers;
 
 public enum WebhookMethod
 {
+    [PipeEnumValue("Every method")]
     Any,
+
+    [PipeEnumValue("Calls without a body, e.g. from a link", Label = "GET")]
     Get,
+
+    [PipeEnumValue("Calls with a body, e.g. forms and other systems; the usual choice", Label = "POST")]
     Post,
+
+    [PipeEnumValue("PUT calls", Label = "PUT")]
     Put,
+
+    [PipeEnumValue("PATCH calls", Label = "PATCH")]
     Patch,
+
+    [PipeEnumValue("DELETE calls", Label = "DELETE")]
     Delete
 }
 
 public enum WebhookResponseMode
 {
-    /// <summary>202 with the execution id; the workflow runs in the background.</summary>
+    [PipeEnumValue("Answer 202 with the execution id at once; the workflow runs in the background")]
     Immediately,
 
-    /// <summary>Waits for the execution and returns the items of the last executed node.</summary>
+    [PipeEnumValue("Wait for the run and answer with the items of the last node")]
     WhenFinished,
 
-    /// <summary>Waits until a Respond to Webhook node answers (or the execution ends without one).</summary>
+    [PipeEnumValue("Wait until a Respond to Webhook node answers", Label = "Using a Respond node")]
     UsingRespondNode
 }
 
 public sealed class WebhookTriggerNodeParameters
 {
     [Required, PipeParameter(Label = "Path", Order = 1, Expressions = false, Placeholder = "orders/new",
-        Description = "Called at /webhook/<path>; must be unique across active workflows")]
+        Description = "Last part of the URL: the workflow is called at /webhook/<path>, e.g. orders/new; unique across active workflows")]
     public string Path { get; set; } = Guid.NewGuid().ToString("N")[..12];
 
-    [PipeParameter(Label = "HTTP method", Order = 2, Expressions = false)]
+    [PipeParameter(Label = "HTTP method", Order = 2, Expressions = false, Description = "Which calls start the workflow")]
     public WebhookMethod Method { get; set; } = WebhookMethod.Post;
 
-    [PipeParameter(Label = "Respond", Order = 3, Expressions = false)]
+    [PipeParameter(Label = "Respond", Order = 3, Expressions = false, Description = "When and with what the caller gets an answer")]
     public WebhookResponseMode ResponseMode { get; set; } = WebhookResponseMode.Immediately;
 
-    [PipeParameter(Label = "Wait timeout (seconds)", Order = 4, Expressions = false,
-        Description = "When waiting for the run or a respond node: after this time 202 is returned and the run continues. The time a run waits in the queue counts; still waiting then, the call gets 503 and the run leaves the queue")]
+    [PipeParameter(Label = "Wait timeout (seconds)", Order = 4, Expressions = false, Advanced = true,
+        ShowWhen = nameof(ResponseMode), ShowWhenValues = ["whenFinished", "usingRespondNode"],
+        Description = "After this time the caller gets 202 and the run goes on; time in the queue counts, and a run still queued then gets 503 and leaves the queue")]
     public int TimeoutSeconds { get; set; } = 30;
 
     [PipeCredential(PipeBuiltInCredentials.BasicAuth, PipeBuiltInCredentials.BearerToken, PipeBuiltInCredentials.ApiKeyHeader)]
@@ -59,6 +71,7 @@ public sealed class WebhookTriggerNodeParameters
     public string? CredentialId { get; set; }
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.WebhookTrigger, "Webhook Trigger",
     Category = "Triggers",
     Description = "Starts the workflow when its URL is called while the workflow is active.")]

@@ -3,6 +3,7 @@ using gView.Pipe.Abstraction.Triggers;
 
 namespace gView.Pipe.Plugins.Nodes.Triggers;
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.ManualTrigger, "Manual Trigger",
     Category = "Triggers",
     Description = "Starts the workflow when it is run from the editor.")]

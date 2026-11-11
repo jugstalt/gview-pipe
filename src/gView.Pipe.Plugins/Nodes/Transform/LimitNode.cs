@@ -5,23 +5,27 @@ namespace gView.Pipe.Plugins.Nodes.Transform;
 
 public enum LimitKeep
 {
+    [PipeEnumValue("The items at the start, e.g. the newest after sorting by date descending")]
     FirstItems,
+
+    [PipeEnumValue("The items at the end")]
     LastItems
 }
 
 public sealed class LimitNodeParameters
 {
-    [PipeParameter(Label = "Max items", Expressions = false)]
+    [PipeParameter(Label = "Max items", Expressions = false, Description = "How many items go on, e.g. 10; the rest is dropped")]
     [Range(0, int.MaxValue)]
     public int MaxItems { get; set; } = 1;
 
-    [PipeParameter(Label = "Keep", Expressions = false)]
+    [PipeParameter(Label = "Keep", Expressions = false, Description = "Which items are kept")]
     public LimitKeep Keep { get; set; } = LimitKeep.FirstItems;
 }
 
 [PipeNode(PipeBuiltInNodes.Limit, "Limit",
     Category = "Transform",
     Description = "Keeps only the first or the last N items.")]
+[PipeNodeExamples]
 public sealed class LimitNode : IPipeNode<LimitNodeParameters>
 {
     public Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)

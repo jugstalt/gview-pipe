@@ -9,13 +9,14 @@ namespace gView.Pipe.Plugins.Nodes.Triggers;
 public sealed class CronTriggerNodeParameters
 {
     [Required, PipeParameter(Label = "Cron expression", Placeholder = "0 * * * *",
-        Description = "5 fields (minute hour day month weekday) or 6 with seconds first", Expressions = false)]
+        Description = "When to run: minute hour day month weekday, e.g. 0 7 * * 1-5 is 7:00 on workdays, */15 * * * * every 15 minutes", Expressions = false)]
     public string Expression { get; set; } = "0 * * * *";
 
-    [PipeParameter(Label = "Time zone", Placeholder = "UTC", Description = "IANA or Windows time zone id", Expressions = false)]
+    [PipeParameter(Label = "Time zone", Placeholder = "UTC", Description = "Time zone of the schedule, e.g. Europe/Vienna", Expressions = false)]
     public string TimeZone { get; set; } = "UTC";
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.CronTrigger, "Cron Trigger",
     Category = "Triggers",
     Description = "Starts the workflow on a schedule while the workflow is active.")]

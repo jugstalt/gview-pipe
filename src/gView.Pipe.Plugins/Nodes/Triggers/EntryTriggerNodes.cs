@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace gView.Pipe.Plugins.Nodes.Triggers;
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.ExecuteWorkflowTrigger, "Execute Workflow Trigger",
     Category = "Triggers",
     Description = "Starts the workflow when another workflow calls it with Execute Workflow; outputs the caller's items.")]
@@ -25,6 +26,7 @@ public sealed class ErrorTriggerNodeParameters
     public int ThrottleMinutes { get; set; } = PipeErrorWorkflows.DefaultThrottleMinutes;
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.RecoveryTrigger, "Recovery Trigger",
     Category = "Triggers",
     Description = "Starts the workflow when a workflow that failed and was reported to this error workflow runs successfully again (triggered runs only). "
@@ -38,6 +40,7 @@ public sealed class RecoveryTriggerNode : IPipeRecoveryTrigger
         => Task.FromResult(PipeNodeResult.FromMain(context.GetInput()));
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.ErrorTrigger, "Error Trigger",
     Category = "Triggers",
     Description = "Starts the workflow when a triggered run of a workflow that uses it as error workflow fails (set on the workflow, its group or the instance). "

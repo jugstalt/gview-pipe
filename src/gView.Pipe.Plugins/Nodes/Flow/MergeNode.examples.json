@@ -1,0 +1,29 @@
+[
+  {
+    "title": "Append the items of both branches",
+    "description": "E.g. after an If: both branches come together again.",
+    "parameters": { "mode": "append" },
+    "input": {
+      "input1": [ { "id": 1, "route": "express" } ],
+      "input2": [ { "id": 2, "route": "standard" }, { "id": 3, "route": "standard" } ]
+    },
+    "output": [
+      { "id": 1, "route": "express" },
+      { "id": 2, "route": "standard" },
+      { "id": 3, "route": "standard" }
+    ]
+  },
+  {
+    "title": "Combine items by position",
+    "description": "Item 1 of input 1 and item 1 of input 2 become one item, and so on.",
+    "parameters": { "mode": "combineByIndex" },
+    "input": {
+      "input1": [ { "id": 1, "customer": "Anna" }, { "id": 2, "customer": "Ben" } ],
+      "input2": [ { "status": "paid" }, { "status": "open" } ]
+    },
+    "output": [
+      { "id": 1, "customer": "Anna", "status": "paid" },
+      { "id": 2, "customer": "Ben", "status": "open" }
+    ]
+  }
+]

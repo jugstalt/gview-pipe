@@ -11,10 +11,10 @@ namespace gView.Pipe.Plugins.Nodes.Transform;
 
 public enum CodeNodeMode
 {
-    /// <summary>Runs once; <c>items</c> holds all input JSON objects, returns an array of objects.</summary>
+    [PipeEnumValue("Runs once: items holds all input items, return an array of objects", Label = "Once for all items")]
     AllItems,
 
-    /// <summary>Runs per item with <c>$json</c>; returns an object, or null to drop the item.</summary>
+    [PipeEnumValue("Runs per item with $json: return an object, or null to drop the item", Label = "Once per item")]
     EachItem
 }
 
@@ -26,17 +26,18 @@ public sealed class CodeNodeParameters
         return items.map(item => ({ ...item, processed: true }));
         """;
 
-    [PipeParameter(Label = "Mode", Order = 1, Expressions = false)]
+    [PipeParameter(Label = "Mode", Order = 1, Expressions = false, Description = "How often the code runs")]
     public CodeNodeMode Mode { get; set; } = CodeNodeMode.AllItems;
 
     [PipeParameter(Label = "JavaScript", Order = 2, Code = true, CodeLanguage = "javascript",
-        Description = "Available: items (all items mode), $json, $itemIndex (each item mode), $input, $node, $workflow, $execution, $now")]
+        Description = "Available: items (once for all), $json, $itemIndex (per item), $input, $node, $workflow, $execution, $now")]
     public string Code { get; set; } = DefaultCode;
 }
 
 [PipeNode(PipeBuiltInNodes.Code, "Code",
     Category = "Transform",
     Description = "Transforms items with JavaScript, once for all items or once per item.")]
+[PipeNodeExamples]
 public sealed class CodeNode : IPipeNode<CodeNodeParameters>
 {
     private readonly IPipeScriptRunner _scripts;

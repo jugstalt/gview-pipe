@@ -1,0 +1,17 @@
+[
+  {
+    "title": "Highest amount first",
+    "description": "Numbers are compared as numbers, so 120 comes before 80.",
+    "parameters": { "fields": [ "amount desc" ] },
+    "input": [
+      { "customer": "Ben", "amount": 80 },
+      { "customer": "Anna", "amount": 120 },
+      { "customer": "Cleo", "amount": 45 }
+    ],
+    "output": [
+      { "customer": "Anna", "amount": 120 },
+      { "customer": "Ben", "amount": 80 },
+      { "customer": "Cleo", "amount": 45 }
+    ]
+  }
+]

@@ -11,67 +11,92 @@ namespace gView.Pipe.Plugins.Nodes.Transform;
 
 public enum CryptoOperation
 {
+    [PipeEnumValue("A checksum of text or a file, e.g. to detect changes")]
     Hash,
+
+    [PipeEnumValue("A signature with a secret key, e.g. to check or sign webhook calls", Label = "HMAC")]
     Hmac,
+
+    [PipeEnumValue("A new random id, e.g. 3f2b8c1e-…", Label = "UUID")]
     Uuid,
+
+    [PipeEnumValue("Text or a file as Base64 text", Label = "Base64 encode")]
     Base64Encode,
+
+    [PipeEnumValue("Base64 text back to plain text", Label = "Base64 decode")]
     Base64Decode
 }
 
 public enum CryptoAlgorithm
 {
+    [PipeEnumValue("The common choice", Label = "SHA-256")]
     Sha256,
+
+    [PipeEnumValue("Longer and stronger", Label = "SHA-512")]
     Sha512,
+
+    [PipeEnumValue("Only for checksums of old systems, not for security", Label = "SHA-1")]
     Sha1,
+
+    [PipeEnumValue("Only for checksums of old systems, not for security", Label = "MD5")]
     Md5
 }
 
 public enum CryptoSource
 {
-    /// <summary>The text of the Value parameter (UTF-8).</summary>
+    [PipeEnumValue("The text in Value")]
     Value,
 
-    /// <summary>The content of an attachment.</summary>
+    [PipeEnumValue("The content of an attachment, e.g. a file from Read File", Label = "Attachment")]
     Binary
 }
 
 public enum CryptoOutput
 {
+    [PipeEnumValue("Lower-case hex digits, e.g. 2cf24d…")]
     Hex,
+
+    [PipeEnumValue("Base64 text, shorter")]
     Base64
 }
 
 public sealed class CryptoNodeParameters
 {
-    [PipeParameter(Label = "Operation", Order = 1, Expressions = false)]
+    [PipeParameter(Label = "Operation", Order = 1, Expressions = false, Description = "What to compute")]
     public CryptoOperation Operation { get; set; } = CryptoOperation.Hash;
 
-    [PipeParameter(Label = "Source", Order = 2, Expressions = false, Description = "Hash, HMAC, Base64 encode: the Value text or an attachment")]
+    [PipeParameter(Label = "Source", Order = 2, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["hash", "hmac", "base64Encode"],
+        Description = "Work on the text in Value or on an attachment")]
     public CryptoSource Source { get; set; } = CryptoSource.Value;
 
-    [PipeParameter(Label = "Value", Order = 3, Placeholder = "{{ $json.body }}", Description = "Text to work on (UTF-8)")]
+    [PipeParameter(Label = "Value", Order = 3, Placeholder = "{{ $json.body }}", ShowWhen = nameof(Operation), ShowWhenValues = ["hash", "hmac", "base64Encode", "base64Decode"],
+        Description = "Text to work on, e.g. {{ $json.body }}; ignored for an attachment")]
     public string? Value { get; set; }
 
-    [PipeParameter(Label = "Binary property", Order = 4, Expressions = false, Description = "Source 'Binary': the attachment")]
+    [PipeParameter(Label = "Attachment name", Order = 4, Expressions = false, ShowWhen = nameof(Source), ShowWhenValues = ["binary"],
+        Description = "Name of the attachment, data unless an earlier node named it differently")]
     public string BinaryProperty { get; set; } = "data";
 
-    [PipeParameter(Label = "Algorithm", Order = 5, Expressions = false, Description = "Hash, HMAC. MD5 and SHA-1 only for checksums, not for security.")]
+    [PipeParameter(Label = "Algorithm", Order = 5, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["hash", "hmac"],
+        Description = "Hash function; SHA-256 unless a partner asks for another")]
     public CryptoAlgorithm Algorithm { get; set; } = CryptoAlgorithm.Sha256;
 
-    [PipeParameter(Label = "Secret", Order = 6, Placeholder = "{{ $vars.WEBHOOK_SECRET }}",
-        Description = "HMAC: the key, best from a secret variable")]
+    [PipeParameter(Label = "Secret", Order = 6, Placeholder = "{{ $vars.WEBHOOK_SECRET }}", ShowWhen = nameof(Operation), ShowWhenValues = ["hmac"],
+        Description = "The key, best from a secret variable, e.g. {{ $vars.WEBHOOK_SECRET }}")]
     public string? Secret { get; set; }
 
-    [PipeParameter(Label = "Output", Order = 7, Expressions = false, Description = "Hash, HMAC: hex (lower case) or Base64")]
+    [PipeParameter(Label = "Output", Order = 7, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["hash", "hmac"],
+        Description = "How the result is written")]
     public CryptoOutput Output { get; set; } = CryptoOutput.Hex;
 
-    [Required, PipeParameter(Label = "Target field", Order = 8, Expressions = false)]
+    [Required, PipeParameter(Label = "Target field", Order = 8, Expressions = false, Description = "Field that gets the result, e.g. hash or signature")]
     public string TargetField { get; set; } = "hash";
 }
 
 [PipeNode(PipeBuiltInNodes.Crypto, "Crypto",
     Category = "Transform",
     Description = "Hashes text or attachments (SHA-256, SHA-512, SHA-1, MD5), signs them with HMAC, creates UUIDs and encodes or decodes Base64. Writes the result into a field of each item.")]
+[PipeNodeExamples]
 public sealed class CryptoNode : PipeItemNodeBase<CryptoNodeParameters>
 {
     protected override async Task<PipeItem?> ProcessItemAsync(PipeItem item, CryptoNodeParameters parameters, IPipeNodeContext context, CancellationToken cancellationToken)

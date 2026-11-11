@@ -9,22 +9,26 @@ namespace gView.Pipe.Plugins.Nodes.Utility;
 
 public enum ResultKind
 {
+    [PipeEnumValue("A plain message, e.g. Done: 17 rows")]
     Text,
+
+    [PipeEnumValue("Formatted text with headings, lists and links")]
     Markdown,
+
+    [PipeEnumValue("The incoming items, one row per item")]
     Table
 }
 
 public sealed class ResultNodeParameters
 {
-    [PipeParameter(Label = "Kind", Order = 1, Expressions = false,
-        Description = "Text and Markdown show the content; Table shows the incoming items, one row per item")]
+    [PipeParameter(Label = "Kind", Order = 1, Expressions = false, Description = "What the portal user sees")]
     public ResultKind Kind { get; set; } = ResultKind.Text;
 
-    [PipeParameter(Label = "Title", Order = 2)]
+    [PipeParameter(Label = "Title", Order = 2, Description = "Heading above the result, e.g. Import finished")]
     public string? Title { get; set; }
 
-    [PipeParameter(Label = "Content", Order = 3, Multiline = true, Placeholder = "Done: {{ $json.count }} rows",
-        Description = "For Text and Markdown; evaluated for the first incoming item")]
+    [PipeParameter(Label = "Content", Order = 3, Multiline = true, Placeholder = "Done: {{ $json.count }} rows", ShowWhen = nameof(Kind), ShowWhenValues = ["text", "markdown"],
+        Description = "The message, e.g. Done: {{ $json.count }} rows; evaluated for the first incoming item")]
     public string? Content { get; set; }
 
     [PipeParameter(Label = "Error message", Order = 4,
@@ -32,6 +36,7 @@ public sealed class ResultNodeParameters
     public string? ErrorMessage { get; set; }
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.Result, "Result",
     Category = "Utility",
     Description = "Defines what a user sees in the portal at the end of the run: text, Markdown or a table. Without a Result node the portal shows only the status. "

@@ -1,0 +1,17 @@
+[
+  {
+    "title": "One output per country",
+    "description": "The outputs are case-0, case-1, … in the order of the cases; everything else goes to fallback.",
+    "parameters": { "value": "{{ $json.country }}", "cases": [ "AT", "DE" ] },
+    "input": [
+      { "id": 1, "country": "DE" },
+      { "id": 2, "country": "AT" },
+      { "id": 3, "country": "CH" }
+    ],
+    "output": {
+      "case-0": [ { "id": 2, "country": "AT" } ],
+      "case-1": [ { "id": 1, "country": "DE" } ],
+      "fallback": [ { "id": 3, "country": "CH" } ]
+    }
+  }
+]

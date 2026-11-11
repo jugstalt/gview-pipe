@@ -1,11 +1,17 @@
+using gView.Pipe.Abstraction.Nodes;
 using gView.Pipe.Plugins.Credentials;
 
 namespace gView.Pipe.Plugins.Common;
 
 public enum MailAfterProcessing
 {
+    [PipeEnumValue("The mail stays in the folder, marked as read")]
     MarkAsRead,
+
+    [PipeEnumValue("The mail moves into the target folder, e.g. Done")]
     MoveToFolder,
+
+    [PipeEnumValue("The mail is deleted")]
     Delete
 }
 

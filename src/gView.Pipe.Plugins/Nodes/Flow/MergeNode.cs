@@ -6,19 +6,20 @@ namespace gView.Pipe.Plugins.Nodes.Flow;
 
 public enum MergeMode
 {
-    /// <summary>Items of input 1 followed by the items of input 2.</summary>
+    [PipeEnumValue("The items of input 1, then the items of input 2")]
     Append,
 
-    /// <summary>Merges the JSON of item n of both inputs into one item (input 2 wins on conflicts).</summary>
+    [PipeEnumValue("Item 1 of both inputs becomes one item, item 2 the next, …; input 2 wins when both have a field", Label = "Combine by position")]
     CombineByIndex
 }
 
 public sealed class MergeNodeParameters
 {
-    [PipeParameter(Label = "Mode", Expressions = false)]
+    [PipeParameter(Label = "Mode", Expressions = false, Description = "How the items of the two inputs come together")]
     public MergeMode Mode { get; set; } = MergeMode.Append;
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.Merge, "Merge",
     Category = "Flow",
     Description = "Waits for both inputs and merges their items.",

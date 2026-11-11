@@ -1,0 +1,11 @@
+[
+  {
+    "title": "New CSV files in the incoming folder",
+    "description": "One run per check with one item per new file. The file isn't read yet: Read File with {{ $json.path }} reads it.",
+    "parameters": { "folder": "files", "path": "incoming", "pattern": "*.csv", "events": "created" },
+    "output": [
+      { "folder": "files", "path": "incoming/orders-17.csv", "name": "orders-17.csv", "size": 2048, "modified": "2026-11-11T08:00:00.0000000+00:00", "event": "created" }
+    ],
+    "verified": false
+  }
+]

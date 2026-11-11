@@ -7,13 +7,14 @@ namespace gView.Pipe.Plugins.Nodes.Flow;
 
 public sealed class SwitchNodeParameters
 {
-    [PipeParameter(Label = "Value", Description = "Value to compare, usually an expression", Order = 1)]
+    [PipeParameter(Label = "Value", Description = "The value that decides the output, usually a field such as {{ $json.country }}", Order = 1)]
     public JsonNode? Value { get; set; }
 
-    [PipeParameter(Label = "Cases", Description = "One output per case; items matching no case go to 'fallback'", Order = 2)]
+    [PipeParameter(Label = "Cases", Description = "One output per case, e.g. AT, DE, CH; items matching no case go to fallback", Order = 2)]
     public List<JsonNode?> Cases { get; set; } = new();
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.Switch, "Switch",
     Category = "Flow",
     Description = "Routes each item to the output of the first matching case.")]

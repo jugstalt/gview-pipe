@@ -10,13 +10,13 @@ namespace gView.Pipe.Plugins.Nodes.Flow;
 
 public enum ExecuteWorkflowMode
 {
-    /// <summary>One call with all items.</summary>
+    [PipeEnumValue("One call with all items")]
     OnceForAllItems,
 
-    /// <summary>One call per item: the sub-workflow is the body of a loop.</summary>
+    [PipeEnumValue("One call per item: the other workflow is the body of a loop")]
     EachItem,
 
-    /// <summary>One call per batch of <see cref="ExecuteWorkflowNodeParameters.BatchSize"/> items.</summary>
+    [PipeEnumValue("One call per batch of items, e.g. 100 at a time", Label = "In batches")]
     Batches
 }
 
@@ -24,22 +24,24 @@ public sealed class ExecuteWorkflowNodeParameters
 {
     [Required, PipeWorkflowReference]
     [PipeParameter(Label = "Workflow", Order = 1, Expressions = false,
-        Description = "Needs an Execute Workflow Trigger; it doesn't have to be active")]
+        Description = "The workflow to run; it starts with an Execute Workflow Trigger and doesn't have to be active")]
     public string WorkflowId { get; set; } = "";
 
-    [PipeParameter(Label = "Call it", Order = 2, Expressions = false)]
+    [PipeParameter(Label = "Call it", Order = 2, Expressions = false, Description = "How often the other workflow runs")]
     public ExecuteWorkflowMode Mode { get; set; } = ExecuteWorkflowMode.OnceForAllItems;
 
-    [PipeParameter(Label = "Batch size", Order = 3, Expressions = false, Description = "Items per call in batch mode")]
+    [PipeParameter(Label = "Batch size", Order = 3, Expressions = false, ShowWhen = nameof(Mode), ShowWhenValues = ["batches"],
+        Description = "Items per call, e.g. 100")]
     [Range(1, int.MaxValue)]
     public int BatchSize { get; set; } = 10;
 
-    [PipeParameter(Label = "Pause between calls (ms)", Order = 4, Expressions = false,
-        Description = "Waits this long before each call but the first, e.g. for the rate limit of an API. 0 = no pause.")]
+    [PipeParameter(Label = "Pause between calls (ms)", Order = 4, Expressions = false, ShowWhen = nameof(Mode), ShowWhenValues = ["eachItem", "batches"],
+        Description = "Waits this long before each call but the first, e.g. 1000 for the rate limit of an API; 0 = no pause")]
     [Range(0, 600000)]
     public int DelayMs { get; set; }
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.ExecuteWorkflow, "Execute Workflow",
     Category = "Flow",
     Description = "Runs another workflow with the items and outputs what its last node returned. "

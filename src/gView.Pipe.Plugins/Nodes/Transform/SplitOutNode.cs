@@ -9,17 +9,19 @@ namespace gView.Pipe.Plugins.Nodes.Transform;
 public sealed class SplitOutNodeParameters
 {
     [PipeParameter(Label = "Field to split out", Expressions = false, Placeholder = "orders", Order = 1,
-        Description = "Path of an array field; every element becomes an item")]
+        Description = "A field with a list, e.g. orders or customer.addresses; every element becomes an item")]
     [Required]
     public string Field { get; set; } = "";
 
-    [PipeParameter(Label = "Keep the other fields of the item", Expressions = false, Order = 2)]
+    [PipeParameter(Label = "Keep the other fields of the item", Expressions = false, Order = 2,
+        Description = "Copy the other fields into every new item, e.g. the customer to each of their orders")]
     public bool IncludeOtherFields { get; set; }
 }
 
 [PipeNode(PipeBuiltInNodes.SplitOut, "Split Out",
     Category = "Transform",
-    Description = "Turns an array field into one item per element.")]
+    Description = "Turns a list in a field into one item per element.")]
+[PipeNodeExamples]
 public sealed class SplitOutNode : IPipeNode<SplitOutNodeParameters>
 {
     public Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)

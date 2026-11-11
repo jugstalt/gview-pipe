@@ -8,6 +8,7 @@ public sealed class FilterNodeParameters : PipeConditionParameters
 {
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.Filter, "Filter",
     Category = "Flow",
     Description = "Keeps only the items that match a condition.")]

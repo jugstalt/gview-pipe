@@ -1,0 +1,16 @@
+[
+  {
+    "title": "A failing workflow works again",
+    "description": "Use it next to an Error Trigger, e.g. to send an all-clear mail.",
+    "output": [
+      {
+        "workflow": { "id": "import-orders", "name": "Import orders" },
+        "execution": { "id": "8a2e41" },
+        "failedSince": "2026-11-11T07:00:00.0000000+00:00",
+        "failedExecution": { "id": "6f1d0c" },
+        "failures": 3
+      }
+    ],
+    "verified": false
+  }
+]

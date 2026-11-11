@@ -1,0 +1,13 @@
+[
+  {
+    "title": "Wait a second before the next call",
+    "description": "The items go on unchanged after the pause, e.g. to give another system time to finish.",
+    "parameters": { "amount": 1, "unit": "seconds" },
+    "input": [
+      { "id": 1 }
+    ],
+    "output": [
+      { "id": 1 }
+    ]
+  }
+]

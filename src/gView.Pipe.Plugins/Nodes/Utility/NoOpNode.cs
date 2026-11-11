@@ -2,6 +2,7 @@ using gView.Pipe.Abstraction.Nodes;
 
 namespace gView.Pipe.Plugins.Nodes.Utility;
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.NoOp, "No Operation",
     Category = "Utility",
     Description = "Passes items through unchanged.")]

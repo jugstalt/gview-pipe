@@ -1,0 +1,10 @@
+[
+  {
+    "title": "Start from the editor",
+    "description": "Run or Test in the editor starts here with one empty item; the next nodes add the data.",
+    "output": [
+      {}
+    ],
+    "verified": false
+  }
+]

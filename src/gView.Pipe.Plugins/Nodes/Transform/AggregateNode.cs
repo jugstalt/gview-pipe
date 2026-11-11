@@ -7,30 +7,31 @@ namespace gView.Pipe.Plugins.Nodes.Transform;
 
 public enum AggregateMode
 {
-    /// <summary>One array with the JSON of every item.</summary>
+    [PipeEnumValue("One list with all items, e.g. to send them in one request", Label = "All items into one list")]
     AllItemData,
 
-    /// <summary>One array per field with that field's values of all items.</summary>
+    [PipeEnumValue("One list per field with the values of all items, e.g. all email addresses", Label = "Values of single fields")]
     IndividualFields
 }
 
 public sealed class AggregateNodeParameters
 {
-    [PipeParameter(Label = "Aggregate", Expressions = false, Order = 1)]
+    [PipeParameter(Label = "Aggregate", Expressions = false, Order = 1, Description = "What to collect from the items")]
     public AggregateMode Mode { get; set; } = AggregateMode.AllItemData;
 
-    [PipeParameter(Label = "Put into field", Expressions = false, Order = 2,
-        Description = "All item data: name of the array field")]
+    [PipeParameter(Label = "Put into field", Expressions = false, Order = 2, ShowWhen = nameof(Mode), ShowWhenValues = ["allItemData"],
+        Description = "Name of the field that gets the list, e.g. orders")]
     public string Destination { get; set; } = "data";
 
-    [PipeParameter(Label = "Fields", Expressions = false, Order = 3, Placeholder = "customer.name",
-        Description = "Individual fields: paths to collect; items without the field are left out")]
+    [PipeParameter(Label = "Fields", Expressions = false, Order = 3, Placeholder = "customer.name", ShowWhen = nameof(Mode), ShowWhenValues = ["individualFields"],
+        Description = "Fields to collect, e.g. email or customer.name; items without the field are left out")]
     public List<string> Fields { get; set; } = new();
 }
 
 [PipeNode(PipeBuiltInNodes.Aggregate, "Aggregate",
     Category = "Transform",
-    Description = "Combines all items into a single item with arrays. Binary data is not carried over.")]
+    Description = "Combines all items into a single item with lists. Attachments are not carried over.")]
+[PipeNodeExamples]
 public sealed class AggregateNode : IPipeNode<AggregateNodeParameters>
 {
     public Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)

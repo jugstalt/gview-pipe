@@ -7,23 +7,27 @@ namespace gView.Pipe.Plugins.Nodes.Transform;
 
 public enum RemoveDuplicatesCompare
 {
+    [PipeEnumValue("Items are duplicates when all their fields are equal")]
     AllFields,
+
+    [PipeEnumValue("Items are duplicates when the fields below are equal, e.g. the same email")]
     SelectedFields
 }
 
 public sealed class RemoveDuplicatesNodeParameters
 {
-    [PipeParameter(Label = "Compare", Expressions = false, Order = 1)]
+    [PipeParameter(Label = "Compare", Expressions = false, Order = 1, Description = "When two items count as the same")]
     public RemoveDuplicatesCompare Compare { get; set; } = RemoveDuplicatesCompare.AllFields;
 
-    [PipeParameter(Label = "Fields", Expressions = false, Order = 2, Placeholder = "email",
-        Description = "Selected fields: paths that together identify an item")]
+    [PipeParameter(Label = "Fields", Expressions = false, Order = 2, Placeholder = "email", ShowWhen = nameof(Compare), ShowWhenValues = ["selectedFields"],
+        Description = "Fields that together identify an item, e.g. email or customer.id")]
     public List<string> Fields { get; set; } = new();
 }
 
 [PipeNode(PipeBuiltInNodes.RemoveDuplicates, "Remove Duplicates",
     Category = "Transform",
-    Description = "Keeps the first of several items with equal JSON (or equal selected fields).")]
+    Description = "Keeps the first of several equal items (all fields equal, or the selected fields).")]
+[PipeNodeExamples]
 public sealed class RemoveDuplicatesNode : IPipeNode<RemoveDuplicatesNodeParameters>
 {
     public Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)

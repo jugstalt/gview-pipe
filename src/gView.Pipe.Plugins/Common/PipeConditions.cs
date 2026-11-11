@@ -7,30 +7,55 @@ namespace gView.Pipe.Plugins.Common;
 
 public enum PipeConditionOperation
 {
+    [PipeEnumValue("Same value; numbers as numbers, text with case", Label = "is equal to")]
     IsEqual,
+
+    [PipeEnumValue("Different value", Label = "is not equal to")]
     NotEqual,
+
+    [PipeEnumValue("Text contains the text, or a list contains the value", Label = "contains")]
     Contains,
+
+    [PipeEnumValue("Text or list doesn't contain it", Label = "doesn't contain")]
     NotContains,
+
+    [PipeEnumValue("Numbers by value, text alphabetically", Label = "is greater than")]
     GreaterThan,
+
+    [PipeEnumValue("Numbers by value, text alphabetically", Label = "is greater than or equal to")]
     GreaterThanOrEqual,
+
+    [PipeEnumValue("Numbers by value, text alphabetically", Label = "is less than")]
     LessThan,
+
+    [PipeEnumValue("Numbers by value, text alphabetically", Label = "is less than or equal to")]
     LessThanOrEqual,
+
+    [PipeEnumValue("Missing, null, empty text or an empty list", Label = "is empty")]
     IsEmpty,
+
+    [PipeEnumValue("Has a value", Label = "is not empty")]
     IsNotEmpty,
+
+    [PipeEnumValue("true, a number other than 0 or a text like true or yes", Label = "is true")]
     IsTrue,
+
+    [PipeEnumValue("Everything that isn't true", Label = "is false")]
     IsFalse
 }
 
 /// <summary>Parameters of a single comparison (used by If and Filter).</summary>
 public class PipeConditionParameters
 {
-    [PipeParameter(Label = "Value 1", Order = 1, Description = "The value to check, usually an expression such as {{ $json.total }}")]
+    [PipeParameter(Label = "Value 1", Order = 1, Description = "The value to check, usually a field such as {{ $json.total }}")]
     public JsonNode? Value1 { get; set; }
 
-    [PipeParameter(Label = "Operation", Order = 2)]
+    [PipeParameter(Label = "Operation", Order = 2, Description = "How Value 1 is checked")]
     public PipeConditionOperation Operation { get; set; } = PipeConditionOperation.IsEqual;
 
-    [PipeParameter(Label = "Value 2", Order = 3, Description = "The value to compare with; not used by is empty, is not empty, is true and is false")]
+    [PipeParameter(Label = "Value 2", Order = 3,
+        ShowWhen = nameof(Operation), ShowWhenValues = ["isEqual", "notEqual", "contains", "notContains", "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual"],
+        Description = "The value to compare with, e.g. 100 or {{ $json.limit }}")]
     public JsonNode? Value2 { get; set; }
 }
 

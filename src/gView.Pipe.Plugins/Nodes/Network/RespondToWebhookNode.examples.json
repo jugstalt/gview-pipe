@@ -1,0 +1,13 @@
+[
+  {
+    "title": "Confirm an order to the caller",
+    "description": "The webhook caller gets { \"ok\": true, \"id\": 17 } with status 201. The items pass on, so the workflow can go on after answering.",
+    "parameters": { "respondWith": "customBody", "body": "{{ { ok: true, id: $json.id } }}", "statusCode": 201 },
+    "input": [
+      { "id": 17, "customer": "Anna" }
+    ],
+    "output": [
+      { "id": 17, "customer": "Anna" }
+    ]
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "title": "SHA-256 checksum of a field",
+    "description": "The item keeps its fields and gets the checksum, e.g. to notice when a text has changed.",
+    "parameters": { "operation": "hash", "value": "{{ $json.text }}", "targetField": "hash" },
+    "input": [
+      { "text": "hello" }
+    ],
+    "output": [
+      { "text": "hello", "hash": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824" }
+    ]
+  },
+  {
+    "title": "Encode text as Base64",
+    "parameters": { "operation": "base64Encode", "value": "{{ $json.user }}:{{ $json.password }}", "targetField": "basic" },
+    "input": [
+      { "user": "pipe", "password": "secret" }
+    ],
+    "output": [
+      { "user": "pipe", "password": "secret", "basic": "cGlwZTpzZWNyZXQ=" }
+    ]
+  },
+  {
+    "title": "A new id per item",
+    "description": "Every item gets its own random UUID.",
+    "parameters": { "operation": "uuid", "targetField": "id" },
+    "input": [
+      { "customer": "Anna" }
+    ],
+    "output": [
+      { "customer": "Anna", "id": "3f2b8c1e-5d47-4f0a-9b8e-2c6a1d7e4f90" }
+    ],
+    "ignore": [ "id" ]
+  }
+]

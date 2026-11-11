@@ -1,0 +1,16 @@
+[
+  {
+    "title": "A run of another workflow failed",
+    "description": "Use it in an error workflow, e.g. to send a mail to the team. node tells which node failed; suppressed counts the failures held back by the throttle.",
+    "parameters": { "throttleMinutes": 60 },
+    "output": [
+      {
+        "workflow": { "id": "import-orders", "name": "Import orders" },
+        "execution": { "id": "6f1d0c", "mode": "trigger", "environment": "PROD", "startedAt": "2026-11-11T07:00:00.0000000+00:00", "error": "HTTP 503 from https://api.example.com/orders" },
+        "node": { "id": "http", "name": "Load orders", "error": "HTTP 503 from https://api.example.com/orders" },
+        "suppressed": 0
+      }
+    ],
+    "verified": false
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "title": "Large orders one way, the rest the other",
+    "description": "Every item goes to exactly one output: true or false. Connect a node to each.",
+    "parameters": { "value1": "{{ $json.amount }}", "operation": "greaterThanOrEqual", "value2": 100 },
+    "input": [
+      { "id": 1, "amount": 120 },
+      { "id": 2, "amount": 80 }
+    ],
+    "output": {
+      "true": [ { "id": 1, "amount": 120 } ],
+      "false": [ { "id": 2, "amount": 80 } ]
+    }
+  }
+]

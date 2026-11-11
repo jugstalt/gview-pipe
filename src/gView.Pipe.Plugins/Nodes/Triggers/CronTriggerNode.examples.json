@@ -1,0 +1,11 @@
+[
+  {
+    "title": "Every workday at 7:00",
+    "description": "While the workflow is active it starts at the given times with one item.",
+    "parameters": { "expression": "0 7 * * 1-5", "timeZone": "Europe/Vienna" },
+    "output": [
+      { "timestamp": "2026-11-11T06:00:00.0000000+00:00", "expression": "0 7 * * 1-5" }
+    ],
+    "verified": false
+  }
+]

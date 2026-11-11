@@ -1,0 +1,25 @@
+[
+  {
+    "title": "Invoices arriving by mail",
+    "description": "One item per unread mail; the PDF is attached as attachment1, e.g. for Write File or the AI node.",
+    "parameters": { "folder": "INBOX", "subjectContains": "Invoice", "afterProcessing": "moveToFolder", "targetFolder": "Done" },
+    "output": [
+      {
+        "messageId": "<4711@shop.example>",
+        "uid": 4711,
+        "folder": "INBOX",
+        "from": { "name": "Shop", "address": "billing@shop.example" },
+        "to": [ { "name": null, "address": "pipe@example.com" } ],
+        "cc": [],
+        "subject": "Invoice R-17",
+        "date": "2026-11-11T08:00:00.0000000+01:00",
+        "text": "Please find the invoice attached.",
+        "html": null,
+        "attachments": [ "R-17.pdf" ],
+        "tooLarge": false,
+        "$binary": { "attachment1": { "fileName": "R-17.pdf", "mimeType": "application/pdf" } }
+      }
+    ],
+    "verified": false
+  }
+]

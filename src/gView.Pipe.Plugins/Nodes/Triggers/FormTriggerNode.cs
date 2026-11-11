@@ -14,6 +14,7 @@ public sealed class FormTriggerNodeParameters
     public List<JsonNode?> Fields { get; set; } = new();
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeBuiltInNodes.FormTrigger, "Form Trigger",
     Category = "Triggers",
     Description = "Starts the workflow from the user portal: declares the form the user fills in and outputs one item with the values. "
