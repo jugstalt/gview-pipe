@@ -21,7 +21,7 @@ Das Symbol rechts in der oberen Leiste wechselt die Farben: wie das System, hell
 
 1. **Node hinzufügen:** Klicke ihn in der Palette an. Er erscheint auf der Arbeitsfläche; ziehe ihn an die gewünschte Stelle.
 2. **Nodes verbinden:** Ziehe von einem Ausgangsport (rechter Rand) zu einem Eingangsport (linker Rand) eines anderen Nodes. Items fließen entlang der Linie. Ein Node mit mehreren Ausgängen (If, Switch) hat je Ausgang einen Port.
-3. **Node bearbeiten:** Klicke ihn an. Das Seitenpanel zeigt die Tabs **Parameters**, **Settings** und **Run**.
+3. **Node bearbeiten:** Klicke ihn an. Das Seitenpanel zeigt die Tabs **Parameters**, **Examples**, **Settings** und **Run**.
 4. **Löschen:** Wähle einen Node oder eine Linie und drücke **Entf**, oder nimm das Papierkorb-Symbol im Seitenpanel.
 5. **Speichern:** **Save** oder **Strg+S** speichert den Workflow. Verlässt du den Editor oder schließt den Tab mit ungespeicherten Änderungen, fragt er vorher nach. Trigger eines aktiven Workflows (Cron, Webhook) werden beim Speichern scharf geschaltet.
 
@@ -46,7 +46,11 @@ Mit der Notiz-Schaltfläche der Werkzeugleiste legst du eine **Haftnotiz** auf d
 
 ### Parameters
 
-Das Formular wird aus dem Node erzeugt. Die meisten Textfelder akzeptieren **Ausdrücke**: `{{ $json.total * 1.2 }}` wird für jedes Item ausgewertet (siehe [Items und Ausdrücke](expressions.md)). Im Tab **Run** kannst du ein Feld der Eingabe anklicken, um es als Ausdruck in den zuletzt bearbeiteten Parameter einzufügen.
+Das Formular wird aus dem Node erzeugt. Unter jedem Feld steht eine kurze Erklärung, und eine Auswahlliste sagt, was jede Wahl bewirkt, in der Liste selbst und unter dem Feld für den gewählten Wert.
+
+Das Formular zeigt nur, was gerade zutrifft: Felder, die von einer anderen Wahl abhängen, erscheinen erst, wenn sie getroffen ist. Read File zum Beispiel zeigt den *CSV delimiter* nur, wenn *Read as* auf *CSV* steht. Ein ausgeblendetes Feld behält seinen Wert. Selten gebrauchte Felder liegen eingeklappt unter **Advanced** am Ende des Formulars; ein Klick öffnet sie. Wo der Server die möglichen Werte kennt, etwa die für Workflows eingerichteten Ordner, ist das Feld eine Auswahlliste; gibt es nur einen Wert, wird er eingetragen.
+
+Die meisten Textfelder akzeptieren **Ausdrücke**: `{{ $json.total * 1.2 }}` wird für jedes Item ausgewertet (siehe [Items und Ausdrücke](expressions.md)). Im Tab **Run** kannst du ein Feld der Eingabe anklicken, um es als Ausdruck in den zuletzt bearbeiteten Parameter einzufügen.
 
 Änderungen gelten schon während du tippst; du musst ein Feld nicht verlassen, bevor du einen anderen Node wählst oder speicherst.
 
@@ -57,6 +61,12 @@ Ausdrücke sind in ihrem Feld farbig hinterlegt. Nach einem Lauf zeigt eine Zeil
 **Code-Felder** (das JavaScript des Code-Nodes, das SQL des SQL-Nodes, rohes JSON) öffnen sich in einem Code-Editor mit Syntaxhervorhebung, Zeilennummern und den üblichen Editor-Tasten (Tab zum Einrücken, Strg+F zum Suchen, Alt+Hoch/Runter zum Verschieben von Zeilen). Das Feld wächst mit seinem Inhalt; das Symbol darüber öffnet einen großen Editor, und **Apply** übernimmt dessen Text.
 
 Manche Nodes zeigen über ihren Parametern **Hinweise**, zum Beispiel die URL eines Webhooks oder die Warnung, dass er kein Credential hat.
+
+### Examples
+
+![Der Tab Examples von Read File](../../images/node-examples.png)
+
+Zeigt, was der Node mit echten Daten macht: je Beispiel die Parameter, was es voraussetzt (zum Beispiel die Dateien im Ordner), die Eingangs- und die Ausgangs-Items, als Tabelle oder als JSON. **Use these parameters** übernimmt die Parameter eines Beispiels in den Node; **Undo** in der Werkzeugleiste holt die alten zurück. Dieselben Beispiele stehen in der [Node-Referenz](nodes/index.md). Die meisten prüfen die Tests jedes Builds, sie stimmen also mit dem überein, was der Node wirklich tut; die, die einen Server brauchen (HTTP, Mail, SFTP, eine Datenbank), zeigen, wie eine typische Antwort aussieht.
 
 ### Settings
 
@@ -74,7 +84,7 @@ Manche Nodes zeigen über ihren Parametern **Hinweise**, zum Beispiel die URL ei
 
 ![Der Tab Run eines Nodes](../../images/node-run.png)
 
-Nach einem Lauf zeigt dieser Tab die **Input**-Items, die der Node bekommen hat, die **Output**-Items je Port und seine **Logs**. Items lassen sich als JSON oder als Text anzeigen. Schreibt ein Node während des Laufs Ausgaben (zum Beispiel ein Skript), siehst du sie live.
+Nach einem Lauf zeigt dieser Tab die **Input**-Items, die der Node bekommen hat, die **Output**-Items je Port und seine **Logs**. Items lassen sich als Tabelle (eine Spalte je Feld), als JSON oder als Text anzeigen; der Editor merkt sich deine Wahl. Schreibt ein Node während des Laufs Ausgaben (zum Beispiel ein Skript), siehst du sie live.
 
 ## Ausführen und Testen
 

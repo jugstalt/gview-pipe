@@ -6,7 +6,7 @@ Dateien reisen durch einen Workflow als **Anhänge** von Items (siehe [Items und
 
 ## Extract from File
 
-Liest den Anhang `data` (Einstellung *Binary property*) jedes Items in einem Format und macht daraus Items.
+Liest den Anhang `data` (Einstellung *Attachment name* unter *Advanced*) jedes Items in einem Format und macht daraus Items.
 
 | Format | Ergibt | Einstellungen |
 |---|---|---|

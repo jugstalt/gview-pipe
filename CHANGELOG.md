@@ -19,7 +19,8 @@ The first release, 0.1.0. Until it is tagged, everything below is part of it.
 - Workflow versions: every changing save keeps a copy; the workflow panel lists them with a summary and restores one into the editor; `GET /api/v1/workflows/{id}/versions` (ADR 0031).
 - Secrets from other sources: credential fields and variables can reference an environment variable, Azure Key Vault or the secrets vault of IdentityServer.NET (plugin `gView.Pipe.Plugins.Secrets`); read when a run needs them, cached in memory, masked in logs and history (ADR 0033).
 - OpenTelemetry metrics of the engine under the meter `gView.Pipe`: runs, duration, skipped and active runs per workflow (ADR 0032).
-- Inspect every node: input, output and log of the latest run or of any execution; items as JSON or as text; live output while a node runs. Pin the output of a node, run to a node, replay a run from a node (ADR 0015).
+- Node forms that explain themselves: every field and every choice has a description, fields show only while they apply (e.g. the CSV delimiter only for CSV), rarely needed ones are folded under *Advanced*, and folders are a choice of those set up for workflows. A new **Examples** tab shows parameters, input and output of every node, as a table or JSON, with *Use these parameters*; the node reference lists the same examples, and the tests run them (ADR 0043).
+- Inspect every node: input, output and log of the latest run or of any execution; items as a table, as JSON or as text; live output while a node runs. Pin the output of a node, run to a node, replay a run from a node (ADR 0015).
 
 **Engine and nodes**
 - Execution engine for graphs without cycles: parallel branches, retry, timeout and per-node error handling (stop, continue, error output), a queue for triggered runs (ADR 0005, 0016).

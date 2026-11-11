@@ -57,6 +57,8 @@ n8n-like workflow app on Blazor (.NET 10). The structure follows the sibling rep
 5. Constructor injection works. A new instance is created per execution.
 6. To run JavaScript, inject `IPipeScriptRunner` and pass `context.CreateExpressionScope(item, index)`. Don't reference Jint from plugins.
 7. Code fields are marked `[PipeParameter(Code = true)]` and read from `context.RawParameters`, because `GetParameters` evaluates `{{ }}` in every string.
+8. Every node, parameter and enum value (`[PipeEnumValue]`) has a one-line `Description` with an example. Fields that apply only to some choices get `ShowWhen`, rarely needed ones `Advanced = true` (ADR 0043).
+9. Add `<NodeClass>.examples.json` next to the node and mark it `[PipeNodeExamples]`. `NodeGuideTests` fails without descriptions or examples and runs every example that isn't `"verified": false`.
 
 ## Commands
 

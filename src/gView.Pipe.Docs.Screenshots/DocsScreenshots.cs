@@ -28,6 +28,7 @@ internal sealed class DocsScreenshots
         await EditorRunAsync();
         await EditorNoteAsync();
         await NodePanelsAsync();
+        await NodeExamplesAsync();
         await CodeFieldAsync();
         await WebhookTriggerAsync();
         await ErrorOutputAsync();
@@ -111,6 +112,16 @@ internal sealed class DocsScreenshots
 
         await SelectTabAsync("Run");
         await ShotAsync("node-run");
+    }
+
+    /// <summary>The Examples tab of Read File (ADR 0043).</summary>
+    private async Task NodeExamplesAsync()
+    {
+        await HighAsync();
+        await OpenEditorAsync("file-export");
+        await SelectNodeAsync("Read Back");
+        await SelectTabAsync("Examples");
+        await ShotAsync("node-examples");
     }
 
     /// <summary>The Monaco code field of the Code node.</summary>

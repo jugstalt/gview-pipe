@@ -139,6 +139,33 @@ Increase `Version` on the attribute when you rename or restructure parameters, a
 
 A parameter can offer values that the server computes from the other parameters (for example the files of a folder): mark it with `[PipeOptions]` and implement `IPipeParameterOptions` on the node. A `string` becomes a choice of one option, a `List<PipeSelection>` an ordered list whose entries can be switched on and off. `Refreshable = true` adds a refresh button.
 
+## Examples
+
+Every node shows examples in the **Examples** tab of the editor and in the node reference. Put them into a file `<NodeClass>.examples.json` next to the class and mark the class with `[PipeNodeExamples]`; the build of this repository embeds every `*.examples.json` (`Directory.Build.props`). In an own project add `<EmbeddedResource Include="**\*.examples.json" />`.
+
+```json
+[
+  {
+    "title": "Shout the name",
+    "description": "Each item keeps its fields; the name is in capitals.",
+    "parameters": { "field": "name" },
+    "input": [ { "name": "Anna", "city": "Graz" } ],
+    "output": [ { "name": "ANNA", "city": "Graz" } ]
+  }
+]
+```
+
+| Key | Meaning |
+|---|---|
+| `title`, `description` | What the example shows, for people. |
+| `parameters` | The parameters, as stored in a workflow; the editor offers **Use these parameters**. |
+| `given` | What the example needs. `files` (path → text) are put into the folder `files` before it runs; other keys belong to a plugin and its fake, e.g. `ai` with the `answer` of the model. |
+| `input`, `output` | Items: an array for the port `main`, or an object with an array per port (`{ "true": […], "false": […] }`). Attachments go into the reserved key `$binary`: `{ "data": { "fileName": "a.csv", "mimeType": "text/csv", "text": "…" } }`; without `text` only the name is compared. |
+| `ignore` | Fields of the output whose value changes, e.g. `modifiedAt` or `usage`. |
+| `verified` | `false` for examples that can't run in a test (triggers, servers); they are shown only. |
+
+The node guide tests of the repository (`NodeGuideTests`) run every verified example with the engine and compare the output, so an example can't go stale. They also fail when a node has no example or a field no description.
+
 ## Testing
 
 `src/tests/gView.Pipe.Plugins.Tests/PluginTestHost.cs` builds a host with the built-in nodes, in memory, and runs workflows. Use the same approach for your plugin: register your assembly in `PipeCoreOptions.PluginAssemblies` and run a workflow made with the `PipeWorkflowBuilder` of `gView.Pipe.Core` or loaded from a JSON file.

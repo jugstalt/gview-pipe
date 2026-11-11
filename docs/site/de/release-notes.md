@@ -11,6 +11,7 @@ Die erste Version.
 ### Highlights
 
 - Ein visueller Editor für Workflows aus Nodes, die JSON-Items weiterreichen; der [Editor](user-guide/editor.md) zeigt Eingabe, Ausgabe und Log jedes Nodes.
+- Die Formulare der Nodes erklären jedes Feld und jede Wahl und zeigen nur, was zutrifft; jeder Node hat Beispiele seiner Ein- und Ausgabe im Editor und in der [Node-Referenz](user-guide/nodes/index.md).
 - Trigger: manuell, Cron, Webhook und Formular; Webhooks können wie eine kleine API antworten. Siehe [Trigger und Webhooks](user-guide/triggers.md).
 - JavaScript-[Ausdrücke](user-guide/expressions.md) in jedem Parameter und ein Code-Node, ausgeführt in einer Sandbox.
 - Variablen und Environments, Gruppen, Sub-Workflows, Error-Workflows und [Benachrichtigung bei Fehlern](user-guide/notifications.md).

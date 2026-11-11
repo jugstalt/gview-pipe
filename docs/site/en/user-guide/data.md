@@ -6,7 +6,7 @@ Files travel through a workflow as **attachments** of items (see [Items and expr
 
 ## Extract from File
 
-Reads the attachment `data` (setting *Binary property*) of each item in a format and makes items of it.
+Reads the attachment `data` (setting *Attachment name* under *Advanced*) of each item in a format and makes items of it.
 
 | Format | Becomes | Settings |
 |---|---|---|

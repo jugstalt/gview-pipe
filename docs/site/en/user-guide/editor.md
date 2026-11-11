@@ -21,7 +21,7 @@ The icon at the right of the top bar switches the colors: following the system, 
 
 1. **Add a node:** click it in the palette. It appears on the canvas; drag it where you want it.
 2. **Connect nodes:** drag from an output port (right edge) to an input port (left edge) of another node. Items flow along the line. A node with several outputs (If, Switch) has one port per output.
-3. **Edit a node:** click it. The side panel shows its **Parameters**, **Settings** and **Run** tabs.
+3. **Edit a node:** click it. The side panel shows its **Parameters**, **Examples**, **Settings** and **Run** tabs.
 4. **Delete:** select a node or a line and press **Delete**, or use the trash icon in the side panel.
 5. **Save:** the **Save** button or **Ctrl+S** stores the workflow. If you leave the editor or close the tab with unsaved changes, it asks first. Triggers of an active workflow (Cron, Webhook) are armed when you save.
 
@@ -46,7 +46,11 @@ Use the note button in the toolbar to put a **sticky note** on the canvas, for e
 
 ### Parameters
 
-The form is generated from the node. Most text fields accept **expressions**: `{{ $json.total * 1.2 }}` is evaluated for each item (see [Items and expressions](expressions.md)). In the **Run** tab you can click a field of the input to insert it as an expression into the parameter you edited last.
+The form is generated from the node. Every field has a short explanation below it, and a dropdown tells what each choice does, both in its list and below the field for the chosen value.
+
+The form shows only what applies: fields that depend on another choice appear when it is made. Read File, for example, shows the *CSV delimiter* only when *Read as* is *CSV*. A hidden field keeps its value. Fields that are rarely needed are folded into **Advanced** at the end of the form; click it to open them. Where the server knows the possible values, such as the folders set up for workflows, the field is a dropdown; with only one possible value it is filled in for you.
+
+Most text fields accept **expressions**: `{{ $json.total * 1.2 }}` is evaluated for each item (see [Items and expressions](expressions.md)). In the **Run** tab you can click a field of the input to insert it as an expression into the parameter you edited last.
 
 Changes take effect while you type; you don't have to leave a field before you select another node or save.
 
@@ -57,6 +61,12 @@ Expressions are tinted in their field. After a run, a line below the field shows
 **Code fields** (the JavaScript of the Code node, the SQL of the SQL node, raw JSON) open in a code editor with syntax highlighting, line numbers and the usual editor keys (Tab to indent, Ctrl+F to find, Alt+Up/Down to move lines). The field grows with its content; the icon above it opens a large editor, and **Apply** takes its text over.
 
 Some nodes show **hints** above their parameters, for example the URL of a webhook or a warning that it has no credential.
+
+### Examples
+
+![The Examples tab of Read File](../../images/node-examples.png)
+
+Shows what the node does with real data: for each example its parameters, what it needs (for example the files in the folder), the input items and the output items, as a table or as JSON. **Use these parameters** puts the parameters of an example into the node; the **Undo** of the toolbar brings the old ones back. The same examples are in the [node reference](nodes/index.md). Most of them are checked by the tests of every build, so they match what the node really does; those that need a server (HTTP, mail, SFTP, a database) show what a typical answer looks like.
 
 ### Settings
 
@@ -74,7 +84,7 @@ Some nodes show **hints** above their parameters, for example the URL of a webho
 
 ![The Run tab of a node](../../images/node-run.png)
 
-After a run, this tab shows the **Input** the node received, the **Output** it produced per port and its **Logs**. Items can be shown as JSON or as text. A node that wrote output while it was running (for example a script) shows it live.
+After a run, this tab shows the **Input** the node received, the **Output** it produced per port and its **Logs**. Items can be shown as a table (one column per field), as JSON or as text; the editor remembers your choice. A node that wrote output while it was running (for example a script) shows it live.
 
 ## Running and testing
 
