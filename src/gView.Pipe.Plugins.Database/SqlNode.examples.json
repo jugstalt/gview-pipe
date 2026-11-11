@@ -1,0 +1,34 @@
+[
+  {
+    "title": "Read the open orders of a customer",
+    "description": "Runs once per input item; every row becomes an item. The value comes in as the parameter @customer, never as SQL text.",
+    "parameters": {
+      "operation": "query",
+      "sql": "SELECT id, amount FROM orders WHERE customer = @customer AND status = 'open'",
+      "parameters": { "customer": "{{ $json.customer }}" }
+    },
+    "input": [
+      { "customer": "Anna" }
+    ],
+    "output": [
+      { "id": 17, "amount": 120.5 },
+      { "id": 21, "amount": 80 }
+    ],
+    "verified": false
+  },
+  {
+    "title": "Mark orders as shipped",
+    "parameters": {
+      "operation": "execute",
+      "sql": "UPDATE orders SET status = 'shipped' WHERE id = @id",
+      "parameters": { "id": "{{ $json.id }}" }
+    },
+    "input": [
+      { "id": 17 }
+    ],
+    "output": [
+      { "affectedRows": 1 }
+    ],
+    "verified": false
+  }
+]

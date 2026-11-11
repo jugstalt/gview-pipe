@@ -1,0 +1,11 @@
+[
+  {
+    "title": "New order files in a container",
+    "description": "One item per blob, like the List of the Azure Blob node; the blob moves to done once the run has started. Download with the Azure Blob node fetches the content.",
+    "parameters": { "container": "incoming", "path": "orders", "pattern": "*.csv", "afterProcessing": "moveToFolder", "targetFolder": "done" },
+    "output": [
+      { "fileName": "2026-11.csv", "container": "incoming", "path": "orders/2026-11.csv", "size": 2048, "modifiedAt": "2026-11-11T07:30:00.0000000Z", "contentType": "text/csv", "etag": "0x8DD1", "event": "created" }
+    ],
+    "verified": false
+  }
+]

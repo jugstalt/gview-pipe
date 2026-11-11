@@ -1,0 +1,61 @@
+[
+  {
+    "title": "Sort customer mails",
+    "description": "The answer is always one of the categories, with a short reason; usage tells the tokens used. The item keeps its fields.",
+    "parameters": { "task": "classify", "categories": [ "complaint", "question", "praise" ], "input": "field", "inputValue": "{{ $json.text }}" },
+    "given": { "ai": { "answer": { "category": "complaint", "reason": "The parcel did not arrive." } } },
+    "input": [
+      { "from": "anna@example.com", "text": "My parcel never arrived." }
+    ],
+    "output": [
+      {
+        "from": "anna@example.com",
+        "text": "My parcel never arrived.",
+        "category": "complaint",
+        "reason": "The parcel did not arrive.",
+        "usage": { "model": "claude-opus-5-5", "inputTokens": 412, "outputTokens": 23 }
+      }
+    ],
+    "ignore": [ "usage" ]
+  },
+  {
+    "title": "Read the fields of an invoice PDF",
+    "description": "The fields come as an object in data, with the given types; what the document doesn't hold is null.",
+    "parameters": {
+      "task": "extract",
+      "fields": { "invoice": "the invoice number", "total": "number: the total amount with VAT", "dueDate": "date: when it must be paid" },
+      "input": "attachment",
+      "binaryProperty": "data"
+    },
+    "given": { "ai": { "answer": { "invoice": "R-17", "total": 119.5, "dueDate": "2026-11-30" } } },
+    "input": [
+      { "fileName": "R-17.pdf", "$binary": { "data": { "fileName": "R-17.pdf", "mimeType": "application/pdf", "text": "%PDF-1.7 (sample)" } } }
+    ],
+    "output": [
+      {
+        "fileName": "R-17.pdf",
+        "data": { "invoice": "R-17", "total": 119.5, "dueDate": "2026-11-30" },
+        "usage": { "model": "claude-opus-5-5", "inputTokens": 1830, "outputTokens": 41 },
+        "$binary": { "data": { "fileName": "R-17.pdf", "mimeType": "application/pdf", "text": "%PDF-1.7 (sample)" } }
+      }
+    ],
+    "ignore": [ "usage" ]
+  },
+  {
+    "title": "Summarize a ticket",
+    "parameters": { "task": "summarize", "summaryLength": "short", "input": "field", "inputValue": "{{ $json.body }}" },
+    "given": { "ai": { "answer": "The customer wants a refund because the lamp arrived broken." } },
+    "input": [
+      { "ticket": 4711, "body": "Hello, the lamp I ordered last week arrived with a broken shade. I'd like my money back, please. …" }
+    ],
+    "output": [
+      {
+        "ticket": 4711,
+        "body": "Hello, the lamp I ordered last week arrived with a broken shade. I'd like my money back, please. …",
+        "summary": "The customer wants a refund because the lamp arrived broken.",
+        "usage": { "model": "claude-opus-5-5", "inputTokens": 96, "outputTokens": 18 }
+      }
+    ],
+    "ignore": [ "usage" ]
+  }
+]

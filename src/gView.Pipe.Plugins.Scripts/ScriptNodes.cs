@@ -24,7 +24,7 @@ static public class PipeScriptNodes
 public sealed class RunScriptNodeParameters : PipeScriptCommonParameters
 {
     [PipeOptions]
-    [PipeParameter(Label = "Script folder", Order = 1, Expressions = false, Description = "A folder released by the host")]
+    [PipeParameter(Label = "Script folder", Order = 1, Expressions = false, Description = "One of the script folders the administrator has set up")]
     public string? Root { get; set; }
 
     [PipeOptions(Refreshable = true)]
@@ -32,6 +32,7 @@ public sealed class RunScriptNodeParameters : PipeScriptCommonParameters
     public string? Script { get; set; }
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeScriptNodes.RunScript, "Run Script",
     Category = "Scripts",
     Description = "Runs one .bat/.cmd, PowerShell, Python or shell script from a folder released by the host, once per input item.")]
@@ -92,14 +93,14 @@ public sealed class RunScriptNode : IPipeNode<RunScriptNodeParameters>, IPipeNod
 public sealed class RunScriptsFolderNodeParameters : PipeScriptCommonParameters
 {
     [PipeOptions]
-    [PipeParameter(Label = "Script folder", Order = 1, Expressions = false, Description = "A folder released by the host")]
+    [PipeParameter(Label = "Script folder", Order = 1, Expressions = false, Description = "One of the script folders the administrator has set up")]
     public string? Root { get; set; }
 
     [PipeParameter(Label = "Path", Order = 2, Expressions = false, Placeholder = "nightly/ or nightly/backup.ps1",
         Description = "File or folder inside the script folder; empty for all of it")]
     public string? Path { get; set; }
 
-    [PipeParameter(Label = "Include subfolders", Order = 3, Expressions = false)]
+    [PipeParameter(Label = "Include subfolders", Order = 3, Expressions = false, Description = "Offer the scripts in the subfolders of the path too")]
     public bool IncludeSubfolders { get; set; }
 
     [PipeOptions(Refreshable = true)]
@@ -107,10 +108,11 @@ public sealed class RunScriptsFolderNodeParameters : PipeScriptCommonParameters
         Description = "Run top to bottom, each in its own process; files added later are off until switched on")]
     public List<PipeSelection> Scripts { get; set; } = new();
 
-    [PipeParameter(Label = "Stop on first failure", Order = 5, Expressions = false)]
+    [PipeParameter(Label = "Stop on first failure", Order = 5, Expressions = false, Description = "Don't run the remaining scripts after one failed")]
     public bool StopOnFirstFailure { get; set; } = true;
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeScriptNodes.RunScriptsFolder, "Run Scripts Folder",
     Category = "Scripts",
     Version = 2,
@@ -215,7 +217,7 @@ public sealed class RunScriptsRepoNodeParameters : PipeScriptCommonParameters
         Description = "File or folder inside the repository; empty for all of it")]
     public string? Path { get; set; }
 
-    [PipeParameter(Label = "Include subfolders", Order = 5, Expressions = false)]
+    [PipeParameter(Label = "Include subfolders", Order = 5, Expressions = false, Description = "Offer the scripts in the subfolders of the path too")]
     public bool IncludeSubfolders { get; set; }
 
     [PipeOptions(Refreshable = true)]
@@ -223,10 +225,11 @@ public sealed class RunScriptsRepoNodeParameters : PipeScriptCommonParameters
         Description = "Run top to bottom, each in its own process; files added later are off until switched on")]
     public List<PipeSelection> Scripts { get; set; } = new();
 
-    [PipeParameter(Label = "Stop on first failure", Order = 7, Expressions = false)]
+    [PipeParameter(Label = "Stop on first failure", Order = 7, Expressions = false, Description = "Don't run the remaining scripts after one failed")]
     public bool StopOnFirstFailure { get; set; } = true;
 }
 
+[PipeNodeExamples]
 [PipeNode(PipeScriptNodes.RunScriptsRepo, "Run Scripts Repo",
     Category = "Scripts",
     Description = "Clones a repository of a configured Git server for the run and runs its switched-on scripts in order, "

@@ -14,8 +14,17 @@ public class PipeParameterFieldsTests
     {
         var fields = PipeParameterFields.For(typeof(HttpRequestNodeParameters)).ToDictionary(f => f.Key);
 
-        Assert.Equal(["method", "url", "query", "headers", "body", "contentType", "responseFormat", "failOnHttpError", "credentialId", "delayMs"],
+        Assert.Equal(["method", "url", "credentialId", "query", "body", "contentType", "headers", "responseFormat", "failOnHttpError", "delayMs"],
             PipeParameterFields.For(typeof(HttpRequestNodeParameters)).Select(f => f.Key));
+
+        // the method is a choice; the body only shows for methods that send one; rare settings are under Advanced
+        Assert.Equal(PipeFieldKind.Option, fields["method"].Kind);
+        Assert.Equal("method", fields["body"].ShowWhenKey);
+        Assert.Contains("POST", fields["body"].ShowWhenValues);
+        Assert.True(fields["headers"].Advanced);
+        Assert.Equal("Auto", fields["responseFormat"].EnumOptions[0].Label);
+        Assert.Equal("JSON", fields["responseFormat"].EnumOptions[1].Label);
+        Assert.Equal(JsonValue.Create(true).ToJsonString(), fields["failOnHttpError"].DefaultValue!.ToJsonString());
 
         Assert.Equal(PipeFieldKind.Text, fields["url"].Kind);
         Assert.True(fields["url"].Required);

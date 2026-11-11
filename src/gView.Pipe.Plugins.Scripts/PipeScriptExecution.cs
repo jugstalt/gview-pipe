@@ -12,10 +12,11 @@ namespace gView.Pipe.Plugins.Scripts;
 /// <summary>Settings all script nodes share (shown after their own parameters).</summary>
 public abstract class PipeScriptCommonParameters
 {
-    [PipeParameter(Label = "Arguments", Order = 50, Placeholder = "--date {{ $json.date }}")]
+    [PipeParameter(Label = "Arguments", Order = 50, Placeholder = "--date {{ $json.date }}",
+        Description = "Command line passed to every script, e.g. --date {{ $json.date }}")]
     public string? Arguments { get; set; }
 
-    [PipeParameter(Label = "Environment variables", Order = 51,
+    [PipeParameter(Label = "Environment variables", Order = 51, Advanced = true,
         Description = "Name → value; next to PIPE_ITEM, PIPE_WORKFLOW, PIPE_EXECUTION, PIPE_ENVIRONMENT and the variables of workflow, group and instance, which these override")]
     public Dictionary<string, string> Environment { get; set; } = new();
 
@@ -23,14 +24,16 @@ public abstract class PipeScriptCommonParameters
     [PipeParameter(Label = "Credential", Order = 52, Expressions = false, Description = "Its fields are passed as PIPE_CREDENTIAL_<FIELD>; their values are masked in output and logs")]
     public string? CredentialId { get; set; }
 
-    [PipeParameter(Label = "Error pattern", Order = 53, Expressions = false, Placeholder = "^ERROR|Traceback",
-        Description = "Regex; a script fails if a line of its output matches (besides a non-zero exit code)")]
+    [PipeParameter(Label = "Error pattern", Order = 53, Expressions = false, Placeholder = "^ERROR|Traceback", Advanced = true,
+        Description = "A script also fails when a line of its output matches this regular expression, e.g. ^ERROR|Traceback")]
     public string? ErrorPattern { get; set; }
 
-    [PipeParameter(Label = "Ignore case", Order = 54, Expressions = false)]
+    [PipeParameter(Label = "Ignore case", Order = 54, Expressions = false, Advanced = true,
+        Description = "The error pattern ignores capitals, so ERROR also matches error")]
     public bool IgnoreCase { get; set; } = true;
 
-    [PipeParameter(Label = "Timeout per script (minutes)", Order = 55, Expressions = false)]
+    [PipeParameter(Label = "Timeout per script (minutes)", Order = 55, Expressions = false, Advanced = true,
+        Description = "A script that runs longer is stopped and fails")]
     public double TimeoutMinutes { get; set; } = 10;
 }
 

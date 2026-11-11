@@ -1,0 +1,16 @@
+[
+  {
+    "title": "The nightly scripts in order",
+    "description": "One output item per script. When one fails, the node fails; with 'Stop on first failure' the rest doesn't run.",
+    "parameters": {
+      "root": "ops",
+      "path": "nightly/",
+      "scripts": [ { "value": "nightly/1-export.py", "enabled": true }, { "value": "nightly/2-cleanup.sh", "enabled": true } ]
+    },
+    "output": [
+      { "script": "nightly/1-export.py", "success": true, "exitCode": 0, "reason": null, "matchedLine": null, "stdout": "Exported 1240 rows\n", "stderr": "", "durationMs": 5210 },
+      { "script": "nightly/2-cleanup.sh", "success": true, "exitCode": 0, "reason": null, "matchedLine": null, "stdout": "Removed 3 old files\n", "stderr": "", "durationMs": 140 }
+    ],
+    "verified": false
+  }
+]

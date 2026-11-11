@@ -1,0 +1,16 @@
+[
+  {
+    "title": "Deployment scripts from Git",
+    "description": "The repository is cloned for the run and deleted afterwards; each output item also names the commit that ran.",
+    "parameters": {
+      "server": "gitea",
+      "repository": "ops-scripts",
+      "branch": "main",
+      "scripts": [ { "value": "deploy/update.ps1", "enabled": true } ]
+    },
+    "output": [
+      { "script": "deploy/update.ps1", "success": true, "exitCode": 0, "reason": null, "matchedLine": null, "stdout": "Updated 2 services\n", "stderr": "", "durationMs": 9310, "commit": "4f2c9a1" }
+    ],
+    "verified": false
+  }
+]

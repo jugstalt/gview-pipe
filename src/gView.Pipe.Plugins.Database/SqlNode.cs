@@ -15,19 +15,25 @@ namespace gView.Pipe.Plugins.Database;
 
 public enum SqlProvider
 {
-    /// <summary>The provider named in the connection string credential.</summary>
+    [PipeEnumValue("The database named in the credential (sqlserver, postgres or sqlite)", Label = "From the credential")]
     FromCredential,
+
+    [PipeEnumValue("Microsoft SQL Server or Azure SQL", Label = "SQL Server")]
     SqlServer,
+
+    [PipeEnumValue("PostgreSQL", Label = "PostgreSQL")]
     PostgreSql,
+
+    [PipeEnumValue("A SQLite file", Label = "SQLite")]
     Sqlite
 }
 
 public enum SqlOperation
 {
-    /// <summary>Every result row becomes an item.</summary>
+    [PipeEnumValue("SELECT: every result row becomes an item")]
     Query,
 
-    /// <summary>INSERT, UPDATE, DELETE, …: one item with the number of affected rows.</summary>
+    [PipeEnumValue("INSERT, UPDATE, DELETE, …: one item with the number of affected rows")]
     Execute
 }
 
@@ -37,24 +43,24 @@ public sealed class SqlNodeParameters
     public const string ConnectionStringCredential = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f14";
 
     [Required, PipeCredential(ConnectionStringCredential)]
-    [PipeParameter(Label = "Connection", Order = 1, Expressions = false, Description = "Connection String credential: provider (sqlserver, postgres or sqlite) and connection string")]
+    [PipeParameter(Label = "Connection", Order = 1, Expressions = false, Description = "Connection String credential: which database (sqlserver, postgres or sqlite) and how to reach it")]
     public string? CredentialId { get; set; }
 
-    [PipeParameter(Label = "Database", Order = 2, Expressions = false,
-        Description = "From credential: its provider field (sqlserver, postgres or sqlite)")]
+    [PipeParameter(Label = "Database", Order = 2, Expressions = false, Advanced = true,
+        Description = "Kind of database; usually it comes from the credential")]
     public SqlProvider Provider { get; set; } = SqlProvider.FromCredential;
 
-    [PipeParameter(Label = "Operation", Order = 3, Expressions = false)]
+    [PipeParameter(Label = "Operation", Order = 3, Expressions = false, Description = "Read rows, or change data")]
     public SqlOperation Operation { get; set; } = SqlOperation.Query;
 
     [Required, PipeParameter(Label = "SQL", Order = 4, Code = true, CodeLanguage = "sql",
-        Description = "Use @name for values; they are passed as parameters, never inserted into the SQL text")]
+        Description = "The statement; use @name for values, e.g. WHERE id = @id. They are passed as parameters, never inserted into the SQL text")]
     public string Sql { get; set; } = "";
 
-    [PipeParameter(Label = "Parameters", Order = 5, Description = "@name → value or expression, evaluated per item")]
+    [PipeParameter(Label = "Parameters", Order = 5, Description = "@name → value, e.g. id → {{ $json.id }}; evaluated per item")]
     public Dictionary<string, JsonNode?> Parameters { get; set; } = new();
 
-    [PipeParameter(Label = "Timeout (seconds)", Order = 6, Expressions = false)]
+    [PipeParameter(Label = "Timeout (seconds)", Order = 6, Expressions = false, Advanced = true, Description = "Longest wait for a statement; 0 waits without limit")]
     [Range(0, 3600)]
     public int CommandTimeout { get; set; } = 30;
 }
@@ -70,6 +76,7 @@ internal sealed class ConnectionStringData
     Category = "Database",
     Description = "Runs SQL against SQL Server, PostgreSQL or SQLite, once per input item. "
                   + "Query returns the rows as items, Execute the number of affected rows.")]
+[PipeNodeExamples]
 public sealed class SqlNode : IPipeNode<SqlNodeParameters>
 {
     public async Task<PipeNodeResult> ExecuteAsync(IPipeNodeContext context, CancellationToken cancellationToken)

@@ -10,56 +10,72 @@ namespace gView.Pipe.Plugins.AzureStorage;
 
 public enum AzureBlobOperation
 {
+    [PipeEnumValue("One item per blob in a folder, with name, size and date")]
     List,
+
+    [PipeEnumValue("The content of a blob as an attachment")]
     Download,
+
+    [PipeEnumValue("An attachment of the item as a blob")]
     Upload,
+
+    [PipeEnumValue("Remove a blob")]
     Delete,
+
+    [PipeEnumValue("Give a blob a new name or move it, also into another container")]
     Rename
 }
 
 public sealed class AzureBlobNodeParameters
 {
     [Required, PipeCredential(AzureStorageCredential.TypeId)]
-    [PipeParameter(Label = "Storage account", Order = 1, Expressions = false, Description = "Azure Storage credential")]
+    [PipeParameter(Label = "Storage account", Order = 1, Expressions = false, Description = "The Azure Storage credential of the account")]
     public string? CredentialId { get; set; }
 
-    [PipeParameter(Label = "Operation", Order = 2, Expressions = false)]
+    [PipeParameter(Label = "Operation", Order = 2, Expressions = false, Description = "What to do")]
     public AzureBlobOperation Operation { get; set; } = AzureBlobOperation.List;
 
-    [Required, PipeParameter(Label = "Container", Order = 3, Placeholder = "incoming")]
+    [Required, PipeParameter(Label = "Container", Order = 3, Placeholder = "incoming", Description = "Container in the account, e.g. incoming")]
     public string Container { get; set; } = "";
 
     [PipeParameter(Label = "Path", Order = 4, Placeholder = "orders/2026/orders.csv",
-        Description = "Name of the blob; folders are parts before a /. List: the folder, empty for the whole container")]
+        Description = "Name of the blob, folders separated by /, e.g. orders/2026/a.csv; for List the folder, empty for the whole container")]
     public string Path { get; set; } = "";
 
-    [PipeParameter(Label = "New container", Order = 5, Description = "Rename: the target container; empty for the same")]
-    public string NewContainer { get; set; } = "";
-
-    [PipeParameter(Label = "New path", Order = 6, Description = "Rename: where the blob goes; also to move it")]
-    public string NewPath { get; set; } = "";
-
-    [PipeParameter(Label = "File pattern", Order = 7, Expressions = false, Placeholder = "*.csv",
-        Description = "List: * and ? on the name of the blob; capitals don't matter")]
+    [PipeParameter(Label = "File pattern", Order = 5, Expressions = false, Placeholder = "*.csv", ShowWhen = nameof(Operation), ShowWhenValues = ["list"],
+        Description = "Which blobs, e.g. *.csv; capitals don't matter")]
     public string Pattern { get; set; } = "*";
 
-    [PipeParameter(Label = "Include subfolders", Order = 8, Expressions = false, Description = "List")]
+    [PipeParameter(Label = "Include subfolders", Order = 6, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["list"],
+        Description = "List the blobs below the folder too")]
     public bool IncludeSubfolders { get; set; }
 
-    [PipeParameter(Label = "Overwrite", Order = 9, Expressions = false, Description = "Upload and Rename: replace a blob that exists. Otherwise that is an error")]
+    [PipeParameter(Label = "New container", Order = 7, ShowWhen = nameof(Operation), ShowWhenValues = ["rename"],
+        Description = "Target container; empty for the same")]
+    public string NewContainer { get; set; } = "";
+
+    [PipeParameter(Label = "New path", Order = 8, ShowWhen = nameof(Operation), ShowWhenValues = ["rename"],
+        Description = "Where the blob goes, e.g. done/a.csv")]
+    public string NewPath { get; set; } = "";
+
+    [PipeParameter(Label = "Overwrite", Order = 9, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["upload", "rename"],
+        Description = "Replace a blob that exists; otherwise that is an error")]
     public bool Overwrite { get; set; }
 
-    [PipeParameter(Label = "Create container", Order = 10, Expressions = false, Description = "Upload and Rename: create the container if it doesn't exist")]
+    [PipeParameter(Label = "Create container", Order = 10, Expressions = false, Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["upload", "rename"],
+        Description = "Create the container if it doesn't exist")]
     public bool CreateContainer { get; set; }
 
-    [PipeParameter(Label = "Binary property", Order = 11, Expressions = false, Description = "Download: where the content goes. Upload: where it comes from")]
+    [PipeParameter(Label = "Attachment name", Order = 11, Expressions = false, Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["download", "upload"],
+        Description = "Download: name of the new attachment. Upload: the attachment to upload. data if empty")]
     public string BinaryProperty { get; set; } = "data";
 
-    [PipeParameter(Label = "Max file size (MB)", Order = 12, Expressions = false, Description = "Download: larger blobs are refused before they are loaded")]
+    [PipeParameter(Label = "Max file size (MB)", Order = 12, Expressions = false, Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["download"],
+        Description = "Larger blobs are refused before they are loaded")]
     [Range(1, 10240)]
     public int MaxFileSizeMb { get; set; } = 100;
 
-    [PipeParameter(Label = "Timeout (seconds)", Order = 13, Expressions = false, Description = "For each request to Azure")]
+    [PipeParameter(Label = "Timeout (seconds)", Order = 13, Expressions = false, Advanced = true, Description = "Longest wait for each request to Azure")]
     [Range(1, 3600)]
     public int TimeoutSeconds { get; set; } = 30;
 }
@@ -68,6 +84,7 @@ public sealed class AzureBlobNodeParameters
     Category = "Files",
     Description = "Lists, downloads, uploads, deletes and renames blobs in Azure Blob Storage. Runs once per input item. "
                   + "Content comes and goes as binary attachments of the items; Read File and Write File connect it to local folders.")]
+[PipeNodeExamples]
 public sealed class AzureBlobNode : IPipeNode<AzureBlobNodeParameters>
 {
     public const string NodeId = "eff26ad3-e0ba-4a53-9e43-c9fbfa5066b2";

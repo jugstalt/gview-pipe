@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Run a backup script",
+    "description": "One run per input item; the output item tells whether it worked, with exit code and what the script printed.",
+    "parameters": { "root": "ops", "script": "backup.ps1", "arguments": "--target {{ $json.server }}" },
+    "input": [
+      { "server": "db01" }
+    ],
+    "output": [
+      { "script": "backup.ps1", "success": true, "exitCode": 0, "reason": null, "matchedLine": null, "stdout": "Backup of db01 done: 2.1 GB\n", "stderr": "", "durationMs": 18420 }
+    ],
+    "verified": false
+  }
+]

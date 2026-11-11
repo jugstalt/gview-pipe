@@ -1,0 +1,23 @@
+[
+  {
+    "title": "List the CSV files of a folder",
+    "description": "One item per blob; Download then fetches each one.",
+    "parameters": { "operation": "list", "container": "incoming", "path": "orders", "pattern": "*.csv" },
+    "output": [
+      { "fileName": "2026-11.csv", "container": "incoming", "path": "orders/2026-11.csv", "size": 2048, "modifiedAt": "2026-11-11T07:30:00.0000000Z", "contentType": "text/csv", "etag": "0x8DD1" }
+    ],
+    "verified": false
+  },
+  {
+    "title": "Upload a file",
+    "description": "Uploads the attachment data of each item, e.g. a CSV from Convert to File.",
+    "parameters": { "operation": "upload", "container": "exports", "path": "orders/{{ $json.fileName }}", "overwrite": true },
+    "input": [
+      { "fileName": "orders.csv", "$binary": { "data": { "fileName": "orders.csv", "mimeType": "text/csv" } } }
+    ],
+    "output": [
+      { "fileName": "orders.csv", "container": "exports", "path": "orders/orders.csv", "size": 28, "$binary": { "data": { "fileName": "orders.csv", "mimeType": "text/csv" } } }
+    ],
+    "verified": false
+  }
+]

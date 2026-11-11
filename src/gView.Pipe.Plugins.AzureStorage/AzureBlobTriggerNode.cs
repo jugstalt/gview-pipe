@@ -11,54 +11,60 @@ namespace gView.Pipe.Plugins.AzureStorage;
 
 public enum AzureBlobAfterProcessing
 {
-    /// <summary>The blobs stay. Only blobs that are new after the first check are reported.</summary>
+    [PipeEnumValue("The blobs stay; only blobs that are new after the first check are reported", Label = "Leave them")]
     Nothing,
 
-    /// <summary>Every blob counts; after the run has started it is moved to the target folder.</summary>
+    [PipeEnumValue("Every blob counts and is moved to the target folder once the run has started", Label = "Move to folder")]
     MoveToFolder,
 
-    /// <summary>Every blob counts; after the run has started it is deleted.</summary>
+    [PipeEnumValue("Every blob counts and is deleted once the run has started")]
     Delete
 }
 
 public enum AzureBlobTriggerEvents
 {
+    [PipeEnumValue("Only blobs that weren't there before", Label = "New blobs")]
     Created,
+
+    [PipeEnumValue("New blobs, and blobs whose content changed", Label = "New or changed blobs")]
     CreatedOrChanged
 }
 
 public sealed class AzureBlobTriggerNodeParameters
 {
     [Required, PipeCredential(AzureStorageCredential.TypeId)]
-    [PipeParameter(Label = "Storage account", Order = 1, Expressions = false, Description = "Azure Storage credential")]
+    [PipeParameter(Label = "Storage account", Order = 1, Expressions = false, Description = "The Azure Storage credential of the account")]
     public string? CredentialId { get; set; }
 
-    [Required, PipeParameter(Label = "Container", Order = 2, Expressions = false, Placeholder = "incoming")]
+    [Required, PipeParameter(Label = "Container", Order = 2, Expressions = false, Placeholder = "incoming", Description = "Container to watch, e.g. incoming")]
     public string Container { get; set; } = "";
 
-    [PipeParameter(Label = "Path", Order = 3, Expressions = false, Placeholder = "orders", Description = "A folder in the container; empty for the whole container")]
+    [PipeParameter(Label = "Path", Order = 3, Expressions = false, Placeholder = "orders", Description = "A folder in the container, e.g. orders; empty for the whole container")]
     public string Path { get; set; } = "";
 
-    [PipeParameter(Label = "File pattern", Order = 4, Expressions = false, Placeholder = "*.csv", Description = "* and ? on the name of the blob; capitals don't matter")]
+    [PipeParameter(Label = "File pattern", Order = 4, Expressions = false, Placeholder = "*.csv", Description = "Which blobs count, e.g. *.csv; capitals don't matter")]
     public string Pattern { get; set; } = "*";
 
-    [PipeParameter(Label = "Include subfolders", Order = 5, Expressions = false)]
+    [PipeParameter(Label = "Include subfolders", Order = 5, Expressions = false, Advanced = true, Description = "Watch the folders below the path too")]
     public bool IncludeSubfolders { get; set; }
 
     [PipeParameter(Label = "After processing", Order = 6, Expressions = false,
-        Description = "What happens to a blob once the run has started. Move and Delete take every blob, also those that were there before; Nothing only reports blobs that are new")]
+        Description = "What happens to a blob once the run has started")]
     public AzureBlobAfterProcessing AfterProcessing { get; set; } = AzureBlobAfterProcessing.MoveToFolder;
 
-    [PipeParameter(Label = "Target container", Order = 7, Expressions = false, Description = "Move to folder: empty for the same container; created if it doesn't exist")]
+    [PipeParameter(Label = "Target container", Order = 7, Expressions = false, Advanced = true, ShowWhen = nameof(AfterProcessing), ShowWhenValues = ["moveToFolder"],
+        Description = "Container for processed blobs; empty for the same, created if it doesn't exist")]
     public string? TargetContainer { get; set; }
 
-    [PipeParameter(Label = "Target folder", Order = 8, Expressions = false, Placeholder = "done", Description = "Move to folder: the folder the blobs go to")]
+    [PipeParameter(Label = "Target folder", Order = 8, Expressions = false, Placeholder = "done", ShowWhen = nameof(AfterProcessing), ShowWhenValues = ["moveToFolder"],
+        Description = "Folder for processed blobs, e.g. done")]
     public string? TargetFolder { get; set; }
 
-    [PipeParameter(Label = "Events", Order = 9, Expressions = false, Description = "Nothing: report only new blobs, or changed ones too")]
+    [PipeParameter(Label = "Events", Order = 9, Expressions = false, ShowWhen = nameof(AfterProcessing), ShowWhenValues = ["nothing"],
+        Description = "Report only new blobs, or changed ones too")]
     public AzureBlobTriggerEvents Events { get; set; } = AzureBlobTriggerEvents.Created;
 
-    [PipeParameter(Label = "Check every (seconds)", Order = 10, Expressions = false)]
+    [PipeParameter(Label = "Check every (seconds)", Order = 10, Expressions = false, Advanced = true, Description = "How often the container is checked")]
     [Range(10, 86400)]
     public int IntervalSeconds { get; set; } = 60;
 }
@@ -68,6 +74,7 @@ public sealed class AzureBlobTriggerNodeParameters
     Description = "Starts the workflow when blobs appear in a container of Azure Blob Storage, while the workflow is active. "
                   + "Checks at an interval; one run per check, with one item per blob like the List of the Azure Blob node. "
                   + "By default the blobs are moved to a target folder once the run has started; the Azure Blob node's Download fetches the content.")]
+[PipeNodeExamples]
 public sealed class AzureBlobTriggerNode : IPipeTriggerNode, IPipeNode<AzureBlobTriggerNodeParameters>
 {
     public const string NodeId = "b5ed26a2-4701-4514-b8ec-64a7f6639766";

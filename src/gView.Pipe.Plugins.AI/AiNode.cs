@@ -14,112 +14,138 @@ namespace gView.Pipe.Plugins.AI;
 
 public enum AiTask
 {
-    /// <summary>The author's prompt; the answer as text.</summary>
+    [PipeEnumValue("Your own question or instruction; the answer as text in text")]
     Prompt,
 
-    /// <summary>One of the categories, and a short reason.</summary>
+    [PipeEnumValue("Sort into one of your categories, e.g. complaint, question; in category with a short reason")]
     Classify,
 
-    /// <summary>The fields as an object, matching their types.</summary>
+    [PipeEnumValue("Read fields out of text or a document, e.g. invoice number and total; in data")]
     Extract,
 
-    /// <summary>A summary of the given length.</summary>
+    [PipeEnumValue("A summary in summary")]
     Summarize
 }
 
 public enum AiInput
 {
-    /// <summary>The JSON of the item.</summary>
+    [PipeEnumValue("All fields of the item as JSON")]
     WholeItem,
 
-    /// <summary>The value of an expression, e.g. a field.</summary>
+    [PipeEnumValue("One value, e.g. {{ $json.text }}", Label = "A field")]
     Field,
 
-    /// <summary>A binary attachment: PDF, image or text.</summary>
+    [PipeEnumValue("An attached file: PDF, image (PNG, JPEG, GIF, WebP) or text", Label = "An attachment")]
     Attachment,
 
-    /// <summary>Nothing but the prompt (Prompt only).</summary>
+    [PipeEnumValue("Nothing but the prompt (Prompt only)", Label = "Only the prompt")]
     None
 }
 
 public enum AiRun
 {
+    [PipeEnumValue("One call per item, one after the other", Label = "Once per item")]
     EachItem,
+
+    [PipeEnumValue("All items in one call, one output item", Label = "Once for all items")]
     OnceForAllItems
 }
 
 public enum AiModel
 {
+    [PipeEnumValue("The most capable model; best for documents and hard cases", Label = "Claude Opus 5.5")]
     ClaudeOpus55,
+
+    [PipeEnumValue("Fast and capable, cheaper", Label = "Claude Sonnet 5.5")]
     ClaudeSonnet55,
+
+    [PipeEnumValue("Fastest and cheapest, for simple sorting", Label = "Claude Haiku 5.5")]
     ClaudeHaiku55
 }
 
 public enum AiEffort
 {
-    /// <summary>Low for Classify and Extract, medium for Prompt and Summarize.</summary>
+    [PipeEnumValue("Low for Classify and Extract, medium for Prompt and Summarize")]
     Auto,
+
+    [PipeEnumValue("Quick answers, few tokens")]
     Low,
+
+    [PipeEnumValue("Balanced")]
     Medium,
+
+    [PipeEnumValue("Thinks longer, more tokens; for hard questions")]
     High
 }
 
 public enum AiSummaryLength
 {
+    [PipeEnumValue("One or two sentences")]
     Short,
+
+    [PipeEnumValue("A paragraph")]
     Medium,
+
+    [PipeEnumValue("Several paragraphs")]
     Long
 }
 
 public sealed class AiNodeParameters
 {
     [Required, PipeCredential(AnthropicCredential.TypeId, AzureOpenAICredential.TypeId)]
-    [PipeParameter(Label = "API", Order = 1, Expressions = false, Description = "Anthropic API (Claude) or Azure OpenAI credential; it decides which model service answers")]
+    [PipeParameter(Label = "API", Order = 1, Expressions = false, Description = "Anthropic API (Claude) or Azure OpenAI credential; it decides which service answers")]
     public string? CredentialId { get; set; }
 
-    [PipeParameter(Label = "Task", Order = 2, Expressions = false,
-        Description = "Prompt: free answer in text. Classify: one of the categories in category. Extract: the fields in data. Summarize: a summary in summary")]
+    [PipeParameter(Label = "Task", Order = 2, Expressions = false, Description = "What the model should do")]
     public AiTask Task { get; set; } = AiTask.Prompt;
 
-    [PipeParameter(Label = "Prompt", Order = 3, Multiline = true, Description = "Prompt: what the model should do with the input")]
+    [PipeParameter(Label = "Prompt", Order = 3, Multiline = true, ShowWhen = nameof(Task), ShowWhenValues = ["prompt"],
+        Description = "What the model should do with the input, e.g. Write a friendly answer to this mail")]
     public string Prompt { get; set; } = "";
 
-    [PipeParameter(Label = "Categories", Order = 4, Expressions = false, Description = "Classify: the answer is always one of these")]
+    [PipeParameter(Label = "Categories", Order = 4, Expressions = false, ShowWhen = nameof(Task), ShowWhenValues = ["classify"],
+        Description = "The possible answers, e.g. complaint, question, praise; the answer is always one of them")]
     public List<string> Categories { get; set; } = new();
 
-    [PipeParameter(Label = "Fields", Order = 5, Expressions = false, Placeholder = "number: the total amount with VAT",
-        Description = "Extract: field name and what it means. Start the description with string:, number:, boolean: or date: for the type (string without). Fields the input doesn't hold are null")]
+    [PipeParameter(Label = "Fields", Order = 5, Expressions = false, Placeholder = "number: the total amount with VAT", ShowWhen = nameof(Task), ShowWhenValues = ["extract"],
+        Description = "Field name → what it means, e.g. total → number: the total with VAT; start with string:, number:, boolean: or date:. Missing fields are null")]
     public Dictionary<string, string> Fields { get; set; } = new();
 
-    [PipeParameter(Label = "Length", Order = 6, Expressions = false, Description = "Summarize")]
+    [PipeParameter(Label = "Length", Order = 6, Expressions = false, ShowWhen = nameof(Task), ShowWhenValues = ["summarize"],
+        Description = "How long the summary is")]
     public AiSummaryLength SummaryLength { get; set; } = AiSummaryLength.Medium;
 
-    [PipeParameter(Label = "Input", Order = 7, Expressions = false, Description = "What goes to the model: the whole item, a field, an attachment, or nothing but the prompt")]
+    [PipeParameter(Label = "Input", Order = 7, Expressions = false, Description = "What goes to the model")]
     public AiInput Input { get; set; } = AiInput.WholeItem;
 
-    [PipeParameter(Label = "Field", Order = 8, Placeholder = "{{ $json.text }}", Description = "Input = Field: an expression for the text")]
+    [PipeParameter(Label = "Field", Order = 8, Placeholder = "{{ $json.text }}", ShowWhen = nameof(Input), ShowWhenValues = ["field"],
+        Description = "The text to send, e.g. {{ $json.text }}")]
     public string InputValue { get; set; } = "";
 
-    [PipeParameter(Label = "Attachment", Order = 9, Expressions = false, Description = "Input = Attachment: the name of the binary attachment (PDF, PNG, JPEG, GIF, WebP or text)")]
+    [PipeParameter(Label = "Attachment", Order = 9, Expressions = false, ShowWhen = nameof(Input), ShowWhenValues = ["attachment"],
+        Description = "Name of the attachment, e.g. data or attachment1 of a mail")]
     public string BinaryProperty { get; set; } = "data";
 
-    [PipeParameter(Label = "Instructions", Order = 10, Multiline = true, Description = "Optional: more instructions for every task, e.g. the language of the answer")]
+    [PipeParameter(Label = "Instructions", Order = 10, Multiline = true, Advanced = true,
+        Description = "More instructions for every task, e.g. Answer in German")]
     public string Instructions { get; set; } = "";
 
-    [PipeParameter(Label = "Run", Order = 11, Expressions = false, Description = "Each item: one call per item. Once for all items: all items in one call, one output item")]
+    [PipeParameter(Label = "Run", Order = 11, Expressions = false, Advanced = true, Description = "One call per item, or one call for all items")]
     public AiRun Run { get; set; } = AiRun.EachItem;
 
-    [PipeParameter(Label = "Model", Order = 12, Expressions = false)]
+    [PipeParameter(Label = "Model", Order = 12, Expressions = false, Advanced = true, Description = "Which Claude model answers; Azure OpenAI uses the deployment of the credential")]
     public AiModel Model { get; set; } = AiModel.ClaudeOpus55;
 
-    [PipeParameter(Label = "Effort", Order = 13, Expressions = false, Description = "How deep the model thinks, and how many tokens it uses. Auto: low for Classify and Extract, medium otherwise")]
+    [PipeParameter(Label = "Effort", Order = 13, Expressions = false, Advanced = true, Description = "How deep the model thinks, and how many tokens it uses")]
     public AiEffort Effort { get; set; } = AiEffort.Auto;
 
-    [PipeParameter(Label = "Max output tokens", Order = 14, Expressions = false, Description = "0: a default for the task. An answer cut off at this limit is an error")]
+    [PipeParameter(Label = "Max output tokens", Order = 14, Expressions = false, Advanced = true,
+        Description = "Longest answer; 0: a default for the task. An answer cut off at this limit is an error")]
     [Range(0, 64000)]
     public int MaxTokens { get; set; }
 
-    [PipeParameter(Label = "Pause between calls (ms)", Order = 15, Expressions = false, Description = "Each item: waits this long before each call but the first")]
+    [PipeParameter(Label = "Pause between calls (ms)", Order = 15, Expressions = false, Advanced = true, ShowWhen = nameof(Run), ShowWhenValues = ["eachItem"],
+        Description = "Waits this long before each call but the first, e.g. 1000 for a rate limit")]
     [Range(0, 600000)]
     public int DelayMs { get; set; }
 }
@@ -128,6 +154,7 @@ public sealed class AiNodeParameters
     Category = "AI",
     Description = "Asks a language model (Claude, or a deployment of Azure OpenAI) about the items: answers a prompt, classifies, extracts fields or summarizes. "
                   + "The data of the items goes to the service of the credential. What the model returns is data, not trusted control: check it before it triggers anything.")]
+[PipeNodeExamples]
 public sealed class AiNode : IPipeNode<AiNodeParameters>
 {
     public const string NodeId = "3fcdd4cb-dbb4-49f0-a892-dd04dce6f916";

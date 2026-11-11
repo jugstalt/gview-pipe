@@ -1,0 +1,11 @@
+[
+  {
+    "title": "New files on the partner's server",
+    "description": "One item per complete file; it moves to /done once the run has started. Download with the SFTP node fetches the content.",
+    "parameters": { "path": "/outgoing", "pattern": "*.csv", "afterProcessing": "moveToFolder", "targetFolder": "/done" },
+    "output": [
+      { "fileName": "orders.csv", "path": "/outgoing/orders.csv", "size": 2048, "modifiedAt": "2026-11-11T07:30:00.0000000Z", "isDirectory": false, "event": "created" }
+    ],
+    "verified": false
+  }
+]

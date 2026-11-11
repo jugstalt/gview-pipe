@@ -12,48 +12,53 @@ namespace gView.Pipe.Plugins.Sftp;
 
 public enum SftpAfterProcessing
 {
-    /// <summary>The files stay. Only files that are new after the first check are reported.</summary>
+    [PipeEnumValue("The files stay; only files that are new after the first check are reported", Label = "Leave them")]
     Nothing,
 
-    /// <summary>Every file counts; after the run has started it is moved to the target folder.</summary>
+    [PipeEnumValue("Every file counts and is moved to the target folder once the run has started", Label = "Move to folder")]
     MoveToFolder,
 
-    /// <summary>Every file counts; after the run has started it is deleted.</summary>
+    [PipeEnumValue("Every file counts and is deleted once the run has started")]
     Delete
 }
 
 public enum SftpTriggerEvents
 {
+    [PipeEnumValue("Only files that weren't there before", Label = "New files")]
     Created,
+
+    [PipeEnumValue("New files, and files whose size or time changed", Label = "New or changed files")]
     CreatedOrChanged
 }
 
 public sealed class SftpTriggerNodeParameters
 {
     [Required, PipeCredential(SftpCredential.TypeId)]
-    [PipeParameter(Label = "Server", Order = 1, Expressions = false, Description = "SFTP Server credential")]
+    [PipeParameter(Label = "Server", Order = 1, Expressions = false, Description = "The SFTP Server credential: host, login and host key fingerprint")]
     public string? CredentialId { get; set; }
 
-    [Required, PipeParameter(Label = "Path", Order = 2, Expressions = false, Placeholder = "/outgoing", Description = "Folder on the server")]
+    [Required, PipeParameter(Label = "Path", Order = 2, Expressions = false, Placeholder = "/outgoing", Description = "Folder on the server to watch, e.g. /outgoing")]
     public string Path { get; set; } = "";
 
-    [PipeParameter(Label = "File pattern", Order = 3, Expressions = false, Placeholder = "*.csv", Description = "* and ? are allowed; capitals don't matter")]
+    [PipeParameter(Label = "File pattern", Order = 3, Expressions = false, Placeholder = "*.csv", Description = "Which files count, e.g. *.csv; capitals don't matter")]
     public string Pattern { get; set; } = "*";
 
-    [PipeParameter(Label = "Include subfolders", Order = 4, Expressions = false)]
+    [PipeParameter(Label = "Include subfolders", Order = 4, Expressions = false, Advanced = true, Description = "Watch the folders below the path too")]
     public bool IncludeSubfolders { get; set; }
 
     [PipeParameter(Label = "After processing", Order = 5, Expressions = false,
-        Description = "What happens to a file once the run has started. Move and Delete take every file, also those that were there before; Nothing only reports files that are new")]
+        Description = "What happens to a file once the run has started")]
     public SftpAfterProcessing AfterProcessing { get; set; } = SftpAfterProcessing.MoveToFolder;
 
-    [PipeParameter(Label = "Target folder", Order = 6, Description = "Move to folder: a folder on the server; created if it doesn't exist")]
+    [PipeParameter(Label = "Target folder", Order = 6, ShowWhen = nameof(AfterProcessing), ShowWhenValues = ["moveToFolder"],
+        Description = "Folder on the server for processed files, e.g. /done; created if it doesn't exist")]
     public string? TargetFolder { get; set; }
 
-    [PipeParameter(Label = "Events", Order = 7, Expressions = false, Description = "Nothing: report only new files, or changed ones too")]
+    [PipeParameter(Label = "Events", Order = 7, Expressions = false, ShowWhen = nameof(AfterProcessing), ShowWhenValues = ["nothing"],
+        Description = "Report only new files, or changed ones too")]
     public SftpTriggerEvents Events { get; set; } = SftpTriggerEvents.Created;
 
-    [PipeParameter(Label = "Check every (seconds)", Order = 8, Expressions = false,
+    [PipeParameter(Label = "Check every (seconds)", Order = 8, Expressions = false, Advanced = true,
         Description = "A file is reported when it was unchanged in two checks in a row, so it comes after up to two intervals")]
     [Range(10, 86400)]
     public int IntervalSeconds { get; set; } = 60;
@@ -64,6 +69,7 @@ public sealed class SftpTriggerNodeParameters
     Description = "Starts the workflow when files appear in a folder on an SFTP server, while the workflow is active. "
                   + "Checks at an interval and reports a file once it is complete. One run per check, with one item per file like the List of the SFTP node. "
                   + "By default the files are moved to a target folder once the run has started, so the server holds the state; the SFTP node's Download fetches the content.")]
+[PipeNodeExamples]
 public sealed class SftpTriggerNode : IPipeTriggerNode, IPipeNode<SftpTriggerNodeParameters>
 {
     public const string NodeId = "a0b3ee21-1108-4a67-ac21-d7cb5ce99ad8";

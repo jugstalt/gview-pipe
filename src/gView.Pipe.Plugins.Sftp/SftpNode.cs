@@ -10,53 +10,69 @@ namespace gView.Pipe.Plugins.Sftp;
 
 public enum SftpOperation
 {
+    [PipeEnumValue("One item per file in a folder, with name, size and date")]
     List,
+
+    [PipeEnumValue("The content of a file as an attachment")]
     Download,
+
+    [PipeEnumValue("An attachment of the item as a file on the server")]
     Upload,
+
+    [PipeEnumValue("Remove a file")]
     Delete,
+
+    [PipeEnumValue("Give a file a new name or move it")]
     Rename
 }
 
 public sealed class SftpNodeParameters
 {
     [Required, PipeCredential(SftpCredential.TypeId)]
-    [PipeParameter(Label = "Server", Order = 1, Expressions = false, Description = "SFTP Server credential")]
+    [PipeParameter(Label = "Server", Order = 1, Expressions = false, Description = "The SFTP Server credential: host, login and host key fingerprint")]
     public string? CredentialId { get; set; }
 
-    [PipeParameter(Label = "Operation", Order = 2, Expressions = false)]
+    [PipeParameter(Label = "Operation", Order = 2, Expressions = false, Description = "What to do")]
     public SftpOperation Operation { get; set; } = SftpOperation.List;
 
     [Required, PipeParameter(Label = "Path", Order = 3, Placeholder = "/outgoing/orders.csv",
-        Description = "Path on the server: the folder for List, otherwise the file")]
+        Description = "Path on the server: the folder for List, e.g. /outgoing, otherwise the file, e.g. /outgoing/orders.csv")]
     public string Path { get; set; } = "";
 
-    [PipeParameter(Label = "New path", Order = 4, Description = "Rename: where the file goes; also to move it")]
+    [PipeParameter(Label = "New path", Order = 4, ShowWhen = nameof(Operation), ShowWhenValues = ["rename"],
+        Description = "Where the file goes, e.g. /done/orders.csv")]
     public string NewPath { get; set; } = "";
 
-    [PipeParameter(Label = "File pattern", Order = 5, Expressions = false, Placeholder = "*.csv",
-        Description = "List: * and ? are allowed; capitals don't matter")]
+    [PipeParameter(Label = "File pattern", Order = 5, Expressions = false, Placeholder = "*.csv", ShowWhen = nameof(Operation), ShowWhenValues = ["list"],
+        Description = "Which files, e.g. *.csv; capitals don't matter")]
     public string Pattern { get; set; } = "*";
 
-    [PipeParameter(Label = "Include subfolders", Order = 6, Expressions = false, Description = "List")]
+    [PipeParameter(Label = "Include subfolders", Order = 6, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["list"],
+        Description = "List the files below the folder too")]
     public bool IncludeSubfolders { get; set; }
 
-    [PipeParameter(Label = "Include folders", Order = 7, Expressions = false, Description = "List: folders become items too")]
+    [PipeParameter(Label = "Include folders", Order = 7, Expressions = false, Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["list"],
+        Description = "Folders become items too")]
     public bool IncludeDirectories { get; set; }
 
-    [PipeParameter(Label = "Overwrite", Order = 8, Expressions = false, Description = "Upload and Rename: replace a file that exists. Otherwise that is an error")]
+    [PipeParameter(Label = "Overwrite", Order = 8, Expressions = false, ShowWhen = nameof(Operation), ShowWhenValues = ["upload", "rename"],
+        Description = "Replace a file that exists; otherwise that is an error")]
     public bool Overwrite { get; set; }
 
-    [PipeParameter(Label = "Create folders", Order = 9, Expressions = false, Description = "Upload and Rename: create the folders of the target that are missing")]
+    [PipeParameter(Label = "Create folders", Order = 9, Expressions = false, Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["upload", "rename"],
+        Description = "Create the folders of the target that are missing")]
     public bool CreateFolders { get; set; }
 
-    [PipeParameter(Label = "Binary property", Order = 10, Expressions = false, Description = "Download: where the content goes. Upload: where it comes from")]
+    [PipeParameter(Label = "Attachment name", Order = 10, Expressions = false, Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["download", "upload"],
+        Description = "Download: name of the new attachment. Upload: the attachment to upload. data if empty")]
     public string BinaryProperty { get; set; } = "data";
 
-    [PipeParameter(Label = "Max file size (MB)", Order = 11, Expressions = false, Description = "Download: larger files are refused before they are loaded")]
+    [PipeParameter(Label = "Max file size (MB)", Order = 11, Expressions = false, Advanced = true, ShowWhen = nameof(Operation), ShowWhenValues = ["download"],
+        Description = "Larger files are refused before they are loaded")]
     [Range(1, 10240)]
     public int MaxFileSizeMb { get; set; } = 100;
 
-    [PipeParameter(Label = "Timeout (seconds)", Order = 12, Expressions = false, Description = "For connecting and for each operation")]
+    [PipeParameter(Label = "Timeout (seconds)", Order = 12, Expressions = false, Advanced = true, Description = "Longest wait for connecting and for each operation")]
     [Range(1, 3600)]
     public int TimeoutSeconds { get; set; } = 30;
 }
@@ -66,6 +82,7 @@ public sealed class SftpNodeParameters
     Description = "Lists, downloads, uploads, deletes and renames files on an SFTP server. Runs once per input item over one connection. "
                   + "Content comes and goes as binary attachments of the items; Read File and Write File connect it to local folders. "
                   + "The server's host key fingerprint is part of the credential and is checked.")]
+[PipeNodeExamples]
 public sealed class SftpNode : IPipeNode<SftpNodeParameters>
 {
     public const string NodeId = "2c85ff47-8cf5-4aec-9c08-04f38b56d20a";

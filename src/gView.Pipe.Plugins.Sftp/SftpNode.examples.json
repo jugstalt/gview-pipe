@@ -1,0 +1,19 @@
+[
+  {
+    "title": "Download a file from a partner",
+    "description": "The file comes as the attachment data, e.g. for Extract from File or Write File.",
+    "parameters": { "operation": "download", "path": "/outgoing/orders.csv" },
+    "output": [
+      { "path": "/outgoing/orders.csv", "fileName": "orders.csv", "size": 2048, "$binary": { "data": { "fileName": "orders.csv", "mimeType": "text/csv" } } }
+    ],
+    "verified": false
+  },
+  {
+    "title": "List the files of a folder",
+    "parameters": { "operation": "list", "path": "/outgoing", "pattern": "*.csv" },
+    "output": [
+      { "isDirectory": false, "fileName": "orders.csv", "path": "/outgoing/orders.csv", "size": 2048, "modifiedAt": "2026-11-11T07:30:00.0000000Z" }
+    ],
+    "verified": false
+  }
+]
