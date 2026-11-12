@@ -74,8 +74,15 @@ public class HttpRequestNodeTests
             InputItems = Enumerable.Range(0, 3).Select(_ => new gView.Pipe.Abstraction.Data.PipeItem(new System.Text.Json.Nodes.JsonObject())).ToList()
         };
 
+        var engine = services.GetRequiredService<IPipeEngine>();
+
+        // warm-up run without timing: the first execution pays JIT and engine start-up costs,
+        // which would otherwise count against the pause bounds below (see Release runs of the build)
+        await engine.ExecuteAsync(workflow, request);
+        handler.Requests.Clear();
+
         var watch = System.Diagnostics.Stopwatch.StartNew();
-        var execution = await services.GetRequiredService<IPipeEngine>().ExecuteAsync(workflow, request);
+        var execution = await engine.ExecuteAsync(workflow, request);
         watch.Stop();
 
         Assert.True(execution.Status == PipeExecutionStatus.Success, execution.Error);
